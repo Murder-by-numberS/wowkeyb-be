@@ -48,9 +48,12 @@
     "seed-rogue-abilities:dev": "node --env-file .env.development src/scripts/seeds/abilities/seedRogueAbilities.js",
     "seed-rogue-abilities:staging": "node --env-file .env.staging src/scripts/seeds/abilities/seedRogueAbilities.js",
     "seed-rogue-abilities:prod": "node --env-file .env.production src/scripts/seeds/abilities/seedRogueAbilities.js",
-    "seed-all-abilities:dev": "npm run seed-paladin-abilities:dev && npm run seed-warrior-abilities:dev && npm run seed-priest-abilities:dev && npm run seed-mage-abilities:dev && npm run seed-shaman-abilities:dev && npm run seed-evoker-abilities:dev && npm run seed-rogue-abilities:dev",
-    "seed-all-abilities:staging": "npm run seed-paladin-abilities:staging && npm run seed-warrior-abilities:staging && npm run seed-priest-abilities:staging && npm run seed-mage-abilities:staging && npm run seed-shaman-abilities:staging && npm run seed-evoker-abilities:staging && npm run seed-rogue-abilities:staging",
-    "seed-all-abilities:prod": "npm run seed-paladin-abilities:prod && npm run seed-warrior-abilities:prod && npm run seed-priest-abilities:prod && npm run seed-mage-abilities:prod && npm run seed-shaman-abilities:prod && npm run seed-evoker-abilities:prod && npm run seed-rogue-abilities:prod"
+    "seed-monk-abilities:dev": "node --env-file .env.development src/scripts/seeds/abilities/seedMonkAbilities.js",
+    "seed-monk-abilities:staging": "node --env-file .env.staging src/scripts/seeds/abilities/seedMonkAbilities.js",
+    "seed-monk-abilities:prod": "node --env-file .env.production src/scripts/seeds/abilities/seedMonkAbilities.js",
+    "seed-all-abilities:dev": "npm run seed-paladin-abilities:dev && npm run seed-warrior-abilities:dev && npm run seed-priest-abilities:dev && npm run seed-mage-abilities:dev && npm run seed-shaman-abilities:dev && npm run seed-evoker-abilities:dev && npm run seed-rogue-abilities:dev && npm run seed-monk-abilities:dev",
+    "seed-all-abilities:staging": "npm run seed-paladin-abilities:staging && npm run seed-warrior-abilities:staging && npm run seed-priest-abilities:staging && npm run seed-mage-abilities:staging && npm run seed-shaman-abilities:staging && npm run seed-evoker-abilities:staging && npm run seed-rogue-abilities:staging && npm run seed-monk-abilities:staging",
+    "seed-all-abilities:prod": "npm run seed-paladin-abilities:prod && npm run seed-warrior-abilities:prod && npm run seed-priest-abilities:prod && npm run seed-mage-abilities:prod && npm run seed-shaman-abilities:prod && npm run seed-evoker-abilities:prod && npm run seed-rogue-abilities:prod && npm run seed-monk-abilities:prod"
   },
   "author": "Logan Born",
   "license": "MIT",

@@ -1,0 +1,84 @@
+{
+  "versionRules": {
+    "major": {
+      "description": "Breaking changes - manual only",
+      "patterns": [
+        "BREAKING CHANGE",
+        "breaking change",
+        "major version"
+      ],
+      "files": [
+        "src/routes/api/",
+        "src/models/"
+      ]
+    },
+    "minor": {
+      "description": "New functionality",
+      "patterns": [
+        "feat:",
+        "feature:",
+        "new:"
+      ],
+      "files": [
+        "src/routes/",
+        "src/controllers/",
+        "src/models/",
+        "src/middlewares/",
+        "src/validators/",
+        "src/presenters/",
+        "src/utils/"
+      ],
+      "fileExtensions": [".js", ".ts"]
+    },
+    "patch": {
+      "description": "Bug fixes and improvements",
+      "patterns": [
+        "fix:",
+        "bugfix:",
+        "refactor:",
+        "docs:",
+        "style:",
+        "test:",
+        "chore:"
+      ],
+      "files": [
+        "src/config/",
+        "src/scripts/",
+        "tests/",
+        ".eslintrc",
+        ".gitignore",
+        "README.md",
+        "package.json"
+      ]
+    }
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".git/",
+    "*.log",
+    "*.tmp",
+    ".DS_Store"
+  ],
+  "commitMessagePatterns": {
+    "major": [
+      "BREAKING CHANGE",
+      "breaking change",
+      "major version"
+    ],
+    "minor": [
+      "feat:",
+      "feature:",
+      "new:",
+      "add:"
+    ],
+    "patch": [
+      "fix:",
+      "bugfix:",
+      "refactor:",
+      "docs:",
+      "style:",
+      "test:",
+      "chore:"
+    ]
+  }
+}

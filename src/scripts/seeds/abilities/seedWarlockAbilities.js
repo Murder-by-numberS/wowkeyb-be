@@ -371,7 +371,7 @@ const specAndHeroActives = [
     cost_amount: 0
   },
   {
-    name: 'Agony',
+    name: 'Curse of Agony',
     spell_id: '980',
     description: 'Curses the target, causing Shadow damage over 18 sec.',
     icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shadow_curseofsargeras.jpg',

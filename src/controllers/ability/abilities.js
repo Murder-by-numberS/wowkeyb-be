@@ -37,7 +37,14 @@ export const getAbilities = async (req, res) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      const statusCode = 400;
+      Logger.error('Validation errors in getAbilities:', {
+        errors: errors.array(),
+        params: req.params,
+        url: req.url,
+        statusCode: statusCode
+      });
+      return res.status(statusCode).json({ errors: errors.array() });
     }
 
     const { wowClass, spec, heroTalent, version } = req.params;
@@ -133,6 +140,18 @@ export const getAbilities = async (req, res) => {
  */
 export const getAbilitiesByVersion = async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const statusCode = 400;
+      Logger.error('Validation errors in getAbilitiesByVersion:', {
+        errors: errors.array(),
+        params: req.params,
+        url: req.url,
+        statusCode: statusCode
+      });
+      return res.status(statusCode).json({ errors: errors.array() });
+    }
+
     const { wowClass, spec, heroTalent, versionId } = req.params;
 
     Logger.info(`Retrieving ${wowClass} ${spec} ${heroTalent} abilities for version ${versionId}`);
@@ -215,7 +234,14 @@ export const getAbilitiesByGameVersion = async (req, res) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      const statusCode = 400;
+      Logger.error('Validation errors in getAbilitiesByGameVersion:', {
+        errors: errors.array(),
+        params: req.params,
+        url: req.url,
+        statusCode: statusCode
+      });
+      return res.status(statusCode).json({ errors: errors.array() });
     }
 
     const { wowClass, spec, heroTalent, gameVersion } = req.params;
@@ -300,7 +326,14 @@ export const getAbilitiesLatest = async (req, res) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      const statusCode = 400;
+      Logger.error('Validation errors in getAbilitiesLatest:', {
+        errors: errors.array(),
+        params: req.params,
+        url: req.url,
+        statusCode: statusCode
+      });
+      return res.status(statusCode).json({ errors: errors.array() });
     }
 
     const { wowClass, spec, heroTalent } = req.params;
@@ -375,6 +408,127 @@ export const getAbilitiesLatest = async (req, res) => {
     return res.status(200).send(transformedAbilities);
   } catch (error) {
     Logger.error('Error retrieving abilities for latest version:', error);
+    return res.status(500).send({ message: 'Error retrieving abilities' });
+  }
+}
+
+export const getAbilitiesFlexible = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const statusCode = 400;
+      Logger.error('Validation errors in getAbilitiesFlexible:', {
+        errors: errors.array(),
+        query: req.query,
+        url: req.url,
+        statusCode: statusCode
+      });
+      return res.status(statusCode).json({ errors: errors.array() });
+    }
+
+    const { gameVersion, class: wowClass, spec, heroTalent, page = 1, limit = 20 } = req.query;
+
+    Logger.info(`Retrieving abilities with filters: gameVersion=${gameVersion}, class=${wowClass}, spec=${spec}, heroTalent=${heroTalent}`);
+
+    // Determine which version to use
+    let targetVersion;
+    if (gameVersion && gameVersion !== 'latest') {
+      // Get specific version by game_version string
+      targetVersion = await Version.findOne({ game_version: gameVersion });
+      if (!targetVersion) {
+        return res.status(400).send({ message: `Game version ${gameVersion} not found` });
+      }
+    } else {
+      // Get the latest version
+      targetVersion = await Version.findOne().sort({ createdAt: -1 });
+      if (!targetVersion) {
+        return res.status(400).send({ message: 'No versions available' });
+      }
+    }
+
+    // Build base query
+    const query = {
+      game_version: targetVersion._id,
+      is_active: true
+    };
+
+    // Add class filter if provided
+    if (wowClass) {
+      query.class = wowClass;
+    }
+
+    // Add spec filter if provided
+    if (spec) {
+      query.spec = spec;
+    }
+
+    // Add hero talent filter if provided
+    if (heroTalent) {
+      query.hero_talent = heroTalent;
+    }
+
+    // Get total count for pagination
+    const totalCount = await Ability.countDocuments(query);
+
+    // Calculate pagination values
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get abilities based on filters with pagination
+    const abilities = await Ability.find(query)
+      .populate('game_version')
+      .skip(skip)
+      .limit(limitNum)
+      .sort({ name: 1 });
+
+    // Transform to match the expected format and filter out empty values
+    const transformedAbilities = abilities.map(ability => {
+      const transformed = {
+        id: ability._id,
+        spellId: ability.spell_id,
+        name: ability.name,
+        description: ability.description,
+        icon: ability.icon,
+        abilityType: ability.ability_type,
+        gameVersion: ability.game_version.game_version
+      };
+
+      // Always include these fields (even if null)
+      transformed.class = ability.class;
+      transformed.spec = ability.spec;
+      transformed.heroTalent = ability.hero_talent;
+
+      // Only add optional fields that have values
+      if (ability.level_required) transformed.levelRequired = ability.level_required;
+      if (ability.cooldown) transformed.cooldown = ability.cooldown;
+      if (ability.range) transformed.range = ability.range;
+      if (ability.cost) transformed.cost = ability.cost;
+      if (ability.cost_amount) transformed.costAmount = ability.cost_amount;
+
+      return transformed;
+    });
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    Logger.info(`Retrieved ${transformedAbilities.length} abilities with filters (version: ${targetVersion.game_version}, page: ${pageNum}/${totalPages})`);
+
+    return res.status(200).send({
+      abilities: transformedAbilities,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCount,
+        hasNextPage,
+        hasPrevPage,
+        limit: limitNum
+      }
+    });
+  } catch (error) {
+    Logger.error('Error retrieving abilities with flexible filters:', error);
     return res.status(500).send({ message: 'Error retrieving abilities' });
   }
 }

@@ -35,6 +35,12 @@ router.get('/', (req, res) => {
           "title": "Macros",
           "type": "basic",
           "link": "/macros"
+        },
+        {
+          "id": "abilities",
+          "title": "Abilities",
+          "type": "basic",
+          "link": "/abilities"
         }
       ],
       "default": [
@@ -68,6 +74,12 @@ router.get('/', (req, res) => {
           "title": "Macros",
           "type": "basic",
           "link": "/macros"
+        },
+        {
+          "id": "abilities",
+          "title": "Abilities",
+          "type": "basic",
+          "link": "/abilities"
         }
       ]
     }

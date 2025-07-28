@@ -4,6 +4,7 @@ import AuthRouter from './api/auth.js'
 import PingRouter from './api/ping.js'
 
 import NavigationRouter from './api/navigation.js'
+import AbilitiesRouter from './api/abilities.js'
 import AbilityRouter from './api/ability.js'
 
 import UserRouter from './api/user.js'
@@ -18,6 +19,7 @@ const router = new Router();
 router
   .use('/auth', AuthRouter)
   .use('/navigation', AuthnMiddleware.decode, NavigationRouter)
+  .use('/abilities', AbilitiesRouter)
   .use('/abilities', AbilityRouter)
 
   .use(PingRouter)

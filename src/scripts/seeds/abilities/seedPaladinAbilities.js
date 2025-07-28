@@ -597,7 +597,7 @@ const specAndHeroActives = [
     description: 'Replaces Word of Glory. Heals the target and applies a heal-over-time effect.',
     icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_torch_thrown.jpg',
     class: 'paladin',
-    spec: 'holy',
+    spec: null,
     hero_talent: 'herald-of-the-sun',
     ability_type: 'hero_talent',
     level_required: 0,

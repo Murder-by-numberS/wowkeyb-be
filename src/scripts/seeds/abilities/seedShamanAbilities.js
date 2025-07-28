@@ -1224,8 +1224,13 @@ async function seedShamanAbilities() {
           );
 
           if (specReplaced || heroTalentReplaced) continue;
-          await Ability.create({ ...ability, spec, game_version: version._id });
-          created++;
+
+          // Only create class abilities once (when spec is null)
+          // Don't create class abilities for individual specs
+          if (spec === null) {
+            await Ability.create({ ...ability, spec, game_version: version._id });
+            created++;
+          }
         }
       }
 

@@ -1,4 +1,4 @@
-import { param } from 'express-validator'
+import { param, query } from 'express-validator'
 
 export const classes = {
   'deathknight': {
@@ -95,6 +95,80 @@ export const classes = {
 }
 
 const validClasses = Object.keys(classes);
+
+export const validateGetAbilitiesFlexible = [
+  // Validate gameVersion (optional, defaults to 'latest')
+  query('gameVersion')
+    .optional()
+    .custom((value) => {
+      if (value === 'latest') {
+        return true;
+      }
+      // Validate version format (e.g., 11.1.0, 10.2.5, etc.)
+      const versionRegex = /^\d+\.\d+\.\d+$/;
+      if (!versionRegex.test(value)) {
+        throw new Error('Game version must be in format X.Y.Z (e.g., 11.1.0) or "latest"');
+      }
+      return true;
+    }),
+
+  // Validate class (optional)
+  query('class')
+    .optional()
+    .isIn(validClasses).withMessage('Invalid class'),
+
+  // Validate spec (optional, but if provided, class must also be provided)
+  query('spec')
+    .optional()
+    .custom((value, { req }) => {
+      const selectedClass = req.query.class;
+      if (!selectedClass) {
+        throw new Error('Class must be provided when spec is specified');
+      }
+      if (classes[selectedClass] && classes[selectedClass].specs[value]) {
+        return true;
+      }
+      throw new Error('Invalid spec for the selected class');
+    }),
+
+  // Validate heroTalent (optional, but if provided, class must also be provided)
+  query('heroTalent')
+    .optional()
+    .custom((value, { req }) => {
+      const selectedClass = req.query.class;
+      const selectedSpec = req.query.spec;
+
+      if (!selectedClass) {
+        throw new Error('Class must be provided when heroTalent is specified');
+      }
+
+      // If spec is provided, validate that the hero talent belongs to that spec
+      if (selectedSpec) {
+        if (classes[selectedClass] && classes[selectedClass].specs[selectedSpec] && classes[selectedClass].specs[selectedSpec].includes(value)) {
+          return true;
+        }
+        throw new Error('Invalid hero talent for the selected spec');
+      }
+
+      // If no spec is provided, validate that the hero talent belongs to the class
+      if (classes[selectedClass]) {
+        const allHeroTalents = Object.values(classes[selectedClass].specs).flat();
+        if (allHeroTalents.includes(value)) {
+          return true;
+        }
+      }
+      throw new Error('Invalid hero talent for the selected class');
+    }),
+
+  // Validate pagination parameters
+  query('page')
+    .optional()
+    .isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100')
+];
 
 export const validateGetAbilities = [
   param('wowClass').exists().withMessage('Class is required')

@@ -597,7 +597,7 @@ const specAndHeroActives = [
     description: 'Replaces Word of Glory. Heals the target and applies a heal-over-time effect.',
     icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_torch_thrown.jpg',
     class: 'paladin',
-    spec: 'holy',
+    spec: null,
     hero_talent: 'herald-of-the-sun',
     ability_type: 'hero_talent',
     level_required: 0,
@@ -611,9 +611,9 @@ const specAndHeroActives = [
     name: 'Holy Bulwark',
     spell_id: '433682',
     description: 'Creates a protective barrier that absorbs damage and reflects it back at attackers.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_holybulwark.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_ability_lightsmithpaladin_holybulwark.jpg',
     class: 'paladin',
-    spec: 'holy',
+    spec: null,
     hero_talent: 'lightsmith',
     ability_type: 'hero_talent',
     level_required: 0,
@@ -628,7 +628,7 @@ const specAndHeroActives = [
     description: 'Performs a sacred rite that empowers your next healing spell and provides protection to allies.',
     icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_riteofadjuration.jpg',
     class: 'paladin',
-    spec: 'holy',
+    spec: null,
     hero_talent: 'lightsmith',
     ability_type: 'hero_talent',
     level_required: 0,
@@ -703,7 +703,7 @@ const specAndHeroActives = [
     name: 'Cleanse Toxins',
     spell_id: '213644',
     description: 'Cleanses a friendly target, removing all Poison and Disease effects.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_cleanse.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_renew.jpg',
     class: 'paladin',
     spec: 'protection',
     hero_talent: null,
@@ -717,8 +717,8 @@ const specAndHeroActives = [
   {
     name: 'Bastion of Light',
     spell_id: '378974',
-    description: 'Creates a bastion of holy light that protects you and nearby allies.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_bastionoflight.jpg',
+    description: 'Your next 5 casts of Judgment generate 2 additional Holy Power.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/paladin_protection.jpg',
     class: 'paladin',
     spec: 'protection',
     hero_talent: null,
@@ -733,7 +733,7 @@ const specAndHeroActives = [
     name: 'Blessing of Spellwarding',
     spell_id: '204018',
     description: 'Blesses a party or raid member, granting immunity to Magic damage and harmful effects for 10 sec.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_blessingofspellwarding.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_blessingofprotection.jpg',
     class: 'paladin',
     spec: 'protection',
     hero_talent: null,
@@ -748,7 +748,7 @@ const specAndHeroActives = [
     name: 'Eye of Tyr',
     spell_id: '387174',
     description: 'Unleashes the power of Tyr, dealing Holy damage to enemies and reducing their damage for a short time.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_eyeoftyr.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_shield_1h_artifactnorgannon_d_01.jpg',
     class: 'paladin',
     spec: 'protection',
     hero_talent: null,
@@ -763,7 +763,7 @@ const specAndHeroActives = [
     name: 'Hammer of Righteous',
     spell_id: '53595',
     description: 'Strike the target for Physical damage. Replaces Crusader Strike.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_hammerofrighteous.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_hammeroftherighteous.jpg',
     class: 'paladin',
     spec: 'protection',
     hero_talent: null,
@@ -779,7 +779,7 @@ const specAndHeroActives = [
     name: 'Sentinel',
     spell_id: '389539',
     description: 'Becomes a sentinel of the Light, increasing your defensive capabilities and protecting allies.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_sentinel.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_holynova.jpg',
     class: 'paladin',
     spec: 'protection',
     hero_talent: null,
@@ -795,7 +795,7 @@ const specAndHeroActives = [
     name: 'Moment of Glory',
     spell_id: '327193',
     description: 'For the next 15 sec, you generate an absorb shield for 25% of all damage you deal, and Avenger\'s Shield damage is increased by 20% and its cooldown is reduced by 75%.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_momentofglory.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_aspiration.jpg',
     class: 'paladin',
     spec: 'protection',
     hero_talent: null,
@@ -808,10 +808,25 @@ const specAndHeroActives = [
   },
   // Retribution spec actives
   {
+    name: 'Cleanse Toxins',
+    spell_id: '213644',
+    description: 'Cleanses a friendly target, removing all Poison and Disease effects.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_renew.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
     name: 'Blade of Justice',
     spell_id: '184575',
     description: 'Pierce enemies with a blade of light, dealing Holy damage to your target, and Holy damage to nearby enemies.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/paladin_retribution.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_bladeofjustice.jpg',
     class: 'paladin',
     spec: 'retribution',
     hero_talent: null,
@@ -826,7 +841,7 @@ const specAndHeroActives = [
     name: 'Divine Storm',
     spell_id: '53385',
     description: 'Unleashes a whirl of divine energy, dealing Holy damage to all nearby enemies.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_divinestorm.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_divinestorm.jpg',
     class: 'paladin',
     spec: 'retribution',
     hero_talent: null,
@@ -841,7 +856,7 @@ const specAndHeroActives = [
     name: 'Final Verdict',
     spell_id: '383328',
     description: 'Unleashes a powerful weapon strike that deals Holy damage to an enemy target.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_finalverdict.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_templarsverdict.jpg',
     class: 'paladin',
     spec: 'retribution',
     hero_talent: null,
@@ -856,7 +871,7 @@ const specAndHeroActives = [
     name: 'Wake of Ashes',
     spell_id: '255937',
     description: 'Lash out at your enemies, dealing Radiant damage to all enemies within 14 yds in front of you.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_wakeofashes.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_sword_2h_artifactashbringerfire_d_03.jpg',
     class: 'paladin',
     spec: 'retribution',
     hero_talent: null,
@@ -871,7 +886,7 @@ const specAndHeroActives = [
     name: 'Justicar\'s Vengeance',
     spell_id: '215661',
     description: 'Focuses Holy energy to deliver a powerful weapon strike that deals Holy damage, and restores 3% of your maximum health.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_justicarsvengeance.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_retributionaura.jpg',
     class: 'paladin',
     spec: 'retribution',
     hero_talent: null,
@@ -886,7 +901,7 @@ const specAndHeroActives = [
     name: 'Final Reckoning',
     spell_id: '343721',
     description: 'Call down a blast of heavenly energy, dealing Holy damage to all targets in the area and causing them to take 30% increased damage from your single target Holy Power abilities.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_finalreckoning.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_blessedresillience.jpg',
     class: 'paladin',
     spec: 'retribution',
     hero_talent: null,
@@ -931,7 +946,7 @@ const specAndHeroActives = [
     name: 'Divine Hammer',
     spell_id: '198034',
     description: 'Divine Hammers spin around you consuming a Holy Power to strike enemies within 8 yds for Holy damage every 1.7 sec.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_divinehammer.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/classicon_paladin.jpg',
     class: 'paladin',
     spec: 'retribution',
     hero_talent: null,
@@ -1014,8 +1029,13 @@ async function seedPaladinAbilities() {
           );
 
           if (specReplaced || heroTalentReplaced) continue;
-          await Ability.create({ ...ability, spec, game_version: version._id });
-          created++;
+
+          // Only create class abilities once (when spec is null)
+          // Don't create class abilities for individual specs
+          if (spec === null) {
+            await Ability.create({ ...ability, spec, game_version: version._id });
+            created++;
+          }
         }
       }
       // --- Seed spec/hero actives, handling replacements ---

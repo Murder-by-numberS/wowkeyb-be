@@ -15,7 +15,11 @@ async function seedVersions() {
 
     // Initial versions to seed
     const initialVersions = [
-      { game_version: '11.1.0' }
+      { game_version: '11.1.7' },
+      { game_version: '11.1.0' },
+      { game_version: '11.0.5' },
+      { game_version: '11.0.2' },
+      { game_version: '11.0.0' }
     ];
 
     let createdCount = 0;

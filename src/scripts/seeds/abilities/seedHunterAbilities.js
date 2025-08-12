@@ -856,23 +856,6 @@ const specAndHeroActives = [
     cost: 'None',
     cost_amount: 0
   },
-  // Hero talent actives
-  {
-    name: 'Death Chakram',
-    spell_id: '375891',
-    description: 'Throw a chakram at your target that deals Physical damage and returns to you, damaging enemies in its path.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_hunter_deathchakram.jpg',
-    class: 'hunter',
-    spec: null,
-    hero_talent: 'death_chakram',
-    ability_type: 'hero_talent',
-    level_required: 0,
-    cooldown: 45,
-    range: 40,
-    cost: 'None',
-    cost_amount: 0
-  },
-
 ];
 
 async function seedHunterAbilities() {
@@ -893,28 +876,32 @@ async function seedHunterAbilities() {
 
     let created = 0;
     for (const version of versions) {
-      // For each spec (including null for class abilities)
-      const specs = [null, 'beast-mastery', 'marksmanship', 'survival'];
+      // --- Seed core/class abilities once per version (available to all specs) ---
+      for (const ability of coreAbilities) {
+        await Ability.create({ ...ability, spec: null, game_version: version._id });
+        created++;
+      }
+
+      // --- Seed spec-specific abilities ---
+      const specs = ['beast-mastery', 'marksmanship', 'survival'];
       for (const spec of specs) {
-        // --- Seed core/class abilities, skipping those replaced by hero/spec talents for this spec ---
+        // Check for spec-level replacements
         for (const ability of coreAbilities) {
-          // Check for spec-level replacements
-          const specReplaced = spec && specAndHeroActives.find(a =>
+          const specReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent === null
           );
 
           // Check for hero talent replacements (for all hero talents of this spec)
-          const heroTalentReplaced = spec && specAndHeroActives.find(a =>
+          const heroTalentReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent !== null
           );
 
           if (specReplaced || heroTalentReplaced) continue;
-          await Ability.create({ ...ability, spec, game_version: version._id });
-          created++;
+          // Don't create core abilities again for individual specs
         }
       }
 

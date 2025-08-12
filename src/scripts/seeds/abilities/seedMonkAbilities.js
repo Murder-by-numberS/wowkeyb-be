@@ -626,21 +626,7 @@ const specAndHeroActives = [
     cost: 'None',
     cost_amount: 0
   },
-  {
-    name: 'Jadefire Stomp',
-    spell_id: '388193',
-    description: 'Stomp the ground, creating jadefire that damages enemies and heals allies.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_ability_monk_jadefirestomp.jpg',
-    class: 'monk',
-    spec: 'windwalker',
-    hero_talent: null,
-    ability_type: 'spec',
-    level_required: 0,
-    cooldown: 0,
-    range: 0,
-    cost: 'None',
-    cost_amount: 0
-  },
+
   {
     name: 'Slicing Winds',
     spell_id: '388847',
@@ -903,10 +889,10 @@ const specAndHeroActives = [
     name: 'Celestial Conduit',
     spell_id: '440507',
     description: 'Creates a conduit of celestial energy that enhances your healing abilities.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_monk_celestialconduit.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_ability_conduitofthecelestialsmonk_celestialconduit.jpg',
     class: 'monk',
     spec: null,
-    hero_talent: 'conduit_of_the_celestials',
+    hero_talent: 'Conduit Of The Celestials',
     ability_type: 'hero_talent',
     level_required: 0,
     cooldown: 0,
@@ -921,9 +907,9 @@ const specAndHeroActives = [
     description: 'Transfers 50% of damage taken to the target for 10 sec.',
     icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_monk_touchofkarma.jpg',
     class: 'monk',
-    spec: null,
-    hero_talent: 'karma',
-    ability_type: 'hero_talent',
+    spec: 'windwalker',
+    hero_talent: null,
+    ability_type: 'spec',
     level_required: 0,
     cooldown: 90,
     range: 20,
@@ -950,28 +936,32 @@ async function seedMonkAbilities() {
 
     let created = 0;
     for (const version of versions) {
-      // For each spec (including null for class abilities)
-      const specs = [null, 'brewmaster', 'windwalker', 'mistweaver'];
+      // --- Seed core/class abilities once per version (available to all specs) ---
+      for (const ability of coreAbilities) {
+        await Ability.create({ ...ability, spec: null, game_version: version._id });
+        created++;
+      }
+
+      // --- Seed spec-specific abilities ---
+      const specs = ['brewmaster', 'windwalker', 'mistweaver'];
       for (const spec of specs) {
-        // --- Seed core/class abilities, skipping those replaced by hero/spec talents for this spec ---
+        // Check for spec-level replacements
         for (const ability of coreAbilities) {
-          // Check for spec-level replacements
-          const specReplaced = spec && specAndHeroActives.find(a =>
+          const specReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent === null
           );
 
           // Check for hero talent replacements (for all hero talents of this spec)
-          const heroTalentReplaced = spec && specAndHeroActives.find(a =>
+          const heroTalentReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent !== null
           );
 
           if (specReplaced || heroTalentReplaced) continue;
-          await Ability.create({ ...ability, spec, game_version: version._id });
-          created++;
+          // Don't create core abilities again for individual specs
         }
       }
 

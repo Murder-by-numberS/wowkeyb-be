@@ -6,21 +6,6 @@ import Config from '../../../config/config.js';
 // Core/class rogue abilities (with .jpg icons)
 const coreAbilities = [
   {
-    name: 'Ambush',
-    spell_id: '8676',
-    description: 'Ambush the target, causing Physical damage. Must be stealthed.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_ambush.jpg',
-    class: 'rogue',
-    spec: null,
-    hero_talent: null,
-    ability_type: 'class',
-    level_required: 34,
-    cooldown: 0,
-    range: 5,
-    cost: 'Energy',
-    cost_amount: 50
-  },
-  {
     name: 'Blind',
     spell_id: '2094',
     description: 'Blinds the target, causing it to wander disoriented for 1 min.',
@@ -291,21 +276,6 @@ const coreAbilities = [
     cost_amount: 0
   },
   {
-    name: 'Pistol Shot',
-    spell_id: '185763',
-    description: 'Fire a pistol shot at the target for Physical damage.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_pistolshot.jpg',
-    class: 'rogue',
-    spec: null,
-    hero_talent: null,
-    ability_type: 'class',
-    level_required: 0,
-    cooldown: 0,
-    range: 20,
-    cost: 'Energy',
-    cost_amount: 40
-  },
-  {
     name: 'Sap',
     spell_id: '6770',
     description: 'Incapacitates the target for up to 1 min. Only works on Humanoids, Beasts, and Dragonkin that are not in combat.',
@@ -476,6 +446,21 @@ const coreAbilities = [
 const specAndHeroActives = [
   // Assassination spec actives
   {
+    name: 'Ambush',
+    spell_id: '8676',
+    description: 'Ambush the target, causing Physical damage. Must be stealthed.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_ambush.jpg',
+    class: 'rogue',
+    spec: 'assassination',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 34,
+    cooldown: 0,
+    range: 5,
+    cost: 'Energy',
+    cost_amount: 50
+  },
+  {
     name: 'Amplifying Poison',
     spell_id: '381664',
     description: 'Coats your weapons with a poison that lasts for 1 hour. Each strike has a 30% chance of poisoning the enemy for 12 sec, increasing your damage dealt to them by 10%.',
@@ -641,6 +626,21 @@ const specAndHeroActives = [
     cost_amount: 0
   },
   // Outlaw spec actives
+  {
+    name: 'Ambush',
+    spell_id: '8676',
+    description: 'Ambush the target, causing Physical damage. Must be stealthed.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_ambush.jpg',
+    class: 'rogue',
+    spec: 'outlaw',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 34,
+    cooldown: 0,
+    range: 5,
+    cost: 'Energy',
+    cost_amount: 50
+  },
   {
     name: 'Adrenaline Rush',
     spell_id: '13750',
@@ -811,7 +811,7 @@ const specAndHeroActives = [
     name: 'Black Powder',
     spell_id: '319175',
     description: 'Finishing move that deals Physical damage to the target and all enemies within 8 yards.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_blackpowder.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_priest_divinestar_shadow.jpg',
     class: 'rogue',
     spec: 'subtlety',
     hero_talent: null,
@@ -826,7 +826,7 @@ const specAndHeroActives = [
     name: 'Flagellation',
     spell_id: '384631',
     description: 'Whip the target, dealing Physical damage and increasing your damage dealt by 5% for 20 sec.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_flagellation.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_ability_rogue_flagellation.jpg',
     class: 'rogue',
     spec: 'subtlety',
     hero_talent: null,
@@ -841,7 +841,7 @@ const specAndHeroActives = [
     name: 'Gloomblade',
     spell_id: '200758',
     description: 'Stab the target, causing Physical damage. Must be behind the target. Replaces Backstab.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_gloomblade.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_ironmaidens_convulsiveshadows.jpg',
     class: 'rogue',
     spec: 'subtlety',
     hero_talent: null,
@@ -856,7 +856,7 @@ const specAndHeroActives = [
     name: 'Goremaw\'s Bite',
     spell_id: '385827',
     description: 'Bite the target, dealing Physical damage and causing them to bleed for additional damage over 6 sec.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_goremawsbite.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_knife_1h_artifactfangs_d_01.jpg',
     class: 'rogue',
     spec: 'subtlety',
     hero_talent: null,
@@ -901,7 +901,7 @@ const specAndHeroActives = [
     name: 'Secret Technique',
     spell_id: '280719',
     description: 'Finishing move that creates shadow clones of yourself. You and your shadow clones each perform a piercing attack on all enemies within 8 yards.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_secrettechnique.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_sinistercalling.jpg',
     class: 'rogue',
     spec: 'subtlety',
     hero_talent: null,
@@ -961,7 +961,7 @@ const specAndHeroActives = [
     name: 'Shuriken Tornado',
     spell_id: '277925',
     description: 'Unleash a storm of shurikens, dealing Physical damage to all enemies within 8 yards.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_shuriken_tornado.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rogue_throwingspecialization.jpg',
     class: 'rogue',
     spec: 'subtlety',
     hero_talent: null,
@@ -976,28 +976,13 @@ const specAndHeroActives = [
     name: 'Symbols of Death',
     spell_id: '212283',
     description: 'Increases your attack power by 15% for 10 sec.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_deathknight_soulreaper.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shadow_rune.jpg',
     class: 'rogue',
     spec: 'subtlety',
     hero_talent: null,
     ability_type: 'spec',
     level_required: 0,
     cooldown: 30,
-    range: 0,
-    cost: 'None',
-    cost_amount: 0
-  },
-  {
-    name: 'Shadow Blades',
-    spell_id: '121471',
-    description: 'Draws upon surrounding shadows to empower your weapons, causing your combo point generating abilities to deal additional Shadow damage.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_knife_1h_grimbatolraid_d_01.jpg',
-    class: 'rogue',
-    spec: null,
-    hero_talent: 'shadow',
-    ability_type: 'hero_talent',
-    level_required: 0,
-    cooldown: 180,
     range: 0,
     cost: 'None',
     cost_amount: 0
@@ -1022,28 +1007,32 @@ async function seedRogueAbilities() {
 
     let created = 0;
     for (const version of versions) {
-      // For each spec (including null for class abilities)
-      const specs = [null, 'assassination', 'outlaw', 'subtlety'];
+      // --- Seed core/class abilities once per version (available to all specs) ---
+      for (const ability of coreAbilities) {
+        await Ability.create({ ...ability, spec: null, game_version: version._id });
+        created++;
+      }
+
+      // --- Seed spec-specific abilities ---
+      const specs = ['assassination', 'outlaw', 'subtlety'];
       for (const spec of specs) {
-        // --- Seed core/class abilities, skipping those replaced by hero/spec talents for this spec ---
+        // Check for spec-level replacements
         for (const ability of coreAbilities) {
-          // Check for spec-level replacements
-          const specReplaced = spec && specAndHeroActives.find(a =>
+          const specReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent === null
           );
 
           // Check for hero talent replacements (for all hero talents of this spec)
-          const heroTalentReplaced = spec && specAndHeroActives.find(a =>
+          const heroTalentReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent !== null
           );
 
           if (specReplaced || heroTalentReplaced) continue;
-          await Ability.create({ ...ability, spec, game_version: version._id });
-          created++;
+          // Don't create core abilities again for individual specs
         }
       }
       // --- Seed spec/hero actives, handling replacements ---

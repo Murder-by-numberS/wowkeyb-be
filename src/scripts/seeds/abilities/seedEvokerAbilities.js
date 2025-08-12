@@ -884,37 +884,6 @@ const specAndHeroActives = [
     cost: 'Essence',
     cost_amount: 2
   },
-  // Hero talent actives
-  {
-    name: 'Chronoward',
-    spell_id: '408083',
-    description: 'Ward an ally with temporal energy, reducing damage taken by 15% for 10 sec.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_evoker_chronoward.jpg',
-    class: 'evoker',
-    spec: null,
-    hero_talent: 'chronoward',
-    ability_type: 'hero_talent',
-    level_required: 0,
-    cooldown: 60,
-    range: 30,
-    cost: 'Essence',
-    cost_amount: 1
-  },
-  {
-    name: 'Temporal Compression',
-    spell_id: '362877',
-    description: 'Compress time around an ally, reducing their cooldown recovery rate by 30% for 15 sec.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_evoker_temporalcompression.jpg',
-    class: 'evoker',
-    spec: null,
-    hero_talent: 'temporal',
-    ability_type: 'hero_talent',
-    level_required: 0,
-    cooldown: 90,
-    range: 30,
-    cost: 'Essence',
-    cost_amount: 2
-  },
   {
     name: 'Engulf',
     spell_id: '374227',
@@ -950,28 +919,32 @@ async function seedEvokerAbilities() {
 
     let created = 0;
     for (const version of versions) {
-      // For each spec (including null for class abilities)
-      const specs = [null, 'devastation', 'preservation', 'augmentation'];
+      // --- Seed core/class abilities once per version (available to all specs) ---
+      for (const ability of coreAbilities) {
+        await Ability.create({ ...ability, spec: null, game_version: version._id });
+        created++;
+      }
+
+      // --- Seed spec-specific abilities ---
+      const specs = ['devastation', 'preservation', 'augmentation'];
       for (const spec of specs) {
-        // --- Seed core/class abilities, skipping those replaced by hero/spec talents for this spec ---
+        // Check for spec-level replacements
         for (const ability of coreAbilities) {
-          // Check for spec-level replacements
-          const specReplaced = spec && specAndHeroActives.find(a =>
+          const specReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent === null
           );
 
           // Check for hero talent replacements (for all hero talents of this spec)
-          const heroTalentReplaced = spec && specAndHeroActives.find(a =>
+          const heroTalentReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent !== null
           );
 
           if (specReplaced || heroTalentReplaced) continue;
-          await Ability.create({ ...ability, spec, game_version: version._id });
-          created++;
+          // Don't create core abilities again for individual specs
         }
       }
 

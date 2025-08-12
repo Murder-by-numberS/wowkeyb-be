@@ -1298,28 +1298,32 @@ async function seedDruidAbilities() {
 
     let created = 0;
     for (const version of versions) {
-      // For each spec (including null for class abilities)
-      const specs = [null, 'balance', 'feral', 'guardian', 'restoration'];
+      // --- Seed core/class abilities once per version (available to all specs) ---
+      for (const ability of coreAbilities) {
+        await Ability.create({ ...ability, spec: null, game_version: version._id });
+        created++;
+      }
+
+      // --- Seed spec-specific abilities ---
+      const specs = ['balance', 'feral', 'guardian', 'restoration'];
       for (const spec of specs) {
-        // --- Seed core/class abilities, skipping those replaced by hero/spec talents for this spec ---
+        // Check for spec-level replacements
         for (const ability of coreAbilities) {
-          // Check for spec-level replacements
-          const specReplaced = spec && specAndHeroActives.find(a =>
+          const specReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent === null
           );
 
           // Check for hero talent replacements (for all hero talents of this spec)
-          const heroTalentReplaced = spec && specAndHeroActives.find(a =>
+          const heroTalentReplaced = specAndHeroActives.find(a =>
             a.replaces === ability.name &&
             a.spec === spec &&
             a.hero_talent !== null
           );
 
           if (specReplaced || heroTalentReplaced) continue;
-          await Ability.create({ ...ability, spec, game_version: version._id });
-          created++;
+          // Don't create core abilities again for individual specs
         }
       }
       // --- Seed spec/hero actives, handling replacements ---

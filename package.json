@@ -1,6 +1,6 @@
 {
   "name": "wowkeyb-be",
-  "version": "1.27.0",
+  "version": "1.28.0",
   "description": "Wowkeyb backend",
   "type": "module",
   "main": "app.js",
@@ -63,9 +63,12 @@
     "seed-warrior-abilities:dev": "node --env-file .env.development src/scripts/seeds/abilities/seedWarriorAbilities.js",
     "seed-warrior-abilities:staging": "node --env-file .env.staging src/scripts/seeds/abilities/seedWarriorAbilities.js",
     "seed-warrior-abilities:prod": "node --env-file .env.production src/scripts/seeds/abilities/seedWarriorAbilities.js",
-    "seed-all-abilities:dev": "npm run seed-paladin-abilities:dev && npm run seed-warrior-abilities:dev && npm run seed-priest-abilities:dev && npm run seed-mage-abilities:dev && npm run seed-shaman-abilities:dev && npm run seed-evoker-abilities:dev && npm run seed-rogue-abilities:dev && npm run seed-monk-abilities:dev && npm run seed-warlock-abilities:dev && npm run seed-hunter-abilities:dev && npm run seed-druid-abilities:dev && npm run seed-death-knight-abilities:dev",
-    "seed-all-abilities:staging": "npm run seed-paladin-abilities:staging && npm run seed-warrior-abilities:staging && npm run seed-priest-abilities:staging && npm run seed-mage-abilities:staging && npm run seed-shaman-abilities:staging && npm run seed-evoker-abilities:staging && npm run seed-rogue-abilities:staging && npm run seed-monk-abilities:staging && npm run seed-warlock-abilities:staging && npm run seed-hunter-abilities:staging && npm run seed-druid-abilities:staging && npm run seed-death-knight-abilities:staging",
-    "seed-all-abilities:prod": "npm run seed-paladin-abilities:prod && npm run seed-warrior-abilities:prod && npm run seed-priest-abilities:prod && npm run seed-mage-abilities:prod && npm run seed-shaman-abilities:prod && npm run seed-evoker-abilities:prod && npm run seed-rogue-abilities:prod && npm run seed-monk-abilities:prod && npm run seed-warlock-abilities:prod && npm run seed-hunter-abilities:prod && npm run seed-druid-abilities:prod && npm run seed-death-knight-abilities:prod"
+    "seed-demon-hunter-abilities:dev": "node --env-file .env.development src/scripts/seeds/abilities/seedDemonHunterAbilities.js",
+    "seed-demon-hunter-abilities:staging": "node --env-file .env.staging src/scripts/seeds/abilities/seedDemonHunterAbilities.js",
+    "seed-demon-hunter-abilities:prod": "node --env-file .env.production src/scripts/seeds/abilities/seedDemonHunterAbilities.js",
+    "seed-all-abilities:dev": "npm run seed-paladin-abilities:dev && npm run seed-warrior-abilities:dev && npm run seed-priest-abilities:dev && npm run seed-mage-abilities:dev && npm run seed-shaman-abilities:dev && npm run seed-evoker-abilities:dev && npm run seed-rogue-abilities:dev && npm run seed-monk-abilities:dev && npm run seed-warlock-abilities:dev && npm run seed-hunter-abilities:dev && npm run seed-druid-abilities:dev && npm run seed-death-knight-abilities:dev && npm run seed-demon-hunter-abilities:dev",
+    "seed-all-abilities:staging": "npm run seed-paladin-abilities:staging && npm run seed-warrior-abilities:staging && npm run seed-priest-abilities:staging && npm run seed-mage-abilities:staging && npm run seed-shaman-abilities:staging && npm run seed-evoker-abilities:staging && npm run seed-rogue-abilities:staging && npm run seed-monk-abilities:staging && npm run seed-warlock-abilities:staging && npm run seed-hunter-abilities:staging && npm run seed-druid-abilities:staging && npm run seed-death-knight-abilities:staging && npm run seed-demon-hunter-abilities:staging",
+    "seed-all-abilities:prod": "npm run seed-paladin-abilities:prod && npm run seed-warrior-abilities:prod && npm run seed-priest-abilities:prod && npm run seed-mage-abilities:prod && npm run seed-shaman-abilities:prod && npm run seed-evoker-abilities:prod && npm run seed-rogue-abilities:prod && npm run seed-monk-abilities:prod && npm run seed-warlock-abilities:prod && npm run seed-hunter-abilities:prod && npm run seed-druid-abilities:prod && npm run seed-death-knight-abilities:prod && npm run seed-demon-hunter-abilities:prod"
   },
   "author": "Logan Born",
   "license": "MIT",

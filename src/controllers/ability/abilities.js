@@ -477,10 +477,12 @@ export const getAbilitiesFlexible = async (req, res) => {
 
     // Get abilities based on filters with pagination
     const abilities = await Ability.find(query)
-      .populate('game_version')
+      .populate('game_version', 'game_version')
+      .select('name spell_id description icon class spec hero_talent ability_type level_required cooldown range cost cost_amount')
       .skip(skip)
       .limit(limitNum)
-      .sort({ name: 1 });
+      .sort({ name: 1 })
+      .lean(); // Use lean() for better performance
 
     // Transform to match the expected format and filter out empty values
     const transformedAbilities = abilities.map(ability => {

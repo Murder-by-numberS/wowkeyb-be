@@ -166,5 +166,13 @@ keybindingSchema.pre(/^find/, function (next) {
   next();
 });
 
+// Add database indexes for performance optimization
+keybindingSchema.index({ user_id: 1, deleted_at: 1 }); // For user keybindings queries
+keybindingSchema.index({ is_public: 1, class: 1 }); // For home page queries
+keybindingSchema.index({ version: 1, class: 1, spec: 1 }); // For version-specific queries
+keybindingSchema.index({ deleted_at: 1 }); // For soft delete queries
+keybindingSchema.index({ name: 1, user_id: 1 }); // For duplicate name queries
+keybindingSchema.index({ duplication_count: -1 }); // For popular keybindings sorting
+
 const Keybinding = mongoose.model('Keybinding', keybindingSchema);
 export default Keybinding;

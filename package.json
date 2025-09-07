@@ -74,8 +74,8 @@
   "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-ses": "^3.806.0",
-    "aws-sdk": "^2.1692.0",
     "bcrypt": "^5.1.1",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-validator": "^7.0.1",

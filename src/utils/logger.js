@@ -41,6 +41,10 @@ console.log(`Logger Level set to ${Config.logLevel}`);
 // });
 
 
+// Optimize logging for production
+const isProduction = Config.nodeEnv === 'production';
+const logLevel = isProduction ? 'warn' : (Config.logLevel || 'info');
+
 const Logger = createLogger({
   levels: {
     error: 0,
@@ -51,19 +55,21 @@ const Logger = createLogger({
     debug: 5,
     silly: 6
   },
-  level: Config.logLevel || 'info',
+  level: logLevel,
   format: format.combine(
-    // format.colorize(),
+    // format.colorize(), // Disabled for production performance
     format.timestamp({
-      format: 'YYYY-MM-DD HH:mm:ss'
+      format: isProduction ? 'YYYY-MM-DDTHH:mm:ss.SSSZ' : 'YYYY-MM-DD HH:mm:ss'
     }),
     format.errors({ stack: true }),
     format.splat(),
-    format.json()
+    isProduction ? format.json() : format.combine(format.colorize(), format.simple())
   ),
   defaultMeta: { service: Config.appName },
   transports: [
-    new transports.Console(),
+    new transports.Console({
+      silent: isProduction && logLevel === 'error' // Only log errors in production if level is error
+    }),
   ]
 });
 export default Logger;

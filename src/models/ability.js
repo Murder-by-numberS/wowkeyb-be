@@ -133,6 +133,9 @@ abilitySchema.path('spec').validate(function (value) {
 // Index for efficient queries
 abilitySchema.index({ class: 1, spec: 1, game_version: 1, is_active: 1 });
 abilitySchema.index({ spell_id: 1, game_version: 1 });
+abilitySchema.index({ class: 1, game_version: 1, is_active: 1 }); // For class-only queries
+abilitySchema.index({ hero_talent: 1, game_version: 1, is_active: 1 }); // For hero talent queries
+abilitySchema.index({ ability_type: 1, class: 1, game_version: 1 }); // For ability type queries
 
 const Ability = mongoose.model('Ability', abilitySchema);
 export default Ability;

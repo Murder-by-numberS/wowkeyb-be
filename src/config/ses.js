@@ -1,8 +1,7 @@
 
-import AWS from "./aws.js";
+import { sesClient } from "./aws.js";
+import { GetTemplateCommand, CreateTemplateCommand } from "@aws-sdk/client-ses";
 import Logger from "../utils/logger.js";
-
-const ses = new AWS.SES({ apiVersion: '2010-12-01' });
 
 import { USER_EMAIL_TEMPLATES, USER_EMAIL_TEMPLATE_NAMES, USER_EMAIL_TEMPLATE_SUBJECTS } from "../controllers/email/emails/user.js";
 
@@ -21,7 +20,7 @@ await Promise.all(Object.keys(USER_EMAIL_TEMPLATE_NAMES).map(async template => {
   };
 
   try {
-    await ses.getTemplate(params).promise();
+    await sesClient.send(new GetTemplateCommand(params));
   } catch (err) {
     Logger.error(`Error retrieving template: ${err}`);
 
@@ -33,7 +32,7 @@ await Promise.all(Object.keys(USER_EMAIL_TEMPLATE_NAMES).map(async template => {
       }
     };
     try {
-      const data = await ses.createTemplate(templateParams).promise();
+      const data = await sesClient.send(new CreateTemplateCommand(templateParams));
       Logger.info(`Created template: ${data}`);
     } catch (err) {
       Logger.error(`Error creating template: ${err}`);
@@ -42,4 +41,4 @@ await Promise.all(Object.keys(USER_EMAIL_TEMPLATE_NAMES).map(async template => {
 
 }));
 
-export default ses;
+export default sesClient;

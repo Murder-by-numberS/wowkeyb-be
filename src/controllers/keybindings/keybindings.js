@@ -19,7 +19,11 @@ export const getKeybindings = async (req, res, next) => {
 
     const { user_id } = req.decoded;
 
-    const keybindings = await Keybinding.find({ user_id }).populate('version');
+    const keybindings = await Keybinding.find({ user_id })
+      .populate('version', 'game_version')
+      .select('name class spec version is_public createdAt duplication_count')
+      .limit(100) // Prevent runaway queries
+      .lean(); // Use lean() for better performance
 
     res.status(200).send(presentMany(keybindings));
   } catch (error) {
@@ -37,8 +41,12 @@ export const getHomeKeybindings = async (req, res, next) => {
   try {
     Logger.info('Getting Home Keybindings');
 
-    // Get all public keybindings
-    const keybindings = await Keybinding.find({ is_public: true }).populate('version');
+    // Get all public keybindings with limits
+    const keybindings = await Keybinding.find({ is_public: true })
+      .populate('version', 'game_version')
+      .select('name class spec version createdAt duplication_count')
+      .limit(500) // Limit for home page performance
+      .lean(); // Use lean() for better performance
 
     // Group keybindings by class
     const classGroups = keybindings.reduce((acc, keybinding) => {
@@ -622,7 +630,12 @@ export const getDeletedKeybindings = async (req, res, next) => {
     const deletedKeybindings = await Keybinding.find({
       user_id,
       deleted_at: { $ne: null }
-    }).setOptions({ includeDeleted: true }).populate('version');
+    })
+      .setOptions({ includeDeleted: true })
+      .populate('version', 'game_version')
+      .select('name class spec version createdAt deleted_at')
+      .limit(50) // Limit deleted keybindings
+      .lean();
 
     res.status(200).send(presentMany(deletedKeybindings));
   } catch (error) {

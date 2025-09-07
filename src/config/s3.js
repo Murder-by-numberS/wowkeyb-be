@@ -1,5 +1,3 @@
-import AWS from "./aws.js";
+import { s3Client } from "./aws.js";
 
-const s3 = new AWS.S3();
-
-export default s3;
+export default s3Client;

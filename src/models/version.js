@@ -11,5 +11,8 @@ const versionSchema = new Schema({
   timestamps: true
 });
 
+// Add index for efficient latest version queries
+versionSchema.index({ createdAt: -1 }); // For sorting by creation date
+
 const Version = mongoose.model('Version', versionSchema);
 export default Version;

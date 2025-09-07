@@ -94,7 +94,7 @@ jobs:
 
           # Set environment-specific secret names
           ENV_UPPER=$(echo "${{ steps.set-env.outputs.environment }}" | tr '[:lower:]' '[:upper:]')
-          
+
           # Use environment-specific secrets
           case "${{ steps.set-env.outputs.environment }}" in
             "production")
@@ -105,12 +105,12 @@ jobs:
               S3_PATH="${{ secrets.AWS_S3_PATH_PRODUCTION }}"
               ;;
             "staging")
-              # Use develop secrets for staging for now
-              DATABASE_URI="${{ secrets.DATABASE_URI_DEVELOP }}"
-              TOKEN_SECRET="${{ secrets.TOKEN_SECRET_DEVELOP }}"
-              TOKEN_EXPIRATION="${{ secrets.TOKEN_EXPIRATION_DEVELOP }}"
-              S3_BUCKET="${{ secrets.AWS_S3_BUCKET_NAME_DEVELOP }}"
-              S3_PATH="${{ secrets.AWS_S3_PATH_DEVELOP }}"
+              # Use staging-specific secrets
+              DATABASE_URI="${{ secrets.DATABASE_URI_STAGING }}"
+              TOKEN_SECRET="${{ secrets.TOKEN_SECRET_STAGING }}"
+              TOKEN_EXPIRATION="${{ secrets.TOKEN_EXPIRATION_STAGING }}"
+              S3_BUCKET="${{ secrets.AWS_S3_BUCKET_NAME_STAGING }}"
+              S3_PATH="${{ secrets.AWS_S3_PATH_STAGING }}"
               ;;
             *)
               # Use develop secrets for develop environment

@@ -1,6 +1,6 @@
-# Backend GitHub Actions Deployment Guide
+# Backend AWS App Runner Deployment Guide
 
-This project uses GitHub Actions for automated deployment to AWS Elastic Beanstalk with separate develop, staging, and production environments, replacing the previous CodePipeline setup.
+This project uses AWS App Runner for cost-effective, serverless deployment with GitHub Actions automation. App Runner provides significant cost savings compared to Elastic Beanstalk while maintaining full AWS integration.
 
 ## Environment Setup
 
@@ -24,18 +24,10 @@ To enable automated deployment, you need to configure the following secrets in y
 - `AWS_ACCESS_KEY_ID` - Your AWS access key ID
 - `AWS_SECRET_ACCESS_KEY` - Your AWS secret access key
 
-### 2. S3 Bucket for Deployments
-- `S3_BUCKET_NAME_BACKEND` - S3 bucket for storing deployment packages
-
-### 3. Elastic Beanstalk Applications
-- `EB_APPLICATION_NAME_DEVELOP` - Elastic Beanstalk application name for develop
-- `EB_APPLICATION_NAME_STAGING` - Elastic Beanstalk application name for staging
-- `EB_APPLICATION_NAME_PROD` - Elastic Beanstalk application name for production
-
-### 4. Elastic Beanstalk Environments
-- `EB_ENVIRONMENT_NAME_DEVELOP` - Elastic Beanstalk environment name for develop
-- `EB_ENVIRONMENT_NAME_STAGING` - Elastic Beanstalk environment name for staging
-- `EB_ENVIRONMENT_NAME_PROD` - Elastic Beanstalk environment name for production
+### 2. App Runner Service ARNs
+- `APP_RUNNER_SERVICE_DEVELOP` - App Runner service ARN for develop environment
+- `APP_RUNNER_SERVICE_STAGING` - App Runner service ARN for staging environment
+- `APP_RUNNER_SERVICE_PROD` - App Runner service ARN for production environment
 
 ## How to Set Up GitHub Secrets
 
@@ -56,9 +48,8 @@ The workflow will automatically run when:
 
 1. **Install Dependencies**: `npm ci` for faster, reliable installs
 2. **Run Tests**: Executes any configured tests
-3. **Build Application**: Creates deployment package with source code
-4. **Create Deployment Package**: Zips the application for deployment
-5. **Deploy to Elastic Beanstalk**: Uploads and deploys to the target environment
+3. **Trigger App Runner Deployment**: App Runner automatically pulls from GitHub and builds
+4. **Auto-scaling**: App Runner scales based on traffic and charges only for usage
 
 ## Environment Variables
 
@@ -67,28 +58,30 @@ The application uses environment-specific configuration files:
 - `.env.staging` - Staging environment variables
 - `.env.production` - Production environment variables
 
-## Cost Benefits of GitHub Actions vs CodePipeline
+## Cost Benefits of App Runner vs Elastic Beanstalk
 
-### GitHub Actions Advantages:
-- **Free tier**: 2,000 minutes/month for private repos
-- **Pay-per-use**: Only pay for actual build time
-- **No setup costs**: No pipeline creation fees
-- **Better caching**: Faster builds with npm cache
-- **Simpler configuration**: YAML-based, easier to maintain
+### App Runner Advantages:
+- **Pay-per-use**: Only pay when serving requests (scales to zero when idle)
+- **Auto-scaling**: Automatically scales based on traffic
+- **No server management**: Fully managed service
+- **Built-in load balancing**: No additional setup required
+- **GitHub integration**: Direct deployment from repository
 
 ### Expected Cost Savings:
-- **CodePipeline**: ~$1-3 per deployment + build time costs
-- **GitHub Actions**: Free for most small projects, ~$0.008/minute for overages
-- **Estimated savings**: 60-80% reduction in deployment costs
+- **Elastic Beanstalk**: ~$25-40/month minimum (always-on server)
+- **App Runner**: ~$5-15/month for typical usage (pay-per-request)
+- **Estimated savings**: 60-80% reduction in hosting costs
 
-## Migration from CodePipeline
+## Migration from Elastic Beanstalk
 
-To migrate from CodePipeline to GitHub Actions:
+To migrate from Elastic Beanstalk to App Runner:
 
-1. **Set up GitHub Secrets** as described above
-2. **Test the deployment** on develop branch first
-3. **Remove CodePipeline** from AWS Console once GitHub Actions is working
-4. **Delete buildspec.yml** (no longer needed)
+1. **Create App Runner services** in AWS Console for each environment
+2. **Connect GitHub repositories** to App Runner services
+3. **Set up GitHub Secrets** as described above
+4. **Test the deployment** on develop branch first
+5. **Remove Elastic Beanstalk** from AWS Console once App Runner is working
+6. **Delete buildspec.yml** (no longer needed)
 
 ## Monitoring and Troubleshooting
 
@@ -100,7 +93,8 @@ To migrate from CodePipeline to GitHub Actions:
 ### Common Issues:
 - **Missing secrets**: Ensure all required secrets are configured
 - **AWS permissions**: Verify AWS credentials have necessary permissions
-- **Elastic Beanstalk**: Check that application and environment names are correct
+- **App Runner services**: Check that service ARNs are correct
+- **GitHub connection**: Ensure App Runner services are connected to the correct repository
 
 ## Security Best Practices
 
@@ -111,7 +105,8 @@ To migrate from CodePipeline to GitHub Actions:
 
 ## Performance Optimizations
 
-- **Caching**: GitHub Actions caches npm dependencies
-- **Parallel jobs**: Can be configured for faster deployments
-- **Build optimization**: Only deploys changed code
+- **Auto-scaling**: App Runner automatically scales based on traffic
+- **Pay-per-use**: Only charges for actual compute time
+- **Built-in caching**: App Runner handles caching automatically
 - **Database indexes**: Optimized for better performance (see recent updates)
+- **Response caching**: Implemented compression and HTTP caching middleware

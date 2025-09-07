@@ -1,4 +1,4 @@
-name: Deploy Backend to AWS
+name: Deploy Backend to AWS App Runner
 
 on:
   push:
@@ -26,8 +26,7 @@ jobs:
     # Determine environment based on branch or manual input
     outputs:
       environment: ${{ steps.set-env.outputs.environment }}
-      eb-application: ${{ steps.set-env.outputs.eb-application }}
-      eb-environment: ${{ steps.set-env.outputs.eb-environment }}
+      app-runner-service: ${{ steps.set-env.outputs.app-runner-service }}
 
     steps:
       - name: 🛎️ Checkout code
@@ -52,19 +51,16 @@ jobs:
 
           echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
 
-          # Set Elastic Beanstalk application and environment names
+          # Set App Runner service names
           case $ENVIRONMENT in
             "production")
-              echo "eb-application=${{ secrets.EB_APPLICATION_NAME_PROD }}" >> $GITHUB_OUTPUT
-              echo "eb-environment=${{ secrets.EB_ENVIRONMENT_NAME_PROD }}" >> $GITHUB_OUTPUT
+              echo "app-runner-service=${{ secrets.APP_RUNNER_SERVICE_PROD }}" >> $GITHUB_OUTPUT
               ;;
             "staging")
-              echo "eb-application=${{ secrets.EB_APPLICATION_NAME_STAGING }}" >> $GITHUB_OUTPUT
-              echo "eb-environment=${{ secrets.EB_ENVIRONMENT_NAME_STAGING }}" >> $GITHUB_OUTPUT
+              echo "app-runner-service=${{ secrets.APP_RUNNER_SERVICE_STAGING }}" >> $GITHUB_OUTPUT
               ;;
             *)
-              echo "eb-application=${{ secrets.EB_APPLICATION_NAME_DEVELOP }}" >> $GITHUB_OUTPUT
-              echo "eb-environment=${{ secrets.EB_ENVIRONMENT_NAME_DEVELOP }}" >> $GITHUB_OUTPUT
+              echo "app-runner-service=${{ secrets.APP_RUNNER_SERVICE_DEVELOP }}" >> $GITHUB_OUTPUT
               ;;
           esac
 
@@ -72,7 +68,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📦 Install dependencies
         run: npm ci
@@ -85,23 +81,6 @@ jobs:
             echo "No tests configured, skipping..."
           fi
 
-      - name: 🔨 Build application
-        run: |
-          echo "Building backend application for ${{ steps.set-env.outputs.environment }} environment..."
-          # Create deployment package
-          mkdir -p build
-          cp -r src build/
-          cp package*.json build/
-          cp -r node_modules build/ 2>/dev/null || echo "No node_modules to copy"
-
-      - name: 📦 Create deployment package
-        run: |
-          echo "Creating deployment package..."
-          cd build
-          zip -r ../deployment.zip . -x "*.git*" "*.DS_Store*" "node_modules/.cache/*"
-          cd ..
-          ls -la deployment.zip
-
       - name: 🔧 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -109,37 +88,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: 🚀 Deploy to Elastic Beanstalk
+      - name: 🚀 Deploy to App Runner
         run: |
           echo "Deploying to ${{ steps.set-env.outputs.environment }} environment..."
-          echo "Application: ${{ steps.set-env.outputs.eb-application }}"
-          echo "Environment: ${{ steps.set-env.outputs.eb-environment }}"
+          echo "App Runner Service: ${{ steps.set-env.outputs.app-runner-service }}"
           
-          aws elasticbeanstalk create-application-version \
-            --application-name "${{ steps.set-env.outputs.eb-application }}" \
-            --version-label "v$(date +%Y%m%d-%H%M%S)-${{ github.sha }}" \
-            --description "Deployed from GitHub Actions - ${{ github.event.head_commit.message }}" \
-            --source-bundle S3Bucket="${{ secrets.S3_BUCKET_NAME_BACKEND }}",S3Key="deployments/deployment.zip" \
-            --auto-create-application
-
-          # Upload deployment package to S3
-          aws s3 cp deployment.zip s3://${{ secrets.S3_BUCKET_NAME_BACKEND }}/deployments/deployment.zip
-
-          # Create application version
-          aws elasticbeanstalk create-application-version \
-            --application-name "${{ steps.set-env.outputs.eb-application }}" \
-            --version-label "v$(date +%Y%m%d-%H%M%S)-${{ github.sha }}" \
-            --description "Deployed from GitHub Actions - ${{ github.event.head_commit.message }}" \
-            --source-bundle S3Bucket="${{ secrets.S3_BUCKET_NAME_BACKEND }}",S3Key="deployments/deployment.zip"
-
-          # Deploy to environment
-          aws elasticbeanstalk update-environment \
-            --environment-name "${{ steps.set-env.outputs.eb-environment }}" \
-            --version-label "v$(date +%Y%m%d-%H%M%S)-${{ github.sha }}"
+          # Trigger App Runner deployment by updating the service
+          # App Runner will automatically pull from the connected GitHub repository
+          aws apprunner start-deployment \
+            --service-arn "${{ steps.set-env.outputs.app-runner-service }}"
 
       - name: ✅ Deployment complete
         run: |
-          echo "🎉 Successfully deployed backend to ${{ steps.set-env.outputs.environment }} environment!"
-          echo "Application: ${{ steps.set-env.outputs.eb-application }}"
-          echo "Environment: ${{ steps.set-env.outputs.eb-environment }}"
+          echo "🎉 Successfully triggered App Runner deployment!"
+          echo "Environment: ${{ steps.set-env.outputs.environment }}"
+          echo "Service: ${{ steps.set-env.outputs.app-runner-service }}"
           echo "Commit: ${{ github.sha }}"
+          echo ""
+          echo "App Runner will automatically:"
+          echo "  • Pull the latest code from GitHub"
+          echo "  • Build and deploy your application"
+          echo "  • Scale based on traffic"
+          echo "  • Only charge for actual usage"

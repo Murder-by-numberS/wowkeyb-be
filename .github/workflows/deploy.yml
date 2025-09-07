@@ -88,13 +88,98 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: 🔧 Update App Runner Environment Variables
+        run: |
+          echo "Updating environment variables for ${{ steps.set-env.outputs.environment }} environment..."
+
+          # Set environment-specific secret names
+          ENV_UPPER=$(echo "${{ steps.set-env.outputs.environment }}" | tr '[:lower:]' '[:upper:]')
+          
+          # Use environment-specific secrets
+          case "${{ steps.set-env.outputs.environment }}" in
+            "production")
+              DATABASE_URI="${{ secrets.DATABASE_URI_PRODUCTION }}"
+              TOKEN_SECRET="${{ secrets.TOKEN_SECRET_PRODUCTION }}"
+              TOKEN_EXPIRATION="${{ secrets.TOKEN_EXPIRATION_PRODUCTION }}"
+              S3_BUCKET="${{ secrets.AWS_S3_BUCKET_NAME_PRODUCTION }}"
+              S3_PATH="${{ secrets.AWS_S3_PATH_PRODUCTION }}"
+              ;;
+            "staging")
+              # Use develop secrets for staging for now
+              DATABASE_URI="${{ secrets.DATABASE_URI_DEVELOP }}"
+              TOKEN_SECRET="${{ secrets.TOKEN_SECRET_DEVELOP }}"
+              TOKEN_EXPIRATION="${{ secrets.TOKEN_EXPIRATION_DEVELOP }}"
+              S3_BUCKET="${{ secrets.AWS_S3_BUCKET_NAME_DEVELOP }}"
+              S3_PATH="${{ secrets.AWS_S3_PATH_DEVELOP }}"
+              ;;
+            *)
+              # Use develop secrets for develop environment
+              DATABASE_URI="${{ secrets.DATABASE_URI_DEVELOP }}"
+              TOKEN_SECRET="${{ secrets.TOKEN_SECRET_DEVELOP }}"
+              TOKEN_EXPIRATION="${{ secrets.TOKEN_EXPIRATION_DEVELOP }}"
+              S3_BUCKET="${{ secrets.AWS_S3_BUCKET_NAME_DEVELOP }}"
+              S3_PATH="${{ secrets.AWS_S3_PATH_DEVELOP }}"
+              ;;
+          esac
+
+          # Create environment-specific configuration
+          cat > app-runner-config-${{ steps.set-env.outputs.environment }}.json << EOF
+          {
+            "SourceConfiguration": {
+              "CodeRepository": {
+                "RepositoryUrl": "https://github.com/Murder-by-numberS/wowkeyb-be",
+                "SourceCodeVersion": {
+                  "Type": "BRANCH",
+                  "Value": "$(if [ "${{ steps.set-env.outputs.environment }}" = "production" ]; then echo "master"; else echo "${{ steps.set-env.outputs.environment }}"; fi)"
+                },
+                "SourceDirectory": "/",
+                "CodeConfiguration": {
+                  "ConfigurationSource": "REPOSITORY",
+                  "CodeConfigurationValues": {
+                    "Runtime": "NODEJS_18",
+                    "BuildCommand": "npm ci",
+                    "StartCommand": "npm start",
+                    "Port": "1337",
+                    "RuntimeEnvironmentVariables": {
+                      "NODE_ENV": "${{ steps.set-env.outputs.environment }}",
+                      "PORT": "1337",
+                      "APP_PORT": "1337",
+                      "LOG_LEVEL": "info",
+                      "FE_URL": "https://wowkeyb.gg",
+                      "DATABASE_URI": "$DATABASE_URI",
+                      "TOKEN_SECRET": "$TOKEN_SECRET",
+                      "TOKEN_EXPIRATION": "$TOKEN_EXPIRATION",
+                      "AWS_KEY": "${{ secrets.AWS_ACCESS_KEY_ID }}",
+                      "AWS_SECRET_KEY": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+                      "AWS_REGION": "us-east-1",
+                      "AWS_S3_BUCKET_NAME": "$S3_BUCKET",
+                      "AWS_S3_PATH": "$S3_PATH"
+                    }
+                  }
+                }
+              },
+              "AutoDeploymentsEnabled": true,
+              "AuthenticationConfiguration": {
+                "ConnectionArn": "arn:aws:apprunner:us-east-1:351483928422:connection/wowkeyb-github-connection/e6bc601530a84967a31a97a26dc97ebb"
+              }
+            }
+          }
+          EOF
+
+          # Update the App Runner service with new configuration
+          aws apprunner update-service \
+            --service-arn "${{ steps.set-env.outputs.app-runner-service }}" \
+            --cli-input-json file://app-runner-config-${{ steps.set-env.outputs.environment }}.json
+
+          # Clean up config file
+          rm app-runner-config-${{ steps.set-env.outputs.environment }}.json
+
       - name: 🚀 Deploy to App Runner
         run: |
           echo "Deploying to ${{ steps.set-env.outputs.environment }} environment..."
           echo "App Runner Service: ${{ steps.set-env.outputs.app-runner-service }}"
-          
-          # Trigger App Runner deployment by updating the service
-          # App Runner will automatically pull from the connected GitHub repository
+
+          # Trigger App Runner deployment
           aws apprunner start-deployment \
             --service-arn "${{ steps.set-env.outputs.app-runner-service }}"
 

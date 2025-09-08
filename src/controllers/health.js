@@ -10,9 +10,9 @@ const HealthService = {
     const available = dbStatus === 'UP';
 
     // Return 200 even if database is not connected for App Runner health checks
-    return res.status(200).json({ 
+    return res.status(200).json({
       data: available ? 'OK' : 'OK_NO_DB',
-      dbStatus: dbStatus 
+      dbStatus: dbStatus
     });
   },
 

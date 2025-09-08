@@ -301,3 +301,34 @@ GET /api/abilities/paladin/holy/herald-of-the-sun/version/685b68b193b0b9e5ee2f2f
 5. **Scalable Structure**: Ready for other classes and future expansions
 6. **Database-Driven**: No longer relies on static data files
 7. **Version-Specific Queries**: Can retrieve abilities for any game version
+
+## 📁 Project Structure
+
+```
+wowkeyb-be/
+├── src/                    # Source code
+├── scripts/               # Deployment and utility scripts
+│   ├── deployment/        # Active deployment scripts
+│   ├── cleanup/          # Cleanup scripts
+│   ├── utilities/        # Utility scripts
+│   └── archive/          # Obsolete scripts (for reference)
+├── docs/                 # Documentation
+│   ├── setup/           # Setup and configuration guides
+│   └── deployment/      # Deployment and operations docs
+├── config/              # Configuration files
+│   └── backup/          # Backup configurations
+└── README.md            # This file
+```
+
+## 📚 Documentation
+
+- **`docs/README.md`** - Documentation index
+- **`docs/setup/`** - Setup and configuration guides
+- **`docs/deployment/`** - Deployment and operations documentation
+- **`scripts/README.md`** - Scripts usage guide
+
+## 🚀 Quick Start
+
+1. **Setup**: See `docs/setup/` for environment configuration
+2. **Deploy**: See `docs/deployment/DEPLOYMENT.md` for deployment process
+3. **Scripts**: See `scripts/README.md` for script usage

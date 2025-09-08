@@ -110,3 +110,45 @@ To migrate from Elastic Beanstalk to App Runner:
 - **Built-in caching**: App Runner handles caching automatically
 - **Database indexes**: Optimized for better performance (see recent updates)
 - **Response caching**: Implemented compression and HTTP caching middleware
+
+## GitHub Actions vs App Runner Auto-Deployment
+
+**Note:** This project no longer uses GitHub Actions for backend deployment.
+
+### Why GitHub Actions Was Removed
+
+The backend now uses **App Runner's built-in auto-deployment** feature:
+
+- **AutoDeploymentsEnabled**: `true` on all App Runner services
+- **GitHub Integration**: Direct connection to the repository
+- **Automatic Triggers**: Deploys automatically on every push to connected branches
+- **No Manual Intervention**: No need for GitHub Actions workflows
+
+### Current Deployment Flow
+
+1. **Push to GitHub** → App Runner automatically detects changes
+2. **App Runner** → Pulls latest code from the repository
+3. **App Runner** → Builds and deploys the application
+4. **App Runner** → Updates the running service
+
+### Benefits of App Runner Auto-Deployment
+
+- ✅ **Simpler**: No GitHub Actions configuration needed
+- ✅ **Faster**: Direct deployment without workflow overhead
+- ✅ **More Reliable**: Built-in AWS integration
+- ✅ **Cost Effective**: No GitHub Actions minutes consumed
+- ✅ **Automatic Scaling**: Handles traffic spikes automatically
+
+### Manual Deployment (if needed)
+
+If you need to manually trigger a deployment:
+
+```bash
+aws apprunner start-deployment --service-arn "SERVICE_ARN"
+```
+
+### Service ARNs
+
+- **Develop**: `arn:aws:apprunner:us-east-1:351483928422:service/wowkeyb-backend-develop/5b892b14a36e4c11b7adf5d0a9c85d4b`
+- **Staging**: `arn:aws:apprunner:us-east-1:351483928422:service/wowkeyb-backend-staging/75f4959df32f4a8a84afeadc234a341d`
+- **Production**: `arn:aws:apprunner:us-east-1:351483928422:service/wowkeyb-backend-production/c2126fa0af30432aa603198757e5ed26`

@@ -29,7 +29,7 @@ const mapToData = (keybinding) => ({
   class: toTitleCase(keybinding.class) || null,
   spec: toTitleCase(keybinding.spec) || null,
   heroTalent: toTitleCase(keybinding.hero_talent) || null,
-  version: keybinding.populated('version') ? keybinding.version : keybinding.version || null,
+  version: keybinding.version || null,
   isPublic: keybinding.is_public || false,
   createdAt: keybinding.createdAt || null,
   keybinds: (keybinding.keybinds || []).map(keybind => ({

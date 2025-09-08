@@ -73,6 +73,7 @@
   "author": "Logan Born",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.806.0",
     "@aws-sdk/client-ses": "^3.806.0",
     "bcrypt": "^5.1.1",
     "compression": "^1.7.4",

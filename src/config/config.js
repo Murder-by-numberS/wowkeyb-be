@@ -1,4 +1,6 @@
-import appConfig from '../../package.json' assert { type: 'json' }
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const appConfig = require('../../package.json');
 
 const Config = {
 
@@ -9,6 +11,7 @@ const Config = {
   appURL: process.env.APP_URL || 'http://localhost:1337',
   appVersion: appConfig.version,
   // appSecretKey: process.env.SECRET_KEY,
+  logLevel: process.env.LOG_LEVEL || 'info',
 
   feURL: process.env.FE_URL || 'http://localhost:4200',
 

@@ -1,0 +1,1263 @@
+import mongoose from 'mongoose';
+import Ability from '../../../models/ability.js';
+import Version from '../../../models/version.js';
+import Config from '../../../config/config.js';
+
+// Core/class shaman abilities
+const coreAbilities = [
+  {
+    name: 'Ancestral Spirit',
+    spell_id: '2008',
+    description: 'Returns the spirit to the body, restoring a dead target to life with 35% health and mana.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_regenerate.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Astral Recall',
+    spell_id: '556',
+    description: 'Returns you to your Hearthstone location.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_astralrecal.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 30,
+    cooldown: 900,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Astral Shift',
+    spell_id: '108271',
+    description: 'Shifts partially into the elemental planes, taking 40% less damage for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_astralshift.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 90,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Bloodlust/Heroism',
+    spell_id: '2825',
+    description: 'Increases haste by 30% for all party and raid members for 40 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_bloodlust.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 60,
+    cooldown: 300,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Chain Heal',
+    spell_id: '1064',
+    description: 'Heals the friendly target for a moderate amount, then jumps to heal additional nearby friendly targets.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_healingwavegreater.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Chain Lightning',
+    spell_id: '188443',
+    description: 'Hurls a lightning bolt at the enemy, dealing Nature damage and then jumping to additional nearby enemies.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_chainlightning.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Cleanse Spirit',
+    spell_id: '51886',
+    description: 'Removes all Curse and Magic effects from a friendly target.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_cleansespirit.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Earth Elemental',
+    spell_id: '198103',
+    description: 'Calls forth a Greater Earth Elemental to protect you and your allies for 1 min.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_earthelemental_totem.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 300,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Earthbind Totem',
+    spell_id: '2484',
+    description: 'Summons a totem at your feet for 20 sec that slows the movement speed of enemies within 10 yards by 50%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_strengthofearthtotem02.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Far Sight',
+    spell_id: '6196',
+    description: 'Changes your viewpoint to the targeted location for 1 min.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_farsight.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 40,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Flame Shock',
+    spell_id: '188389',
+    description: 'Sears the target with fire, causing Fire damage and then additional Fire damage over 18 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_fire_flameshock.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 10,
+    cooldown: 0,
+    range: 25,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Frost Shock',
+    spell_id: '196840',
+    description: 'Instantly shocks the target with ice, dealing Frost damage and reducing movement speed by 50% for 6 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_frost_frostshock.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 10,
+    cooldown: 0,
+    range: 25,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Ghost Wolf',
+    spell_id: '2645',
+    description: 'Transforms you into a ghost wolf, increasing movement speed by 30%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_spiritwolf.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 15,
+    cooldown: 0,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Grounding Totem',
+    spell_id: '8177',
+    description: 'Summons a totem that redirects harmful spells cast at nearby party members to itself.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_groundingtotem.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 30,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Gust of Wind',
+    spell_id: '192063',
+    description: 'A gust of wind hurls you forward.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_skyreach_four_wind.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 15,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Healing Surge',
+    spell_id: '8004',
+    description: 'A quick but inefficient surge of healing energy that restores health to an ally.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_healingway.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Healing Stream Totem',
+    spell_id: '5394',
+    description: 'Summons a totem at your feet for 15 sec that heals an injured party or raid member within 40 yards every 2 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_spear_04.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 30,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Hex',
+    spell_id: '51514',
+    description: 'Transforms the enemy into a frog for 8 sec. The hexed target cannot attack or cast spells.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_hex.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Lightning Bolt',
+    spell_id: '188196',
+    description: 'Hurls a bolt of lightning at the target, dealing Nature damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_lightning.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 1,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Lava Burst',
+    spell_id: '51505',
+    description: 'Hurls molten lava at the target, dealing Fire damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_lavaburst.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 10,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Lightning Shield',
+    spell_id: '192106',
+    description: 'Surrounds you with lightning, dealing Nature damage to attackers.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_lightningshield.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Nature\'s Swiftness',
+    spell_id: '378081',
+    description: 'Your next Nature spell with a base cast time less than 10 sec becomes an instant cast spell.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_ravenform.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Primal Strike',
+    spell_id: '73899',
+    description: 'A brutal strike that deals Physical damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_primalstrike.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 1,
+    cooldown: 0,
+    range: 5,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Purge',
+    spell_id: '370',
+    description: 'Purges the enemy target, removing 1 beneficial magic effect.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_purge.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 8,
+    cooldown: 0,
+    range: 30,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Reincarnation',
+    spell_id: '20608',
+    description: 'Allows you to resurrect yourself with 20% health and mana when you die.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_improvedreincarnation.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 1800,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Skyfury',
+    spell_id: '207399',
+    description: 'Increases the critical strike chance of spells and abilities by 20% for all party and raid members for 40 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/achievement_raidprimalist_windelemental.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 300,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Spiritwalker\'s Grace',
+    spell_id: '79206',
+    description: 'Calls upon spiritual guidance, allowing movement while casting Shaman spells.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_spiritwalkersgrace.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 120,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Spirit Walk',
+    spell_id: '58875',
+    description: 'Removes all movement impairing effects and increases your movement speed by 60% for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_tracking.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Stone Bulwark Totem',
+    spell_id: '108270',
+    description: 'Summons a totem at your feet for 15 sec that creates a shield around you, absorbing damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_stoneskintotem.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Totemic Projection',
+    spell_id: '108287',
+    description: 'Relocates your active totems to the specified location.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_totemrelocation.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Totemic Recall',
+    spell_id: '36936',
+    description: 'Destroys all of your totems and returns 25% of their remaining duration as mana.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_multitotemactivation.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Water Walking',
+    spell_id: '546',
+    description: 'Allows you to walk on water for 10 min.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_frost_windwalkon.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 20,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Wind Rush Totem',
+    spell_id: '192077',
+    description: 'Summons a totem at your feet for 15 sec that grants 60% increased movement speed to you and allies within 10 yards.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_windwalktotem.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 120,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Capacitor Totem',
+    spell_id: '192058',
+    description: 'Summons a totem at your feet for 3 sec that stuns enemies within 8 yards for 3 sec when it expires.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_brilliance.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Earthgrab Totem',
+    spell_id: '51485',
+    description: 'Summons a totem at your feet for 20 sec that roots enemies within 8 yards for 5 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_natureswrath.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 30,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Greater Purge',
+    spell_id: '378773',
+    description: 'Purges the enemy target, removing 2 beneficial magic effects.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_purge.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Lightning Lasso',
+    spell_id: '305483',
+    description: 'Lassos an enemy with lightning, pulling them toward you and dealing Nature damage over 3 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/shaman_pvp_lightninglasso.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 45,
+    range: 20,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Poison Cleansing Totem',
+    spell_id: '8166',
+    description: 'Summons a totem at your feet for 12 sec that removes 1 Poison effect from a nearby party member every 2 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_poisoncleansingtotem.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 45,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Tremor Totem',
+    spell_id: '8143',
+    description: 'Summons a totem that shakes the ground around it, removing Fear, Charm and Sleep effects from party and raid members within 30 yards.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_tremortotem.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Wind Shear',
+    spell_id: '57994',
+    description: 'Disrupts the target\'s concentration with a blast of wind, interrupting spellcasting and preventing any spell in that school from being cast for 3 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_cyclone.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 24,
+    cooldown: 12,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  }
+];
+
+// Spec/hero talent actives and replacements
+const specAndHeroActives = [
+  // Elemental spec actives
+  {
+    name: 'Earth Shock',
+    spell_id: '8042',
+    description: 'Instantly shocks the target with concussive force, causing Nature damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_earthshock.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 4,
+    cooldown: 0,
+    range: 25,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Earthquake',
+    spell_id: '61882',
+    description: 'Causes the earth at the target location to tremble and break, dealing Physical damage over 6 sec and has a chance to knock down enemies.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_earthquake.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Elemental Blast',
+    spell_id: '117014',
+    description: 'Harnesses the raw power of the elements, dealing elemental damage and increasing your Critical Strike, Haste, or Mastery by 540 for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/shaman_talent_elementalblast.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 12,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Storm Elemental',
+    spell_id: '192249',
+    description: 'Calls forth a Greater Storm Elemental to rain destruction on your enemies for 30 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_stormelemental.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 300,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Ascendance',
+    spell_id: '114050',
+    description: 'Transforms you into an Ascended being for 15 sec, replacing Lightning Bolt with Ascendance\'s Lightning Bolt and increasing your damage done by 20%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_fire_elementaldevastation.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 180,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Fire Elemental',
+    spell_id: '198067',
+    description: 'Calls forth a Greater Fire Elemental to rain destruction on your enemies for 30 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_fire_elemental_totem.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 300,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Stormkeeper',
+    spell_id: '191634',
+    description: 'Charges you with lightning for 15 sec, causing your next 2 Lightning Bolts to deal 150% more damage and be instant cast.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_thunderking_lightningwhip.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Thunderstorm',
+    spell_id: '51490',
+    description: 'Calls down a bolt of lightning, dealing Nature damage to all enemies within 10 yards, knocking them back and restoring 5% mana.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_thunderstorm.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 45,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Liquid Magma Totem',
+    spell_id: '192222',
+    description: 'Summons a totem that spews liquid magma at nearby enemies for 15 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_spewlava.jpg',
+    class: 'shaman',
+    spec: 'elemental',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  // Enhancement spec actives
+  {
+    name: 'Doom Winds',
+    spell_id: '204945',
+    description: 'Unleashes the power of your Doom Winds, causing your next 6 auto attacks to strike an additional 2 targets for 100% damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_ironmaidens_swirlingvortex.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Feral Spirit',
+    spell_id: '51533',
+    description: 'Summons two Spirit Wolves under your command for 15 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_feralspirit.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 120,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Flametongue Weapon',
+    spell_id: '318038',
+    description: 'Imbues your off-hand weapon with the element of Fire for 1 hour. Each hit deals additional Fire damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_fire_flametounge.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Lava Lash',
+    spell_id: '60103',
+    description: 'Strikes an enemy with your off-hand weapon, dealing Fire damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_lavalash.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 10,
+    cooldown: 0,
+    range: 5,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Stormstrike',
+    spell_id: '17364',
+    description: 'Strikes an enemy with both weapons, dealing Physical damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_stormstrike.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 10,
+    cooldown: 0,
+    range: 5,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Sundering',
+    spell_id: '197214',
+    description: 'Shatters a line of earth before you with your main hand weapon, causing Physical damage and knocking enemies to the side.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_rhyolith_lavapool.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 40,
+    range: 8,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Windfury Weapon',
+    spell_id: '8232',
+    description: 'Imbues your main-hand weapon with the element of Wind for 1 hour. Each hit has a 20% chance of triggering three extra attacks.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_windfury.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Feral Lunge',
+    spell_id: '196884',
+    description: 'Lunge at the enemy, causing Physical damage and rooting them in place for 1.5 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_beastmaster_wolf.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 30,
+    range: 20,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Fire Nova',
+    spell_id: '333974',
+    description: 'Causes all of your Flame Shock effects to explode, dealing Fire damage to nearby enemies.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_firenova.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Elemental Blast',
+    spell_id: '117014',
+    description: 'Harnesses the raw power of the elements, dealing elemental damage and increasing your Critical Strike, Haste, or Mastery by 540 for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/shaman_talent_elementalblast.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 12,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Ascendance',
+    spell_id: '114051',
+    description: 'Transforms you into an Ascended being for 15 sec, replacing Stormstrike with Ascendance\'s Stormstrike and increasing your damage done by 20%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_fire_elementaldevastation.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 180,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Primordial Wave',
+    spell_id: '326059',
+    description: 'Blast a target with a Primordial Wave, dealing Shadow damage and applying Flame Shock to an enemy or healing an ally.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_maldraxxus_shaman.jpg',
+    class: 'shaman',
+    spec: 'enhancement',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 45,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  // Restoration spec actives
+  {
+    name: 'Cloudburst Totem',
+    spell_id: '157153',
+    description: 'Summons a totem at your feet for 15 sec that collects 25% of all healing done. When the totem expires, it releases 50% of the collected healing to up to 6 injured allies within 40 yards.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_condensationtotem.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Earthen Wall Totem',
+    spell_id: '198838',
+    description: 'Summons a totem at your feet for 15 sec that creates a wall of earth around the target, absorbing damage and healing the target when the wall is destroyed.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_stoneskintotem.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Earth Shield',
+    spell_id: '974',
+    description: 'Protects the target with an earthen shield, reducing damage taken by 10% and healing the target when they take damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_skinofearth.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Healing Rain',
+    spell_id: '73920',
+    description: 'Creates a healing rain at the target location that heals up to 6 allies within 10 yards for a moderate amount over 10 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_giftofthewaterspirit.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 10,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+
+  {
+    name: 'Healing Tide Totem',
+    spell_id: '108280',
+    description: 'Summons a totem at your feet for 10 sec that heals the 3 most injured party or raid members within 40 yards every 2 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_healingtide.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 180,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Riptide',
+    spell_id: '61295',
+    description: 'Restores a moderate amount of health to an ally and increases the healing they receive from your next 3 healing spells by 25%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_riptide.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 10,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Wellspring',
+    spell_id: '197995',
+    description: 'Heals all allies in a cone in front of you for a moderate amount.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shawaterelemental_split.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 12,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Ancestral Vision',
+    spell_id: '212048',
+    description: 'Returns all dead party members to life with 35% of maximum health and mana. Cannot be cast when in combat.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_elementaloath.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Healing Wave',
+    spell_id: '77472',
+    description: 'A slow but efficient wave of healing energy that restores health to an ally.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_healingwavelesser.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 1,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+
+  {
+    name: 'Purify Spirit',
+    spell_id: '77130',
+    description: 'Purifies the friendly target, removing all Magic and Curse effects.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_cleansespirit.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Water Shield',
+    spell_id: '52127',
+    description: 'Surrounds the target with a shield of water, restoring mana when the target takes damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_shaman_watershield.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Earthliving Weapon',
+    spell_id: '51730',
+    description: 'Imbues your weapon with the element of Earth for 1 hour. Each hit has a chance to heal you.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_giftearthmother.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Spirit Link Totem',
+    spell_id: '98008',
+    description: 'Summons a totem at your feet for 6 sec that redistributes health between all party and raid members within 10 yards.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_spiritlink.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 180,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Ascendance',
+    spell_id: '114050',
+    description: 'Transforms you into an Ascended being for 15 sec, replacing Chain Heal with Ascendance\'s Chain Heal and increasing your healing done by 20%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_fire_elementaldevastation.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 180,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Unleash Life',
+    spell_id: '73685',
+    description: 'Unleashes elemental forces of Life, healing the target for a moderate amount and increasing the healing of your next direct healing spell by 30%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_unleashweapon_life.jpg',
+    class: 'shaman',
+    spec: 'restoration',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 15,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Surging Totem',
+    spell_id: '192058',
+    description: 'Summons a totem at your feet for 15 sec that increases your healing done by 20%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_ability_totemicshaman_surgingtotem.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: 'totemic',
+    ability_type: 'hero_talent',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Ancestral Swiftness',
+    spell_id: '192087',
+    description: 'Your next Nature spell with a base cast time less than 10 sec becomes an instant cast spell.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_nature_ravenform.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: 'farseer',
+    ability_type: 'hero_talent',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  }
+];
+
+async function seedShamanAbilities() {
+  try {
+    console.log('Connecting to database...');
+    await mongoose.connect(Config.databaseURI);
+    console.log('Connected.');
+
+    const versions = await Version.find();
+    if (!versions.length) {
+      console.error('No versions found!');
+      return;
+    }
+
+    // Delete all shaman abilities for all versions
+    const del = await Ability.deleteMany({ class: 'shaman' });
+    console.log(`Deleted ${del.deletedCount} shaman abilities.`);
+
+    let created = 0;
+    for (const version of versions) {
+      // For each spec (including null for class abilities)
+      const specs = [null, 'elemental', 'enhancement', 'restoration'];
+      for (const spec of specs) {
+        // --- Seed core/class abilities, skipping those replaced by hero/spec talents for this spec ---
+        for (const ability of coreAbilities) {
+          // Check for spec-level replacements
+          const specReplaced = spec && specAndHeroActives.find(a =>
+            a.replaces === ability.name &&
+            a.spec === spec &&
+            a.hero_talent === null
+          );
+
+          // Check for hero talent replacements (for all hero talents of this spec)
+          const heroTalentReplaced = spec && specAndHeroActives.find(a =>
+            a.replaces === ability.name &&
+            a.spec === spec &&
+            a.hero_talent !== null
+          );
+
+          if (specReplaced || heroTalentReplaced) continue;
+
+          // Only create class abilities once (when spec is null)
+          // Don't create class abilities for individual specs
+          if (spec === null) {
+            await Ability.create({ ...ability, spec, game_version: version._id });
+            created++;
+          }
+        }
+      }
+
+      // --- Seed spec/hero actives, handling replacements ---
+      for (const ability of specAndHeroActives) {
+        // For hero talents, create them as-is (spec: null, hero_talent: 'frostfire')
+        if (ability.hero_talent) {
+          await Ability.create({ ...ability, game_version: version._id });
+          created++;
+        } else {
+          // Regular spec abilities
+          await Ability.create({ ...ability, game_version: version._id });
+          created++;
+        }
+      }
+    }
+    console.log(`Seeded ${created} shaman abilities for ${versions.length} versions.`);
+  } catch (e) {
+    console.error('Error:', e);
+  } finally {
+    await mongoose.disconnect();
+    console.log('Disconnected.');
+  }
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seedShamanAbilities();
+}
+
+export default seedShamanAbilities;

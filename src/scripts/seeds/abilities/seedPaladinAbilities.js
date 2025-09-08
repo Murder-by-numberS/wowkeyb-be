@@ -1,0 +1,1060 @@
+import mongoose from 'mongoose';
+import Ability from '../../../models/ability.js';
+import Version from '../../../models/version.js';
+import Config from '../../../config/config.js';
+
+// Core/class paladin abilities (with .jpg icons)
+const coreAbilities = [
+  {
+    name: 'Crusader Strike',
+    spell_id: '35395',
+    description: 'Strike the target for Physical damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_crusaderstrike.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 1,
+    cooldown: 6,
+    range: 5,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Judgment',
+    spell_id: '275779',
+    description: 'Judges the target, dealing Holy damage.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_righteousfury.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 3,
+    cooldown: 12,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Flash of Light',
+    spell_id: '19750',
+    description: 'Quickly heal a friendly target.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_flashheal.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 4,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Hammer of Justice',
+    spell_id: '853',
+    description: 'Stuns the target for 6 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofmight.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 5,
+    cooldown: 60,
+    range: 10,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Consecration',
+    spell_id: '26573',
+    description: 'Consecrates the land beneath you, causing Holy damage over 12 sec to enemies who enter the area.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_innerfire.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 6,
+    cooldown: 0,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Word of Glory',
+    spell_id: '85673',
+    description: 'Calls down the Light to heal a friendly target.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_helmet_96.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 7,
+    cooldown: 0,
+    range: 40,
+    cost: 'Holy Power',
+    cost_amount: 3
+  },
+  {
+    name: 'Divine Shield',
+    spell_id: '642',
+    description: 'Grants Immunity to all damage, harmful effects, knockbacks and forced movement effects for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_divineshield.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 10,
+    cooldown: 300,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Hand of Reckoning',
+    spell_id: '62124',
+    description: 'Commands the attention of an enemy target, forcing them to attack you.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_unyieldingfaith.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 9,
+    cooldown: 8,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Redemption',
+    spell_id: '7328',
+    description: 'Brings a dead ally back to life with 35% maximum health and mana. Cannot be cast when in combat.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_resurrection.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 13,
+    cooldown: 0,
+    range: 30,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Intercession',
+    spell_id: '391054',
+    description: 'Petition the Light on the behalf of a fallen ally, restoring spirit to body and allowing them to reenter battle with 60% health and at least 20% mana.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_intercession.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 19,
+    cooldown: 600,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Avenging Wrath',
+    spell_id: '31884',
+    description: 'Call upon the Light to become an avatar of retribution, allowing Hammer of Wrath to be used on any target, increasing your damage, healing and critical strike chance by 15% for 20 sec. (Could also be Avenging Crusader for Holy Paladins)',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_avenginewrath.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 40,
+    cooldown: 120,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Divine Steed',
+    spell_id: '190784',
+    description: 'Leap atop your Charger for 3 sec, increasing movement speed by 100%. Usable while indoors or in combat.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_divinesteed.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 40,
+    cooldown: 45,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Divine Protection',
+    spell_id: '498',
+    description: 'Reduces all damage you take by 20% for 8 sec. Usable while stunned.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_divineprotection.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Rebuke',
+    spell_id: '96231',
+    description: 'Interrupts spellcasting and prevents any spell in that school from being cast for 3 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_rebuke.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 15,
+    range: 10,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Blessing of Freedom',
+    spell_id: '1044',
+    description: 'Blesses a party or raid member, granting immunity to movement impairing effects for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofvalor.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Hammer of Wrath',
+    spell_id: '24275',
+    description: 'Hurls a divine hammer that strikes an enemy for Holy damage. Only usable on enemies that have less than 20% health, or during Avenging Wrath.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_hammerofwrath.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Blinding Light',
+    spell_id: '115750',
+    description: 'Emits dazzling light in all directions, blinding enemies within 10 yds, causing them to wander disoriented for 6 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_blindinglight.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 90,
+    range: 10,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Lay on Hands',
+    spell_id: '633',
+    description: 'Heals a friendly target for an amount equal to 100% of your maximum health.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_layonhands.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 600,
+    range: 20,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Blessing of Protection',
+    spell_id: '1022',
+    description: 'Blesses a party or raid member, granting immunity to Physical damage and harmful effects for 10 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofprotection.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Blessing of Sacrifice',
+    spell_id: '6940',
+    description: 'Blesses a party or raid member, reducing their damage taken by 30%, but you suffer 100% of the damage prevented.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_sealofsacrifice.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Turn Evil',
+    spell_id: '10326',
+    description: 'The power of the Light compels an Undead, Aberration, or Demon target to flee for up to 40 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_turnundead.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+];
+
+// Spec/hero talent actives and replacements
+const specAndHeroActives = [
+  // Holy spec actives
+  {
+    name: 'Beacon of Light',
+    spell_id: '53563',
+    description: 'Mark a target as a Beacon, mimicking the effects of your healing spells.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_beaconoflight.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 10,
+    cooldown: 0,
+    range: 40,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Aura Mastery',
+    spell_id: '31821',
+    description: 'Empowers your chosen aura for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_auramastery.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 180,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Holy Shock',
+    spell_id: '20473',
+    description: 'Triggers a burst of Light on the target, dealing holy damage or healing an ally.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_searinglight.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 10,
+    cooldown: 7.5,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Barrier of Faith',
+    spell_id: '148039',
+    description: 'Place a barrier on an ally, absorbing damage they take.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_barrieroffaith.jpg',
+    replaces: 'Beacon of Light',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 30,
+    replaces: 'Beacon of Light',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 30,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Tyr\'s Deliverance',
+    spell_id: '200652',
+    description: 'Heal all allies within 15 yards over 12 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_mace_2h_artifactsilverhand_d_01.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 90,
+    range: 15,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Divine Toll',
+    spell_id: '375576',
+    description: 'Instantly cast Holy Shock on up to 5 targets within range.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_bastion_paladin.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Divine Toll',
+    spell_id: '375576',
+    description: 'Instantly cast Judgment on up to 5 targets within range.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_bastion_paladin.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Divine Toll',
+    spell_id: '375576',
+    description: 'Instantly cast Avenger\'s Shield on up to 5 targets within range.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_bastion_paladin.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Hand of Divinity',
+    spell_id: '414273',
+    description: 'Your next Holy Light is instant and heals for more.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_vindication.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Beacon of Virtue',
+    spell_id: '200025',
+    description: 'Apply Beacon of Light to 3 additional allies for 8 sec. Replaces Beacon of Light.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_beaconofinsight.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 15,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0,
+    replaces: 'Beacon of Light'
+  },
+  {
+    name: 'Beacon of Faith',
+    spell_id: '156910',
+    description: 'Mark a second target as a Beacon, mimicking the effects of Beacon of Light. Your heals will now heal both of your Beacons, but at 20% reduced effectiveness.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_beaconsoflight.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 60,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Holy Light',
+    spell_id: '82326',
+    description: 'A powerful but expensive spell, healing a friendly target.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_holybolt.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Cleanse',
+    spell_id: '4987',
+    description: 'Cleans a friendly target removing all Poison, Disease, and Magic effects.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_purify.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Holy Prism',
+    spell_id: '114165',
+    description: 'Fires a beam of light that scatters to strike a clump of targets.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_holyprism.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 20,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Blessing of Summer',
+    spell_id: '388007',
+    description: 'Bless an ally for 30 sec, causing 12% of all healing to be converted into damage onto a nearby enemy and 12% of all damage to be converted into healing onto an injured ally.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_ardenweald_paladin_summer.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Shield of the Righteous',
+    spell_id: '53600',
+    description: 'Slams enemies in front of you with your shield, causing Holy damage, and reducing the cooldown of Crusader Strike.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_shieldofvengeance.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 5,
+    cost: 'Holy Power',
+    cost_amount: 1,
+    replaces: 'Shield of the Righteous'
+  },
+  {
+    name: 'Light of Dawn',
+    spell_id: '85222',
+    description: 'Unleashes a wave of Holy energy, healing up to 5 injured allies within a frontal cone.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_lightofdawn.jpg',
+    class: 'paladin',
+    spec: 'holy',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 15,
+    cost: 'Holy Power',
+    cost_amount: 3
+  },
+  // Hero talents
+  {
+    name: 'Eternal Flame',
+    spell_id: '114163',
+    description: 'Replaces Word of Glory. Heals the target and applies a heal-over-time effect.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_torch_thrown.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: 'herald-of-the-sun',
+    ability_type: 'hero_talent',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Holy Power',
+    cost_amount: 3,
+    replaces: 'Word of Glory'
+  },
+  {
+    name: 'Holy Bulwark',
+    spell_id: '433682',
+    description: 'Creates a protective barrier that absorbs damage and reflects it back at attackers.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_ability_lightsmithpaladin_holybulwark.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: 'lightsmith',
+    ability_type: 'hero_talent',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Rite of Adjuration',
+    spell_id: '433682',
+    description: 'Performs a sacred rite that empowers your next healing spell and provides protection to allies.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_riteofadjuration.jpg',
+    class: 'paladin',
+    spec: null,
+    hero_talent: 'lightsmith',
+    ability_type: 'hero_talent',
+    level_required: 0,
+    cooldown: 45,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  // Protection spec actives
+  {
+    name: 'Ardent Defender',
+    spell_id: '31850',
+    description: 'Reduces all damage you take by 20% for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_ardentdefender.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Avenger\'s Shield',
+    spell_id: '31935',
+    description: 'Hurls your shield at an enemy target, dealing Holy damage, interrupting and silencing the non-Player target for 3 sec, and then jumping to 2 additional nearby enemies.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_avengersshield.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 15,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Blessed Hammer',
+    spell_id: '204019',
+    description: 'Throws a Blessed Hammer that spirals outward, dealing Holy damage to enemies and reducing the next damage they deal to you.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/paladin_retribution.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 8,
+    cost: 'None',
+    cost_amount: 0,
+    replaces: 'Crusader Strike'
+  },
+  {
+    name: 'Guardian of Ancient Kings',
+    spell_id: '86659',
+    description: 'Empowers you with the spirit of ancient kings, reducing all damage you take by 50% for 8 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_heroism.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 300,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Cleanse Toxins',
+    spell_id: '213644',
+    description: 'Cleanses a friendly target, removing all Poison and Disease effects.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_renew.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Bastion of Light',
+    spell_id: '378974',
+    description: 'Your next 5 casts of Judgment generate 2 additional Holy Power.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/paladin_protection.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 90,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Blessing of Spellwarding',
+    spell_id: '204018',
+    description: 'Blesses a party or raid member, granting immunity to Magic damage and harmful effects for 10 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_blessingofprotection.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Eye of Tyr',
+    spell_id: '387174',
+    description: 'Unleashes the power of Tyr, dealing Holy damage to enemies and reducing their damage for a short time.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_shield_1h_artifactnorgannon_d_01.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 45,
+    range: 10,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Hammer of Righteous',
+    spell_id: '53595',
+    description: 'Strike the target for Physical damage. Replaces Crusader Strike.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_hammeroftherighteous.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 6,
+    range: 5,
+    cost: 'None',
+    cost_amount: 0,
+    replaces: 'Crusader Strike'
+  },
+  {
+    name: 'Sentinel',
+    spell_id: '389539',
+    description: 'Becomes a sentinel of the Light, increasing your defensive capabilities and protecting allies.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_holynova.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 120,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0,
+    replaces: 'Avenging Wrath'
+  },
+  {
+    name: 'Moment of Glory',
+    spell_id: '327193',
+    description: 'For the next 15 sec, you generate an absorb shield for 25% of all damage you deal, and Avenger\'s Shield damage is increased by 20% and its cooldown is reduced by 75%.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_aspiration.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 90,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  // Retribution spec actives
+  {
+    name: 'Cleanse Toxins',
+    spell_id: '213644',
+    description: 'Cleanses a friendly target, removing all Poison and Disease effects.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_renew.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 0
+  },
+  {
+    name: 'Blade of Justice',
+    spell_id: '184575',
+    description: 'Pierce enemies with a blade of light, dealing Holy damage to your target, and Holy damage to nearby enemies.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_bladeofjustice.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 12,
+    range: 10,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Divine Storm',
+    spell_id: '53385',
+    description: 'Unleashes a whirl of divine energy, dealing Holy damage to all nearby enemies.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_divinestorm.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 8,
+    cost: 'Holy Power',
+    cost_amount: 3
+  },
+  {
+    name: 'Final Verdict',
+    spell_id: '383328',
+    description: 'Unleashes a powerful weapon strike that deals Holy damage to an enemy target.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_templarsverdict.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 5,
+    cost: 'Holy Power',
+    cost_amount: 3
+  },
+  {
+    name: 'Wake of Ashes',
+    spell_id: '255937',
+    description: 'Lash out at your enemies, dealing Radiant damage to all enemies within 14 yds in front of you.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_sword_2h_artifactashbringerfire_d_03.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 45,
+    range: 14,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Justicar\'s Vengeance',
+    spell_id: '215661',
+    description: 'Focuses Holy energy to deliver a powerful weapon strike that deals Holy damage, and restores 3% of your maximum health.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_retributionaura.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 5,
+    cost: 'Holy Power',
+    cost_amount: 5
+  },
+  {
+    name: 'Final Reckoning',
+    spell_id: '343721',
+    description: 'Call down a blast of heavenly energy, dealing Holy damage to all targets in the area and causing them to take 30% increased damage from your single target Holy Power abilities.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_blessedresillience.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 90,
+    range: 8,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Execution Sentence',
+    spell_id: '343527',
+    description: 'A hammer slowly falls from the sky upon the target, after 8 sec, they suffer 20% of the damage taken from your abilities as Holy damage during that time.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_executionsentence.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 60,
+    range: 30,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Shield of Vengeance',
+    spell_id: '215661',
+    description: 'Creates a barrier of holy light that absorbs damage for 10 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_shieldofvengeance.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 120,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
+  },
+  {
+    name: 'Divine Hammer',
+    spell_id: '198034',
+    description: 'Divine Hammers spin around you consuming a Holy Power to strike enemies within 8 yds for Holy damage every 1.7 sec.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/classicon_paladin.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 8,
+    cost: 'Holy Power',
+    cost_amount: 1
+  },
+  {
+    name: 'Shield of the Righteous',
+    spell_id: '53600',
+    description: 'Slams enemies in front of you with your shield, causing Holy damage, and increasing your armor.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_shieldofvengeance.jpg',
+    class: 'paladin',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 5,
+    cost: 'Holy Power',
+    cost_amount: 1,
+    replaces: 'Shield of the Righteous'
+  },
+  {
+    name: 'Shield of the Righteous',
+    spell_id: '53600',
+    description: 'Slams enemies in front of you with your shield, causing Holy damage, and increasing your armor.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_shieldofvengeance.jpg',
+    class: 'paladin',
+    spec: 'retribution',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 5,
+    cost: 'Holy Power',
+    cost_amount: 1,
+    replaces: 'Shield of the Righteous'
+  }
+];
+
+async function seedPaladinAbilities() {
+  try {
+    console.log('Connecting to database...');
+    await mongoose.connect(Config.databaseURI);
+    console.log('Connected.');
+
+    const versions = await Version.find();
+    if (!versions.length) {
+      console.error('No versions found!');
+      return;
+    }
+
+    // Delete all paladin abilities for all versions
+    const del = await Ability.deleteMany({ class: 'paladin' });
+    console.log(`Deleted ${del.deletedCount} paladin abilities.`);
+
+    let created = 0;
+    for (const version of versions) {
+      // For each spec (including null for class abilities)
+      const specs = [null, 'holy', 'protection', 'retribution'];
+      for (const spec of specs) {
+        // --- Seed core/class abilities, skipping those replaced by hero/spec talents for this spec ---
+        for (const ability of coreAbilities) {
+          // Check for spec-level replacements
+          const specReplaced = spec && specAndHeroActives.find(a =>
+            a.replaces === ability.name &&
+            a.spec === spec &&
+            a.hero_talent === null
+          );
+
+          // Check for hero talent replacements (for all hero talents of this spec)
+          const heroTalentReplaced = spec && specAndHeroActives.find(a =>
+            a.replaces === ability.name &&
+            a.spec === spec &&
+            a.hero_talent !== null
+          );
+
+          if (specReplaced || heroTalentReplaced) continue;
+
+          // Only create class abilities once (when spec is null)
+          // Don't create class abilities for individual specs
+          if (spec === null) {
+            await Ability.create({ ...ability, spec, game_version: version._id });
+            created++;
+          }
+        }
+      }
+      // --- Seed spec/hero actives, handling replacements ---
+      for (const ability of specAndHeroActives) {
+        await Ability.create({ ...ability, game_version: version._id });
+        created++;
+      }
+    }
+    console.log(`Seeded ${created} paladin abilities for ${versions.length} versions.`);
+  } catch (e) {
+    console.error('Error:', e);
+  } finally {
+    await mongoose.disconnect();
+    console.log('Disconnected.');
+  }
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seedPaladinAbilities();
+}
+
+export default seedPaladinAbilities;

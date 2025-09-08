@@ -1,7 +1,7 @@
 import { Router } from "express";
-
+import AuthnMiddleware from "../../middlewares/authn.js";
 import * as AuthController from '../../controllers/user/auth.js';
-import { validateAuth, validateRegister, validateConfirm, validateNewPassword } from "../../validators/users.js";
+import { validateAuth, validateRegister, validateConfirm, validateNewPassword, validateChangePassword } from "../../validators/users.js";
 
 const router = new Router();
 
@@ -23,5 +23,8 @@ router.post('/forgot-password',
 router.put('/reset-password',
   validateNewPassword,
   AuthController.setNewPassword)
-
+  .use(AuthnMiddleware.authenticateToken)
+router.put('/change-password',
+  validateChangePassword,
+  AuthController.changePassword)
 export default router;

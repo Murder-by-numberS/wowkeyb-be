@@ -1,29 +1,23 @@
-import handlebars from 'handlebars';
-
-// import { mg } from '../../config/index.js';
-
-// Function to compile and render a Handlebars template
-function compileTemplate(template, data) {
-  const compiledTemplate = handlebars.compile(template);
-  return compiledTemplate(data);
-}
+import ses from "../../config/ses.js";
 
 // Function to send an email with a templated HTML body
-export function sendEmailWithTemplate(to, subject, template, data) {
-  const html = compileTemplate(template, data);
+export async function sendEmailWithTemplate(templateName, to, data) {
 
-  const emailData = {
-    from: 'admin@wowkeyb.gg',
-    to: to,
-    subject: subject,
-    html: html
+  console.log('data', data);
+
+  let sendTemplatedEmailParams = {
+    Source: 'mail@wowkeyb.gg', //TODO: set this in config?
+    Destination: {
+      ToAddresses: [to]
+    },
+    Template: templateName,
+    TemplateData: JSON.stringify(data)
   };
+  console.log('sendTemplatedEmailParams', sendTemplatedEmailParams);
 
-  // mg.messages().send(emailData, (error, body) => {
-  //   if (error) {
-  //     console.error('Error sending email:', error);
-  //   } else {
-  //     console.log('Email sent successfully:', body);
-  //   }
-  // });
+  ses.sendTemplatedEmail(sendTemplatedEmailParams, function (err, data) {
+    if (err) console.log(err, err.stack);
+    else console.log(data);
+  });
+
 }

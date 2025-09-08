@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken';
+
 import Logger from '../utils/logger.js'
 
 const PingService = {
@@ -6,12 +8,23 @@ const PingService = {
 
     const { token } = req.body;
 
-    Logger.info(`Ping - ${token}`);
+    try {
+      Logger.info(`Ping - ${token}`);
+      const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
 
-    //validate the token
+      const { user_id } = decoded;
 
+      if (!user_id) {
+        return res.status(401).send({ code: "TOK003", message: 'Token is not valid' });
+      }
 
-    return res.status(200).json({ data: 'OK' });
+      return res.status(200).json({ data: 'OK' });
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token expired' });
+      }
+      throw error;
+    }
   }
 
 }

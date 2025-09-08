@@ -1,0 +1,40 @@
+version: 1.0
+runtime: nodejs22
+build:
+  commands:
+    build:
+      - echo "Installing dependencies..."
+      - npm ci
+      - echo "Build completed"
+run:
+  runtime-version: 22
+  command: npm start
+  network:
+    port: 1337
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "1337"
+    - name: DATABASE_URI
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/DATABASE_URI"
+    - name: TOKEN_SECRET
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/TOKEN_SECRET"
+    - name: TOKEN_EXPIRATION
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/TOKEN_EXPIRATION"
+    - name: AWS_KEY
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/AWS_KEY"
+    - name: AWS_SECRET_KEY
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/AWS_SECRET_KEY"
+    - name: AWS_REGION
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/AWS_REGION"
+    - name: AWS_S3_BUCKET_NAME
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/AWS_S3_BUCKET_NAME"
+    - name: AWS_S3_PATH
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/AWS_S3_PATH"
+    - name: FE_URL
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/FE_URL"
+    - name: APP_URL
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/APP_URL"
+    - name: LOG_LEVEL
+      value: "arn:aws:ssm:us-east-1:ACCOUNT_ID:parameter/wowkeyb-be/production/LOG_LEVEL"

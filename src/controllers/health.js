@@ -9,11 +9,11 @@ const HealthService = {
     const dbStatus = mongoose && mongoose.connection.readyState === 1 ? 'UP' : 'DOWN';
     const available = dbStatus === 'UP';
 
-    if (!available) {
-      return res.status(500).json({ data: 'BAD' });
-    }
-
-    return res.status(200).json({ data: 'OK' });
+    // Return 200 even if database is not connected for App Runner health checks
+    return res.status(200).json({ 
+      data: available ? 'OK' : 'OK_NO_DB',
+      dbStatus: dbStatus 
+    });
   },
 
   status: async (req, res) => {

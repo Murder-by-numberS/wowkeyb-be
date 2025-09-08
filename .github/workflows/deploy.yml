@@ -1,0 +1,120 @@
+name: Deploy Backend to AWS App Runner
+
+on:
+  push:
+    branches: [master, develop, staging]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "develop"
+        type: choice
+        options:
+          - develop
+          - staging
+          - production
+
+env:
+  NODE_VERSION: "22"
+  AWS_REGION: "us-east-1"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # Determine environment based on branch or manual input
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      app-runner-service: ${{ steps.set-env.outputs.app-runner-service }}
+
+    steps:
+      - name: 🛎️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set environment variables
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Using manually selected environment: ${{ github.event.inputs.environment }}"
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.ref }}" = "refs/heads/master" ]; then
+            echo "Using PRODUCTION configuration (master branch)"
+            ENVIRONMENT="production"
+          elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
+            echo "Using STAGING configuration (staging branch)"
+            ENVIRONMENT="staging"
+          else
+            echo "Using DEVELOP configuration (develop branch or other)"
+            ENVIRONMENT="develop"
+          fi
+
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+
+          # Set App Runner service names
+          case $ENVIRONMENT in
+            "production")
+              echo "app-runner-service=${{ secrets.APP_RUNNER_SERVICE_PROD }}" >> $GITHUB_OUTPUT
+              ;;
+            "staging")
+              echo "app-runner-service=${{ secrets.APP_RUNNER_SERVICE_STAGING }}" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "app-runner-service=${{ secrets.APP_RUNNER_SERVICE_DEVELOP }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run tests (if available)
+        run: |
+          if [ -f "package.json" ] && grep -q '"test"' package.json; then
+            npm test
+          else
+            echo "No tests configured, skipping..."
+          fi
+
+      - name: 🔧 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 📝 Note about Environment Variables
+        run: |
+          echo "⚠️  Environment variables need to be configured manually in App Runner Console"
+          echo "   App Runner with REPOSITORY configuration source cannot be updated via CLI"
+          echo "   Please update environment variables in AWS Console for each service:"
+          echo "   • Develop: https://console.aws.amazon.com/apprunner/home?region=us-east-1#/services/${{ secrets.APP_RUNNER_SERVICE_DEVELOP }}"
+          echo "   • Staging: https://console.aws.amazon.com/apprunner/home?region=us-east-1#/services/${{ secrets.APP_RUNNER_SERVICE_STAGING }}"
+          echo "   • Production: https://console.aws.amazon.com/apprunner/home?region=us-east-1#/services/${{ secrets.APP_RUNNER_SERVICE_PROD }}"
+
+      - name: 🚀 Deploy to App Runner
+        run: |
+          echo "Deploying to ${{ steps.set-env.outputs.environment }} environment..."
+          echo "App Runner Service: ${{ steps.set-env.outputs.app-runner-service }}"
+
+          # Trigger App Runner deployment
+          aws apprunner start-deployment \
+            --service-arn "${{ steps.set-env.outputs.app-runner-service }}"
+
+      - name: ✅ Deployment complete
+        run: |
+          echo "🎉 Successfully triggered App Runner deployment!"
+          echo "Environment: ${{ steps.set-env.outputs.environment }}"
+          echo "Service: ${{ steps.set-env.outputs.app-runner-service }}"
+          echo "Commit: ${{ github.sha }}"
+          echo ""
+          echo "App Runner will automatically:"
+          echo "  • Pull the latest code from GitHub"
+          echo "  • Build and deploy your application"
+          echo "  • Scale based on traffic"
+          echo "  • Only charge for actual usage"

@@ -1,6 +1,7 @@
 import { validationResult } from 'express-validator';
 
 import * as UserValidators from './users';
+import * as AbilityValidators from './abilities';
 
 const validationErrors = (req, res, next) => {
   const validationErrors = validationResult(req);
@@ -13,6 +14,7 @@ const validationErrors = (req, res, next) => {
 };
 
 export {
+  AbilityValidators,
   UserValidators,
   validationErrors
 };

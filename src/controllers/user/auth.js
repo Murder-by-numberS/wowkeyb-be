@@ -7,9 +7,12 @@ import Logger from "../../utils/logger.js";
 import { generateCode, saltRounds } from "../../utils/util.js"
 //email
 import { sendEmailWithTemplate } from '../email/email.js';
-import { createNewPassword, registerUser, resetPasswordConfirm } from '../../views/user.js';
+import { USER_EMAIL_TEMPLATE_NAMES } from '../email/emails/user.js';
 
-import { User, UserSetting, Token } from '../../models/index.js'
+import { User, UserSetting, Token, Keybinding } from '../../models/index.js'
+
+import { presentMany } from '../../presenters/keybindings.js';
+
 
 export const login = async (req, res) => {
   Logger.verbose('Inside Login');
@@ -35,49 +38,11 @@ export const login = async (req, res) => {
         .json({ code: "USER004", message: "Error Logging In User" });
     }
 
-    //not used right now
-    // if (!user.confirmed) {
-    //   Logger.error('User Not Confirmed');
-    //   return res
-    //     .status(400)
-    //     .json({ code: "USER005", message: "User Not Confirmed" });
-    // }
-
-    if (!user.encryptedPassword) {
-      Logger.error('user does not have an encrypted password');
-
-      let newCode = generateCode();
-      Logger.info(`newCode ${newCode}`);
-      //get date
-      const now = new Date();
-
-      //can remove
-      Logger.info(`date: ${now}`);
-
-      await User.updateOne(
-        { _id: user._id },
-        {
-          resetCode: newCode,
-          resetPassword: true,
-          resetTime: now,
-        }
-      );
-
-      let resetLink = `${Config.feURL}/reset-password?rc=${newCode}`;
-      Logger.info(`resetLink = ${resetLink}`);
-      const data = {
-        email: user.email,
-        resetLink
-      };
-      console.log('data', data);
-
-      const to = user.email;
-      const subject = 'WOWKEYB: Create New Password';
-
-      sendEmailWithTemplate(to, subject, createNewPassword, data);
-
-      return res.status(200).json({ newPassword: true, message: "User Needs New Password" })
-
+    if (!user.confirmed) {
+      Logger.error('User Not Confirmed');
+      return res
+        .status(400)
+        .json({ code: "USER005", message: "User Not Confirmed" });
     }
 
     const valid = await bcrypt.compare(password, user.encryptedPassword);
@@ -89,13 +54,13 @@ export const login = async (req, res) => {
         .json({ code: "USER004", message: "Error Logging In User" }); // don't reveal wrong password
     }
 
-    let userSettings = await UserSetting.findOne({ userID: user._id });
+    let userSettings = await UserSetting.findOne({ user_id: user._id });
 
     if (!userSettings) {
       //create settings
       let defaultSettings = {
         scheme: "light",
-        userID: user._id,
+        user_id: user._id,
       };
 
       userSettings = await UserSetting.create(defaultSettings);
@@ -107,19 +72,23 @@ export const login = async (req, res) => {
     const token = jwt.sign(
       {
         accessLevel: user.accessLevel,
-        userID: user._id
+        user_id: user._id
       },
       process.env.TOKEN_SECRET,
       { expiresIn: process.env.TOKEN_EXPIRATION });
-
+    console.log('token', token);
     //store token in db
-    await Token.create({ userID: user._id, token, token_type: 'verification' });
+    await Token.create({ user_id: user._id, token, token_type: 'verification' });
+
+    //get keybindings
+    const keybindings = await Keybinding.find({ user_id: user._id }).populate('version');
 
     //return with user model, token and user settings
     const payload = {
       user,
       token,
       userSettings,
+      keybindings: presentMany(keybindings)
     }
 
     return res.status(200).send(payload);
@@ -136,6 +105,7 @@ export const register = async (req, res) => {
   Logger.verbose('Inside Register');
 
   const {
+    username,
     email,
     password
   } = req.body;
@@ -156,17 +126,29 @@ export const register = async (req, res) => {
 
     }
 
+    users = await User.find({ username: username.toLowerCase() });
+
+    if (users.length > 0) {
+      Logger.error("Duplicate Username");
+      return res
+        .status(400)
+        .json({ code: "USER001", message: "Duplicate User" });
+
+    }
+    console.log('about to hash')
     //hash the password
     const passwordSalt = await bcrypt.genSalt(saltRounds);
     const encryptedPassword = await bcrypt.hash(password, passwordSalt);
-
+    const confirmCode = generateCode();
+    // store the emails and usernames all lowercase
     const newUser = {
       email: email.toLowerCase(),
+      username: username.toLowerCase(),
       encryptedPassword,
-      confirmCode: generateCode()
+      confirmCode
     };
 
-    Logger.verbose(`Creating User with ${email}`)
+    Logger.verbose(`Creating User with email: ${email} and username: ${username}`)
     //create new user
     const createdUser = await User.create(newUser);
     if (!createdUser) {
@@ -178,15 +160,14 @@ export const register = async (req, res) => {
 
     const data = {
       email: createdUser.email,
-      loginLink: `${Config.feURL}/pages/auth/login`,
-      userPageLink: `${Config.feURL}/pages/user`,
+      link: `${Config.feURL}/confirmation?confirmCode=${confirmCode}`,
     };
 
     const to = createdUser.email;
-    const subject = 'WOWKEYB: Thank You For Registering';
 
-    sendEmailWithTemplate(to, subject, registerUser, data);
+    sendEmailWithTemplate(USER_EMAIL_TEMPLATE_NAMES.registerUser, to, data);
 
+    console.log('after sent email')
     let message = 'User created';
     return res.status(200).send({ message });
   } catch (e) {
@@ -200,6 +181,7 @@ export const register = async (req, res) => {
 export const confirmUser = async (req, res) => {
   try {
     Logger.verbose('Inside Confirm User');
+    console.log('req.body', req.body);
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -207,16 +189,20 @@ export const confirmUser = async (req, res) => {
     }
 
     const { confirmCode } = req.body;
-    const user = await User.find({
-      confirmed: false,
-      confirmCode
-    })
+    const user = await User.find({ confirmCode })
 
-    if (!user || user.length > 1) {
+    if (!user || user.length != 1) {
       Logger.error('User Not Found');
       return res
         .status(400)
         .json({ code: "USER003", message: "Error Confirming User" });
+    }
+
+    if (user[0].confirmed === true) {
+      Logger.error('User is already confirmed');
+      return res
+        .status(400)
+        .json({ code: "USER010", message: "Invalid Confirm Code" });
     }
 
     const updatedUser = await User.updateOne({ _id: user[0]._id }, { confirmed: true });
@@ -253,18 +239,18 @@ export const refreshAccessToken = async (req, res) => {
       return res.status(401).json({ err: "Invalid Token!" });
     }
 
-    const { userID } = verifiedToken;
+    const { user_id } = verifiedToken;
 
     //find the user
-    const user = await User.findOne({ _id: userID });
+    const user = await User.findOne({ _id: user_id });
 
     if (!user) {
-      Logger.error(`Could not find user ${userID}`);
+      Logger.error(`Could not find user ${user_id}`);
       return res.status(401).json({ err: "Invalid Token!" });
     }
 
     let settingsQuery = {
-      userID: user._id,
+      user_id: user._id,
     };
 
     //find the settings
@@ -275,7 +261,7 @@ export const refreshAccessToken = async (req, res) => {
 
       let defaultSettings = {
         scheme: "light",
-        userID: user._id,
+        user_id: user._id,
       };
       // If user logged in successfully we return user, token, and settings as response
       userSettings = await UserSetting.create(defaultSettings);
@@ -284,21 +270,25 @@ export const refreshAccessToken = async (req, res) => {
     const token = jwt.sign(
       {
         accessLevel: user.accessLevel,
-        userID: user._id
+        user_id: user._id
       },
       process.env.TOKEN_SECRET,
       { expiresIn: process.env.TOKEN_EXPIRATION });
 
     //store token in db
-    await Token.create({ userID: user._id, token, token_type: 'verification' });
+    await Token.create({ user_id: user._id, token, token_type: 'verification' });
 
     Logger.info('Refreshed Token Successfully');
+
+    //get keybindings
+    const keybindings = await Keybinding.find({ user_id: user._id }).populate('version');
 
     //return with user model, token and user settings
     const payload = {
       user,
       token,
       userSettings,
+      keybindings: presentMany(keybindings)
     }
 
     return res.status(200).send(payload);
@@ -370,9 +360,8 @@ export const forgotPassword = async (req, res) => {
     console.log('data', data);
 
     const to = user.email;
-    const subject = 'WOWKEYB: Reset Password';
 
-    sendEmailWithTemplate(to, subject, createNewPassword, data);
+    sendEmailWithTemplate(USER_EMAIL_TEMPLATE_NAMES.resetPassword, to, data);
 
     let message = `forgot password ${email}`;
 
@@ -391,6 +380,7 @@ export const setNewPassword = async (req, res) => {
   console.log('inside setNewPassword');
 
   const errors = validationResult(req);
+  console.log('errors', errors.array());
   if (!errors.isEmpty()) {
     Logger.error(`We have Errors: ${errors.array()}`)
     return res.status(422).json({ error: errors.array() });
@@ -399,9 +389,12 @@ export const setNewPassword = async (req, res) => {
   try {
     const newPassword = req.body.np;
     const resetCode = req.body.rc; // reset code
+
+    console.log('req.body', req.body);
+
     const users = await User.find({ resetCode });
 
-    if (!users) {
+    if (!users || users.length === 0) {
       Logger.error('User Not Found');
       return res
         .status(400)
@@ -416,7 +409,12 @@ export const setNewPassword = async (req, res) => {
         .json({ code: "USER009", message: "Duplicate Reset Code" });
     }
     const user = users[0]; //should be first
-    console.log('user', user); //may be an array
+
+    if (user.resetPassword === false) {
+      return res
+        .status(400)
+        .json({ code: "USER011", message: "Reset Code Already Used" });
+    }
 
     Logger.info(`Setting new password for user ${user._id}`);
 
@@ -424,11 +422,10 @@ export const setNewPassword = async (req, res) => {
     const TWENTYFOUR_HOURS = 60 * 60 * 1000 * 24;
 
     if (!(now - user.resetTime < TWENTYFOUR_HOURS)) {
-      console.log("reset time is invalid");
       Logger.error('Reset Time is Invalid');
       return res
         .status(400)
-        .json({ code: "USER0008", message: "Reset Time is Invalid" });
+        .json({ code: "USER0008", message: "Reset Code has expired." });
     }
 
     //hash the password
@@ -446,9 +443,8 @@ export const setNewPassword = async (req, res) => {
     console.log('data', data);
 
     const to = user.email;
-    const subject = 'WOWKEYB: Reset Password Confirm';
 
-    sendEmailWithTemplate(to, subject, resetPasswordConfirm, data);
+    sendEmailWithTemplate(USER_EMAIL_TEMPLATE_NAMES.resetPasswordConfirm, to, data);
 
     return res
       .status(200)
@@ -459,6 +455,80 @@ export const setNewPassword = async (req, res) => {
     return res
       .status(500)
       .json({ code: "USER007", message: "Error Creating New Password" });
+  }
+
+}
+
+export const changePassword = async (req, res) => {
+
+  Logger.info('inside changePassword');
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    Logger.error(`We have Errors: ${errors.array()}`)
+    return res.status(422).json({ error: errors.array() });
+  }
+
+  try {
+
+    const { decoded: { user_id } } = req;
+
+    const user = await User.findById(user_id);
+
+    if (!user) {
+      Logger.error('User Not Found');
+      return res
+        .status(400)
+        .json({ code: "USER012", message: "Error Changing Password" });
+    }
+
+    const oldPassword = req.body.op; // old password
+    const newPassword = req.body.np;
+
+    if (oldPassword === newPassword) {
+      Logger.error('Passwords are the same');
+      return res
+        .status(400)
+        .json({ code: "USER013", message: "Error Changing Password: Passwords are the same." });
+    }
+
+    //make sure its the right old password
+    const valid = await bcrypt.compare(oldPassword, user.encryptedPassword);
+
+    if (!valid) {
+      Logger.error('Invalid Password');
+      return res
+        .status(400)
+        .json({ code: "USER012", message: "Error Changing Password" });
+    }
+
+    Logger.info(`Setting new password for user ${user._id}`);
+
+    const passwordSalt = await bcrypt.genSalt(saltRounds);
+    const encryptedPassword = await bcrypt.hash(newPassword, passwordSalt);
+
+    user.encryptedPassword = encryptedPassword;
+    await user.save();
+
+    Logger.info('Change Password Successful');
+
+    //send email
+    const data = {
+      email: user.email,
+    };
+    console.log('data', data);
+
+    const to = user.email;
+
+    sendEmailWithTemplate(USER_EMAIL_TEMPLATE_NAMES.changePassword, to, data);
+
+    return res.status(200).json({ changed: true, message: "Change Password Successful" });
+
+  } catch (e) {
+    Logger.error('Error Changing Password')
+    return res
+      .status(500)
+      .json({ code: "USER012", message: "Error Changing Password" });
   }
 
 }

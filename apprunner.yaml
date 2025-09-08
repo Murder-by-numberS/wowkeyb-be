@@ -11,30 +11,3 @@ run:
   command: npm start
   network:
     port: 1337
-  env:
-    - name: NODE_ENV
-      value: development
-    - name: PORT
-      value: "1337"
-    - name: DATABASE_URI
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/DATABASE_URI"
-    - name: TOKEN_SECRET
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/TOKEN_SECRET"
-    - name: TOKEN_EXPIRATION
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/TOKEN_EXPIRATION"
-    - name: AWS_KEY
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/AWS_KEY"
-    - name: AWS_SECRET_KEY
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/AWS_SECRET_KEY"
-    - name: AWS_REGION
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/AWS_REGION"
-    - name: AWS_S3_BUCKET_NAME
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/AWS_S3_BUCKET_NAME"
-    - name: AWS_S3_PATH
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/AWS_S3_PATH"
-    - name: FE_URL
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/FE_URL"
-    - name: APP_URL
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/APP_URL"
-    - name: LOG_LEVEL
-      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/develop/LOG_LEVEL"

@@ -121,41 +121,43 @@ export const updateKeybinding = async (req, res, next) => {
     delete req.body.heroTalent;
 
     // Normalize class field if it exists
-    if (req.body.class) {
-      req.body.class = req.body.class.toLowerCase().replace(/\s+/g, '');
+    if (req.body.class !== undefined) {
+      const normalizedClass = req.body.class.toLowerCase().replace(/\s+/g, '');
 
       //if the class is not the same as the keybinding class, remove keybinds
-      if (req.body.class !== keybinding.class) {
+      if (normalizedClass !== keybinding.class) {
         req.body.keybinds = [];
       }
+      req.body.class = normalizedClass;
     }
-    if (req.body.spec) {
-      req.body.spec = req.body.spec.toLowerCase();
 
-      if (req.body.spec === 'beast mastery') {
-        req.body.spec = 'beast-mastery';
+    if (req.body.spec !== undefined) {
+      let normalizedSpec = req.body.spec.toLowerCase();
+
+      if (normalizedSpec === 'beast mastery') {
+        normalizedSpec = 'beast-mastery';
       }
 
       //if the spec is not the same as the keybinding spec, remove keybinds
-      if (req.body.spec !== keybinding.spec) {
+      if (normalizedSpec !== keybinding.spec) {
         req.body.keybinds = [];
       }
+      req.body.spec = normalizedSpec;
     }
 
-    if (req.body.hero_talent) {
-
-      req.body.hero_talent = req.body.hero_talent.toLowerCase();
+    if (req.body.hero_talent !== undefined) {
+      let normalizedHeroTalent = req.body.hero_talent.toLowerCase();
 
       //if there is a space in the hero_talent, replace it with a dash
-      if (req.body.hero_talent.includes(' ')) {
-        req.body.hero_talent = req.body.hero_talent.replace(/\s+/g, '-');
+      if (normalizedHeroTalent.includes(' ')) {
+        normalizedHeroTalent = normalizedHeroTalent.replace(/\s+/g, '-');
       }
 
       //if the hero_talent is not the same as the keybinding hero_talent, remove keybinds
-      if (req.body.hero_talent !== keybinding.hero_talent) {
+      if (normalizedHeroTalent !== keybinding.hero_talent) {
         req.body.keybinds = [];
       }
-
+      req.body.hero_talent = normalizedHeroTalent;
     }
 
     if (req.body.keybinds) {

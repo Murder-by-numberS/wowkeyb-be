@@ -3,7 +3,6 @@ import { Router } from "express";
 import AuthRouter from './api/auth.js'
 import PingRouter from './api/ping.js'
 
-import NavigationRouter from './api/navigation.js'
 import AbilitiesRouter from './api/abilities.js'
 import AbilityRouter from './api/ability.js'
 
@@ -18,7 +17,6 @@ const router = new Router();
 //auth
 router
   .use('/auth', AuthRouter)
-  .use('/navigation', AuthnMiddleware.decode, NavigationRouter)
   .use('/abilities', AbilitiesRouter)
   .use('/abilities', AbilityRouter)
 

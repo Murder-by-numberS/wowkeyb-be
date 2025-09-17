@@ -45,14 +45,14 @@ const AuthnMiddleware = {
       try {
         const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
         const { user_id } = decoded;
-        if (!user_id) {
-          return res.status(401).send({ code: "TOK003", message: 'Token is not valid' });
+        if (user_id) {
+          req.decoded = decoded;
         }
-
-        req.decoded = decoded;
+        // If no user_id, just continue without setting req.decoded
       } catch (err) {
         Logger.error(err);
-        return res.status(401).send({ code: "TOK003", message: 'Token is not valid' });
+        // Don't return error for invalid tokens in decode middleware
+        // Just continue without setting req.decoded
       }
     }
 

@@ -21,7 +21,7 @@ export const getKeybindings = async (req, res, next) => {
 
     const keybindings = await Keybinding.find({ user_id })
       .populate('version', 'game_version')
-      .select('name class spec version is_public createdAt duplication_count')
+      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds')
       .limit(100) // Prevent runaway queries
       .lean(); // Use lean() for better performance
 
@@ -44,7 +44,7 @@ export const getHomeKeybindings = async (req, res, next) => {
     // Get all public keybindings with limits
     const keybindings = await Keybinding.find({ is_public: true })
       .populate('version', 'game_version')
-      .select('name class spec version createdAt duplication_count')
+      .select('name class spec hero_talent version createdAt duplication_count keybinds')
       .limit(500) // Limit for home page performance
       .lean(); // Use lean() for better performance
 
@@ -635,7 +635,7 @@ export const getDeletedKeybindings = async (req, res, next) => {
     })
       .setOptions({ includeDeleted: true })
       .populate('version', 'game_version')
-      .select('name class spec version createdAt deleted_at')
+      .select('name class spec hero_talent version createdAt deleted_at keybinds')
       .limit(50) // Limit deleted keybindings
       .lean();
 

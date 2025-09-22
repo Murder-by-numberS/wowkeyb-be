@@ -942,6 +942,21 @@ const specAndHeroActives = [
     cost_amount: 10
   },
   {
+    name: 'Spell Block',
+    spell_id: '2565',
+    description: 'Increases your block chance by 100% for 6 sec and allows you to block magical attacks.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_defend.jpg',
+    class: 'warrior',
+    spec: 'protection',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 0,
+    cost: 'Rage',
+    cost_amount: 30
+  },
+  {
     name: 'Demolish',
     spell_id: '383916',
     description: 'Demolish the target, dealing weapon damage and reducing their armor by 20% for 10 sec.',

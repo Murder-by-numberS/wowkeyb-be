@@ -687,21 +687,6 @@ const specAndHeroActives = [
     cost_amount: 0
   },
   {
-    name: 'Execute',
-    spell_id: '163201',
-    description: 'Attempts to finish off a foe, causing weapon damage. Only usable on enemies that have less than 20% health.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/inv_sword_48.jpg',
-    class: 'warrior',
-    spec: 'fury',
-    hero_talent: null,
-    ability_type: 'spec',
-    level_required: 0,
-    cooldown: 0,
-    range: 5,
-    cost: 'Rage',
-    cost_amount: 20
-  },
-  {
     name: 'Rampage',
     spell_id: '184367',
     description: 'Unleash a series of 4 powerful attacks for weapon damage each.',
@@ -979,9 +964,18 @@ async function seedWarriorAbilities() {
     await mongoose.connect(Config.databaseURI);
     console.log('Connected.');
 
-    const versions = await Version.find();
+    // Get all versions created before 11.2.0
+    const version1120 = await Version.findOne({ game_version: '11.2.0' });
+    let versions;
+
+    if (version1120) {
+      versions = await Version.find({ createdAt: { $lt: version1120.createdAt } });
+    } else {
+      versions = await Version.find();
+    }
+
     if (!versions.length) {
-      console.error('No versions found!');
+      console.error('No versions found before 11.2.0!');
       return;
     }
 

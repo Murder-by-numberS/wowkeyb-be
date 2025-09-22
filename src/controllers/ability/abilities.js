@@ -428,7 +428,7 @@ export const getAbilitiesFlexible = async (req, res) => {
 
     const { gameVersion, class: wowClass, spec, heroTalent, page = 1, limit = 20 } = req.query;
 
-    Logger.info(`Retrieving abilities with filters: gameVersion=${gameVersion}, class=${wowClass}, spec=${spec}, heroTalent=${heroTalent}`);
+    Logger.info(`Retrieving abilities with inclusion filters: gameVersion=${gameVersion}, class=${wowClass}, spec=${spec}, heroTalent=${heroTalent}`);
 
     // Determine which version to use
     let targetVersion;
@@ -446,26 +446,56 @@ export const getAbilitiesFlexible = async (req, res) => {
       }
     }
 
-    // Build base query
-    const query = {
+    // Build base query for version and active status
+    const baseQuery = {
       game_version: targetVersion._id,
       is_active: true
     };
 
-    // Add class filter if provided
+    // Build inclusion queries based on what filters are provided
+    const inclusionQueries = [];
+
     if (wowClass) {
-      query.class = wowClass;
+      // If class is specified, we want to include:
+      // 1. Core class abilities (spec=null, ability_type='class')
+      // 2. Spec abilities for the selected spec (if spec is provided)
+      // 3. Hero talent abilities for the selected hero talent (if hero talent is provided)
+
+      // Always include core class abilities for the selected class
+      inclusionQueries.push({
+        ...baseQuery,
+        class: wowClass,
+        spec: null,
+        ability_type: 'class'
+      });
+
+      // If spec is provided, include spec abilities
+      if (spec) {
+        inclusionQueries.push({
+          ...baseQuery,
+          class: wowClass,
+          spec: spec,
+          ability_type: 'spec'
+        });
+      }
+
+      // If hero talent is provided, include hero talent abilities
+      if (heroTalent) {
+        inclusionQueries.push({
+          ...baseQuery,
+          class: wowClass,
+          hero_talent: heroTalent,
+          ability_type: 'hero_talent'
+        });
+      }
+    } else {
+      // If no class is specified, just use the base query (show all abilities)
+      inclusionQueries.push(baseQuery);
     }
 
-    // Add spec filter if provided
-    if (spec) {
-      query.spec = spec;
-    }
+    // Use $or to combine all inclusion queries
+    const query = inclusionQueries.length > 1 ? { $or: inclusionQueries } : inclusionQueries[0];
 
-    // Add hero talent filter if provided
-    if (heroTalent) {
-      query.hero_talent = heroTalent;
-    }
 
     // Get total count for pagination
     const totalCount = await Ability.countDocuments(query);
@@ -475,7 +505,7 @@ export const getAbilitiesFlexible = async (req, res) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // Get abilities based on filters with pagination
+    // Get abilities based on inclusion filters with pagination
     const abilities = await Ability.find(query)
       .populate('game_version', 'game_version')
       .select('name spell_id description icon class spec hero_talent ability_type level_required cooldown range cost cost_amount')
@@ -516,7 +546,7 @@ export const getAbilitiesFlexible = async (req, res) => {
     const hasNextPage = pageNum < totalPages;
     const hasPrevPage = pageNum > 1;
 
-    Logger.info(`Retrieved ${transformedAbilities.length} abilities with filters (version: ${targetVersion.game_version}, page: ${pageNum}/${totalPages})`);
+    Logger.info(`Retrieved ${transformedAbilities.length} abilities with inclusion filters (version: ${targetVersion.game_version}, page: ${pageNum}/${totalPages})`);
 
     return res.status(200).send({
       abilities: transformedAbilities,

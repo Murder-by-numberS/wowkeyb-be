@@ -426,9 +426,22 @@ export const getAbilitiesFlexible = async (req, res) => {
       return res.status(statusCode).json({ errors: errors.array() });
     }
 
-    const { gameVersion, class: wowClass, spec, heroTalent, page = 1, limit = 20 } = req.query;
+    const {
+      gameVersion,
+      class: wowClass,
+      spec,
+      heroTalent,
+      page = 1,
+      limit = 20,
+      columnName,
+      columnClass,
+      columnSpec,
+      columnHeroTalent,
+      columnDescription,
+      filterMode = 'inclusion'
+    } = req.query;
 
-    Logger.info(`Retrieving abilities with inclusion filters: gameVersion=${gameVersion}, class=${wowClass}, spec=${spec}, heroTalent=${heroTalent}`);
+    Logger.info(`Retrieving abilities with ${filterMode} filters: gameVersion=${gameVersion}, class=${wowClass}, spec=${spec}, heroTalent=${heroTalent}, columnName=${columnName}, columnClass=${columnClass}, columnSpec=${columnSpec}, columnHeroTalent=${columnHeroTalent}, columnDescription=${columnDescription}`);
 
     // Determine which version to use
     let targetVersion;
@@ -452,49 +465,69 @@ export const getAbilitiesFlexible = async (req, res) => {
       is_active: true
     };
 
-    // Build inclusion queries based on what filters are provided
-    const inclusionQueries = [];
+    let query;
 
-    if (wowClass) {
-      // If class is specified, we want to include:
-      // 1. Core class abilities (spec=null, ability_type='class')
-      // 2. Spec abilities for the selected spec (if spec is provided)
-      // 3. Hero talent abilities for the selected hero talent (if hero talent is provided)
+    if (filterMode === 'exact') {
+      // Exact matching mode: build a single query with all specified filters
+      query = { ...baseQuery };
 
-      // Always include core class abilities for the selected class
-      inclusionQueries.push({
-        ...baseQuery,
-        class: wowClass,
-        spec: null,
-        ability_type: 'class'
-      });
+      // Add main filters (for context) - only if no column filters override them
+      if (wowClass && !columnClass) query.class = wowClass;
+      if (spec && !columnSpec) query.spec = spec;
+      if (heroTalent && !columnHeroTalent) query.hero_talent = heroTalent;
 
-      // If spec is provided, include spec abilities
-      if (spec) {
-        inclusionQueries.push({
-          ...baseQuery,
-          class: wowClass,
-          spec: spec,
-          ability_type: 'spec'
-        });
-      }
+      // Add column filters (exact matching) - these take precedence over main filters
+      if (columnName) query.name = { $regex: columnName, $options: 'i' }; // Case-insensitive partial match
+      if (columnClass) query.class = columnClass;
+      if (columnSpec) query.spec = columnSpec;
+      if (columnHeroTalent) query.hero_talent = columnHeroTalent;
+      if (columnDescription) query.description = { $regex: columnDescription, $options: 'i' }; // Case-insensitive partial match
 
-      // If hero talent is provided, include hero talent abilities
-      if (heroTalent) {
-        inclusionQueries.push({
-          ...baseQuery,
-          class: wowClass,
-          hero_talent: heroTalent,
-          ability_type: 'hero_talent'
-        });
-      }
     } else {
-      // If no class is specified, just use the base query (show all abilities)
-      inclusionQueries.push(baseQuery);
-    }
+      // Inclusion mode (default): build inclusion queries based on what filters are provided
+      const inclusionQueries = [];
 
-    // Use $or to combine all inclusion queries
-    const query = inclusionQueries.length > 1 ? { $or: inclusionQueries } : inclusionQueries[0];
+      if (wowClass) {
+        // If class is specified, we want to include:
+        // 1. Core class abilities (spec=null, ability_type='class')
+        // 2. Spec abilities for the selected spec (if spec is provided)
+        // 3. Hero talent abilities for the selected hero talent (if hero talent is provided)
+
+        // Always include core class abilities for the selected class
+        inclusionQueries.push({
+          ...baseQuery,
+          class: wowClass,
+          spec: null,
+          ability_type: 'class'
+        });
+
+        // If spec is provided, include spec abilities
+        if (spec) {
+          inclusionQueries.push({
+            ...baseQuery,
+            class: wowClass,
+            spec: spec,
+            ability_type: 'spec'
+          });
+        }
+
+        // If hero talent is provided, include hero talent abilities
+        if (heroTalent) {
+          inclusionQueries.push({
+            ...baseQuery,
+            class: wowClass,
+            hero_talent: heroTalent,
+            ability_type: 'hero_talent'
+          });
+        }
+      } else {
+        // If no class is specified, just use the base query (show all abilities)
+        inclusionQueries.push(baseQuery);
+      }
+
+      // Use $or to combine all inclusion queries
+      query = inclusionQueries.length > 1 ? { $or: inclusionQueries } : inclusionQueries[0];
+    }
 
 
     // Get total count for pagination
@@ -546,7 +579,7 @@ export const getAbilitiesFlexible = async (req, res) => {
     const hasNextPage = pageNum < totalPages;
     const hasPrevPage = pageNum > 1;
 
-    Logger.info(`Retrieved ${transformedAbilities.length} abilities with inclusion filters (version: ${targetVersion.game_version}, page: ${pageNum}/${totalPages})`);
+    Logger.info(`Retrieved ${transformedAbilities.length} abilities with ${filterMode} filters (version: ${targetVersion.game_version}, page: ${pageNum}/${totalPages})`);
 
     return res.status(200).send({
       abilities: transformedAbilities,

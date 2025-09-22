@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Keybinding from '../../models/keybinding.js';
 import Version from '../../models/version.js';
 import Ability from '../../models/ability.js';
@@ -21,9 +22,29 @@ export const getKeybindings = async (req, res, next) => {
 
     const keybindings = await Keybinding.find({ user_id })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds')
+      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds deleted_at')
       .limit(100) // Prevent runaway queries
       .lean(); // Use lean() for better performance
+
+    // Check if any soft-deleted keybindings are being returned
+    const softDeletedCount = keybindings.filter(kb => kb.deleted_at).length;
+    if (softDeletedCount > 0) {
+      Logger.error(`WARNING: ${softDeletedCount} soft-deleted keybindings are being returned for user ${user_id}`);
+      Logger.error('Soft-deleted keybindings:', keybindings.filter(kb => kb.deleted_at).map(kb => ({
+        id: kb._id,
+        name: kb.name,
+        deletedAt: kb.deleted_at
+      })));
+    }
+
+    Logger.info(`Retrieved ${keybindings.length} keybindings for user ${user_id} (${softDeletedCount} soft-deleted)`);
+
+    // Log all keybinding IDs for debugging
+    Logger.info('Keybinding IDs being returned:', keybindings.map(kb => ({
+      id: kb._id.toString(),
+      name: kb.name,
+      deletedAt: kb.deleted_at
+    })));
 
     res.status(200).send(presentMany(keybindings));
   } catch (error) {
@@ -288,7 +309,11 @@ export const createKeybinding = async (req, res, next) => {
     // Populate version information for the response
     const populatedKeybinding = await Keybinding.findById(createdKeybinding._id).populate('version');
 
-    return res.status(200).send(presentOne(populatedKeybinding));
+    // Include the random class details in the response so frontend knows what class was selected
+    const response = presentOne(populatedKeybinding);
+    response.randomClassDetails = classDetails;
+
+    return res.status(200).send(response);
   } catch (error) {
     console.error('Error creating keybinding:', error);
     if (error.name === 'ValidationError') {
@@ -310,34 +335,78 @@ export const createKeybinding = async (req, res, next) => {
 export const deleteKeybinding = async (req, res, next) => {
   try {
     const { keybinding_id } = req.params;
+    Logger.info(`Attempting to delete keybinding: ${keybinding_id}`);
 
     // Check if the ID is a valid MongoDB ObjectId
     const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(keybinding_id);
     if (!isValidObjectId) {
+      Logger.error(`Invalid keybinding ID format: ${keybinding_id}`);
       return res.status(400).send({ message: 'Invalid keybinding ID format' });
     }
 
-    // Find the keybinding first to verify ownership (including soft-deleted ones)
-    const keybinding = await Keybinding.findOne({ _id: keybinding_id }).setOptions({ includeDeleted: true }).populate('version');
-    if (!keybinding) {
+    // First check if the keybinding exists at all (including soft-deleted ones)
+    const rawKeybinding = await Keybinding.collection.findOne({ _id: new mongoose.Types.ObjectId(keybinding_id) });
+    Logger.info(`Raw database lookup result:`, {
+      found: !!rawKeybinding,
+      id: keybinding_id,
+      deletedAt: rawKeybinding?.deleted_at,
+      userId: rawKeybinding?.user_id?.toString()
+    });
+
+    if (!rawKeybinding) {
+      Logger.error(`Keybinding not found in database: ${keybinding_id}`);
       return res.status(404).send({ message: 'Keybinding not found' });
     }
 
     // Check if already soft-deleted
-    if (keybinding.deleted_at) {
-      return res.status(400).send({ message: 'Keybinding is already deleted' });
+    if (rawKeybinding.deleted_at) {
+      Logger.info(`Keybinding ${keybinding_id} is already soft-deleted at ${rawKeybinding.deleted_at}`);
+      return res.status(200).send({
+        message: 'Keybinding is already deleted',
+        keybindingId: keybinding_id,
+        alreadyDeleted: true
+      });
     }
 
     // Verify ownership
-    if (keybinding.user_id?.toString() !== req.decoded.user_id) {
+    if (rawKeybinding.user_id?.toString() !== req.decoded.user_id) {
+      Logger.error(`Unauthorized deletion attempt:`, {
+        keybindingUserId: rawKeybinding.user_id?.toString(),
+        requestingUserId: req.decoded.user_id
+      });
       return res.status(403).send({ message: 'Not authorized to delete this keybinding' });
     }
 
-    // Get the keybinding data before soft-deleting
-    const keybindingData = presentOne(keybinding);
+    // Get the keybinding data for response (using raw data since it's not soft-deleted)
+    const keybindingData = {
+      keybindingId: rawKeybinding._id.toString(),
+      name: rawKeybinding.name,
+      userId: rawKeybinding.user_id?.toString(),
+      class: rawKeybinding.class,
+      spec: rawKeybinding.spec,
+      heroTalent: rawKeybinding.hero_talent,
+      version: rawKeybinding.version,
+      isPublic: rawKeybinding.is_public,
+      createdAt: rawKeybinding.createdAt,
+      keybinds: rawKeybinding.keybinds || []
+    };
 
     // Soft delete by setting deleted_at timestamp
-    await Keybinding.findByIdAndUpdate(keybinding_id, { deleted_at: new Date() });
+    const updateResult = await Keybinding.findByIdAndUpdate(keybinding_id, { deleted_at: new Date() });
+    Logger.info(`Soft delete update result:`, {
+      keybindingId: keybinding_id,
+      updateResult: !!updateResult,
+      deletedAt: new Date()
+    });
+
+    // Verify the keybinding is now soft-deleted by checking if it's excluded from normal queries
+    const verifyKeybinding = await Keybinding.findOne({ _id: keybinding_id });
+    Logger.info(`Verification after soft delete:`, {
+      keybindingId: keybinding_id,
+      found: !!verifyKeybinding,
+      deletedAt: verifyKeybinding?.deleted_at,
+      isProperlySoftDeleted: !verifyKeybinding // Should be null if properly soft-deleted
+    });
 
     return res.status(200).send({
       message: 'Keybinding deleted',
@@ -366,7 +435,7 @@ export const restoreKeybinding = async (req, res, next) => {
     }
 
     // Find the keybinding including soft-deleted ones
-    const keybinding = await Keybinding.findOne({ _id: keybinding_id }).setOptions({ includeDeleted: true });
+    const keybinding = await Keybinding.findOne({ _id: keybinding_id, includeDeleted: true });
     if (!keybinding) {
       return res.status(404).send({ message: 'Keybinding not found' });
     }
@@ -415,7 +484,7 @@ export const permanentlyDeleteKeybinding = async (req, res, next) => {
     }
 
     // Find the keybinding including soft-deleted ones
-    const keybinding = await Keybinding.findOne({ _id: keybinding_id }).setOptions({ includeDeleted: true }).populate('version');
+    const keybinding = await Keybinding.findOne({ _id: keybinding_id, includeDeleted: true }).populate('version');
     if (!keybinding) {
       return res.status(404).send({ message: 'Keybinding not found' });
     }
@@ -631,9 +700,9 @@ export const getDeletedKeybindings = async (req, res, next) => {
     // Find soft-deleted keybindings for the user
     const deletedKeybindings = await Keybinding.find({
       user_id,
-      deleted_at: { $ne: null }
+      deleted_at: { $ne: null },
+      includeDeleted: true
     })
-      .setOptions({ includeDeleted: true })
       .populate('version', 'game_version')
       .select('name class spec hero_talent version createdAt deleted_at keybinds')
       .limit(50) // Limit deleted keybindings
@@ -690,7 +759,6 @@ export const migrateKeybindingToLatestVersion = async (req, res, next) => {
     }
 
     let removedKeybindsCount = 0;
-    const originalKeybindsCount = keybinding.keybinds?.length || 0;
     let updatedKeybinds = keybinding.keybinds || [];
 
     if (keybinding.keybinds && keybinding.keybinds.length > 0) {

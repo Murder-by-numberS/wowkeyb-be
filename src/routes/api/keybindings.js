@@ -34,11 +34,11 @@ router.put('/:keybinding_id',
   validateUpdateKeybinding,
   AuthnMiddleware.decode,
   KeybindingsController.updateKeybinding)
-router.use(AuthnMiddleware.authenticateToken)
 router.delete('/:keybinding_id',
   validateGetKeybinding,
-  AuthnMiddleware.decode,
+  AuthnMiddleware.authenticateToken,
   KeybindingsController.deleteKeybinding)
+router.use(AuthnMiddleware.authenticateToken)
 router.post('/:keybinding_id/restore',
   validateGetKeybinding,
   AuthnMiddleware.decode,

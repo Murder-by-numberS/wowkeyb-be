@@ -96,21 +96,6 @@ const coreAbilities = [
     cost_amount: 1
   },
   {
-    name: 'Abomination Limb',
-    spell_id: '315443',
-    description: 'Sprout an additional limb, granting you an extra attack every 1.5 sec for 12 sec. Each attack deals 1 Physical damage and generates 1 Rune.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_maldraxxus_deathknight.jpg',
-    class: 'deathknight',
-    spec: null,
-    hero_talent: null,
-    ability_type: 'class',
-    level_required: 0,
-    cooldown: 120,
-    range: 0,
-    cost: 'None',
-    cost_amount: 0
-  },
-  {
     name: 'Dark Command',
     spell_id: '56222',
     description: 'Commands the target to attack you, but has no effect if the target is already attacking you.',

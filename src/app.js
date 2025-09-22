@@ -9,6 +9,9 @@ import { Config } from './config/index.js';
 
 import Logger from './utils/logger.js';
 
+// Import mongoose to establish database connection
+import './config/mongoose.js';
+
 //routes
 import routes from './routes/index.js';
 
@@ -32,7 +35,7 @@ app.use((req, res, next) => {
   }
   // Cache static data for longer periods
   if (req.path.includes('/abilities') || req.path.includes('/versions')) {
-    res.set('Cache-Control', 'public, max-age=1800'); // 30 minutes
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate'); // Disable caching for development
   }
   next();
 });

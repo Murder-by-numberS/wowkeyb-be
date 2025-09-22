@@ -167,7 +167,38 @@ export const validateGetAbilitiesFlexible = [
 
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100')
+    .isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+
+  // Validate column filter parameters
+  query('columnName')
+    .optional()
+    .isString().withMessage('Column name filter must be a string')
+    .isLength({ min: 1, max: 100 }).withMessage('Column name filter must be between 1 and 100 characters'),
+
+  query('columnClass')
+    .optional()
+    .isString().withMessage('Column class filter must be a string')
+    .isLength({ min: 1, max: 50 }).withMessage('Column class filter must be between 1 and 50 characters'),
+
+  query('columnSpec')
+    .optional()
+    .isString().withMessage('Column spec filter must be a string')
+    .isLength({ min: 1, max: 50 }).withMessage('Column spec filter must be between 1 and 50 characters'),
+
+  query('columnHeroTalent')
+    .optional()
+    .isString().withMessage('Column hero talent filter must be a string')
+    .isLength({ min: 1, max: 50 }).withMessage('Column hero talent filter must be between 1 and 50 characters'),
+
+  query('columnDescription')
+    .optional()
+    .isString().withMessage('Column description filter must be a string')
+    .isLength({ min: 1, max: 200 }).withMessage('Column description filter must be between 1 and 200 characters'),
+
+  // Validate filter mode
+  query('filterMode')
+    .optional()
+    .isIn(['inclusion', 'exact']).withMessage('Filter mode must be either "inclusion" or "exact"')
 ];
 
 export const validateGetAbilities = [

@@ -1,6 +1,6 @@
 {
   "name": "wowkeyb-be",
-  "version": "1.33.1",
+  "version": "1.33.2",
   "description": "Wowkeyb backend",
   "type": "module",
   "main": "app.js",

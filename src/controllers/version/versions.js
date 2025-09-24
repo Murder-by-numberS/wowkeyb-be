@@ -2,6 +2,31 @@ import Version from '../../models/version.js';
 import Logger from '../../utils/logger.js';
 
 /**
+ * Helper function to get the latest version by semantic version number
+ * @returns {Promise<Object>} The latest version document
+ */
+async function getLatestVersionBySemanticVersion() {
+  const allVersions = await Version.find({});
+  if (allVersions.length === 0) {
+    return null;
+  }
+
+  // Sort versions by semantic version number (highest first)
+  return allVersions.sort((a, b) => {
+    const aParts = a.game_version.split('.').map(Number);
+    const bParts = b.game_version.split('.').map(Number);
+
+    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+      const aPart = aParts[i] || 0;
+      const bPart = bParts[i] || 0;
+      if (aPart > bPart) return -1;
+      if (aPart < bPart) return 1;
+    }
+    return 0;
+  })[0];
+}
+
+/**
  * Get all versions
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -179,7 +204,7 @@ export const getLatestVersion = async (req, res, next) => {
   try {
     Logger.info('Getting latest version');
 
-    const latestVersion = await Version.findOne().sort({ createdAt: -1 });
+    const latestVersion = await getLatestVersionBySemanticVersion();
 
     if (!latestVersion) {
       return res.status(404).send({ message: 'No versions found' });

@@ -3,6 +3,31 @@ import { validationResult } from "express-validator";
 import Ability from '../../models/ability.js';
 import Version from '../../models/version.js';
 
+/**
+ * Helper function to get the latest version by semantic version number
+ * @returns {Promise<Object>} The latest version document
+ */
+async function getLatestVersionBySemanticVersion() {
+  const allVersions = await Version.find({});
+  if (allVersions.length === 0) {
+    return null;
+  }
+
+  // Sort versions by semantic version number (highest first)
+  return allVersions.sort((a, b) => {
+    const aParts = a.game_version.split('.').map(Number);
+    const bParts = b.game_version.split('.').map(Number);
+
+    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+      const aPart = aParts[i] || 0;
+      const bPart = bParts[i] || 0;
+      if (aPart > bPart) return -1;
+      if (aPart < bPart) return 1;
+    }
+    return 0;
+  })[0];
+}
+
 import deathknight from './death-knight.js';
 import demonhunter from './demon-hunter.js';
 import druid from './druid.js';
@@ -61,7 +86,7 @@ export const getAbilities = async (req, res) => {
       }
     } else {
       // Get the latest version
-      targetVersion = await Version.findOne().sort({ createdAt: -1 });
+      targetVersion = await getLatestVersionBySemanticVersion();
       if (!targetVersion) {
         return res.status(400).send({ message: 'No versions available' });
       }
@@ -341,7 +366,7 @@ export const getAbilitiesLatest = async (req, res) => {
     Logger.info(`Retrieving ${wowClass} ${spec} ${heroTalent} abilities for latest version`);
 
     // Get the latest version
-    const targetVersion = await Version.findOne().sort({ createdAt: -1 });
+    const targetVersion = await getLatestVersionBySemanticVersion();
     if (!targetVersion) {
       return res.status(400).send({ message: 'No versions available' });
     }
@@ -453,7 +478,7 @@ export const getAbilitiesFlexible = async (req, res) => {
       }
     } else {
       // Get the latest version
-      targetVersion = await Version.findOne().sort({ createdAt: -1 });
+      targetVersion = await getLatestVersionBySemanticVersion();
       if (!targetVersion) {
         return res.status(400).send({ message: 'No versions available' });
       }

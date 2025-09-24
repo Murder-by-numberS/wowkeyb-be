@@ -6,6 +6,52 @@ import { presentOne, presentMany } from '../../presenters/keybindings.js';
 import Logger from '../../utils/logger.js';
 import { generateRandomClassDetails } from '../ability/abilities.js';
 
+/**
+ * Helper function to get the latest version by semantic version number
+ * @returns {Promise<Object>} The latest version document
+ */
+async function getLatestVersionBySemanticVersion() {
+  const allVersions = await Version.find({});
+  if (allVersions.length === 0) {
+    return null;
+  }
+
+  Logger.info(`Found ${allVersions.length} versions:`, allVersions.map(v => ({
+    id: v._id.toString(),
+    game_version: v.game_version,
+    createdAt: v.createdAt
+  })));
+
+  // Sort versions by semantic version number (highest first)
+  const sortedVersions = allVersions.sort((a, b) => {
+    const aParts = a.game_version.split('.').map(Number);
+    const bParts = b.game_version.split('.').map(Number);
+
+    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+      const aPart = aParts[i] || 0;
+      const bPart = bParts[i] || 0;
+      if (aPart > bPart) return -1;
+      if (aPart < bPart) return 1;
+    }
+    return 0;
+  });
+
+  Logger.info(`Sorted versions:`, sortedVersions.map(v => ({
+    id: v._id.toString(),
+    game_version: v.game_version,
+    createdAt: v.createdAt
+  })));
+
+  const latest = sortedVersions[0];
+  Logger.info(`Selected latest version:`, {
+    id: latest._id.toString(),
+    game_version: latest.game_version,
+    createdAt: latest.createdAt
+  });
+
+  return latest;
+}
+
 
 /**
  * Get keybindings for the user
@@ -17,6 +63,8 @@ export const getKeybindings = async (req, res, next) => {
   try {
 
     Logger.info('Getting Keybindings');
+    Logger.info('Request query params:', req.query);
+    Logger.info('Request headers cache-control:', req.headers['cache-control']);
 
     const { user_id } = req.decoded;
 
@@ -39,10 +87,12 @@ export const getKeybindings = async (req, res, next) => {
 
     Logger.info(`Retrieved ${keybindings.length} keybindings for user ${user_id} (${softDeletedCount} soft-deleted)`);
 
-    // Log all keybinding IDs for debugging
-    Logger.info('Keybinding IDs being returned:', keybindings.map(kb => ({
+    // Log all keybinding IDs and versions for debugging
+    Logger.info('Keybinding IDs and versions being returned:', keybindings.map(kb => ({
       id: kb._id.toString(),
       name: kb.name,
+      version: kb.version?.game_version,
+      versionId: kb.version?._id?.toString(),
       deletedAt: kb.deleted_at
     })));
 
@@ -240,7 +290,7 @@ export const createKeybinding = async (req, res, next) => {
       versionId = req.body.version;
     } else {
       // Get the latest version if none provided
-      const latestVersion = await Version.findOne().sort({ createdAt: -1 });
+      const latestVersion = await getLatestVersionBySemanticVersion();
       if (!latestVersion) {
         return res.status(400).send({ message: 'No versions available. Please create a version first.' });
       }
@@ -743,14 +793,29 @@ export const migrateKeybindingToLatestVersion = async (req, res, next) => {
       return res.status(403).send({ message: 'Not authorized to modify this keybinding' });
     }
 
-    // Get the latest version
-    const latestVersion = await Version.findOne().sort({ createdAt: -1 });
+    // Get the latest version by semantic version number
+    const latestVersion = await getLatestVersionBySemanticVersion();
     if (!latestVersion) {
       return res.status(400).send({ message: 'No versions available' });
     }
 
+    Logger.info(`Latest version found:`, {
+      id: latestVersion._id.toString(),
+      game_version: latestVersion.game_version,
+      createdAt: latestVersion.createdAt
+    });
+
     // Check if already on latest version
+    Logger.info(`Version comparison:`, {
+      keybindingVersionId: keybinding.version?._id?.toString(),
+      latestVersionId: latestVersion._id.toString(),
+      keybindingVersion: keybinding.version?.game_version,
+      latestVersion: latestVersion.game_version,
+      areEqual: keybinding.version?._id?.toString() === latestVersion._id.toString()
+    });
+
     if (keybinding.version?._id?.toString() === latestVersion._id.toString()) {
+      Logger.info(`Keybinding ${keybinding_id} is already on latest version ${latestVersion.game_version}`);
       return res.status(200).send({
         message: 'Keybinding is already on the latest version',
         latestVersion: latestVersion.game_version,
@@ -800,10 +865,14 @@ export const migrateKeybindingToLatestVersion = async (req, res, next) => {
         ...heroTalentAbilities
       ];
 
+      Logger.info(`Found ${validAbilities.length} valid abilities for ${keybinding.class} ${keybinding.spec} ${keybinding.hero_talent} in version ${latestVersion.game_version}`);
+      Logger.info(`Class abilities: ${classAbilities.length}, Spec abilities: ${specAbilities.length}, Hero talent abilities: ${heroTalentAbilities.length}`);
+
       // Create a set of valid spell IDs for quick lookup
       const validSpellIds = new Set(validAbilities.map(ability => ability.spell_id));
 
       // Filter out keybinds for abilities that don't exist in the latest version
+      Logger.info(`Original keybinds count: ${keybinding.keybinds.length}`);
       updatedKeybinds = keybinding.keybinds.filter(keybind => {
         const spellId = keybind.spell?.spell_id;
         const isValid = validSpellIds.has(spellId);
@@ -811,10 +880,13 @@ export const migrateKeybindingToLatestVersion = async (req, res, next) => {
         if (!isValid) {
           Logger.info(`Removing keybind for spell ${spellId} (${keybind.spell?.name}) from keybinding ${keybinding_id} - not available in version ${latestVersion.game_version}`);
           removedKeybindsCount++;
+        } else {
+          Logger.info(`Keeping keybind for spell ${spellId} (${keybind.spell?.name})`);
         }
 
         return isValid;
       });
+      Logger.info(`Filtered keybinds count: ${updatedKeybinds.length}`);
 
       Logger.info(`Removed ${removedKeybindsCount} invalid keybinds from keybinding ${keybinding_id}`);
     }
@@ -829,11 +901,33 @@ export const migrateKeybindingToLatestVersion = async (req, res, next) => {
       { new: true }
     ).populate('version');
 
+    Logger.info(`Updated keybinding data:`, {
+      id: updatedKeybinding._id,
+      name: updatedKeybinding.name,
+      class: updatedKeybinding.class,
+      spec: updatedKeybinding.spec,
+      hero_talent: updatedKeybinding.hero_talent,
+      version: updatedKeybinding.version?.game_version,
+      keybindsCount: updatedKeybinds.length
+    });
+
     Logger.info(`Successfully migrated keybinding ${keybinding_id} to version ${latestVersion.game_version}`);
+
+    const presentedKeybinding = presentOne(updatedKeybinding);
+
+    Logger.info(`Presented keybinding data:`, {
+      keybindingId: presentedKeybinding.keybindingId,
+      name: presentedKeybinding.name,
+      class: presentedKeybinding.class,
+      spec: presentedKeybinding.spec,
+      heroTalent: presentedKeybinding.heroTalent,
+      version: presentedKeybinding.version,
+      keybindsCount: presentedKeybinding.keybinds?.length
+    });
 
     return res.status(200).send({
       message: 'Keybinding migrated successfully',
-      keybinding: presentOne(updatedKeybinding),
+      keybinding: presentedKeybinding,
       latestVersion: latestVersion.game_version,
       removedKeybindsCount
     });
@@ -854,8 +948,8 @@ export const migrateKeybindingsToLatestVersion = async (req, res, next) => {
 
     const { user_id } = req.decoded;
 
-    // Get the latest version
-    const latestVersion = await Version.findOne().sort({ createdAt: -1 });
+    // Get the latest version by semantic version number
+    const latestVersion = await getLatestVersionBySemanticVersion();
     if (!latestVersion) {
       return res.status(400).send({ message: 'No versions available' });
     }

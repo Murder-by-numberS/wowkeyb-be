@@ -58,10 +58,6 @@ const HERO_TALENTS_ENUM_FLAT = Object.values(HERO_TALENTS_ENUM).flat();
 
 // Rest of the schemas remain the same
 const spellSchema = new Schema({
-  key: {
-    type: String,
-    required: true
-  },
   description: {
     type: String,
     required: true

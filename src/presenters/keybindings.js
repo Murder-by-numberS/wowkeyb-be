@@ -35,7 +35,6 @@ const mapToData = (keybinding) => ({
   keybinds: (keybinding.keybinds || []).map(keybind => ({
     key: keybind.key || null,
     spell: {
-      key: keybind.spell.key || null,
       description: keybind.spell.description || null,
       icon: keybind.spell.icon || null,
       name: keybind.spell.name || null,

@@ -336,7 +336,6 @@ export const createKeybinding = async (req, res, next) => {
         const processedKeybind = {
           key: keybind.key || null,
           spell: {
-            key: keybind.spell.key || null,
             description: keybind.spell.description || null,
             icon: keybind.spell.icon || null,
             name: keybind.spell.name || null,
@@ -345,8 +344,8 @@ export const createKeybinding = async (req, res, next) => {
         };
 
         // Validate required fields
-        if (!processedKeybind.spell.key) {
-          console.error('Missing required spell.key in keybind:', keybind);
+        if (!processedKeybind.key) {
+          console.error('Missing required key in keybind:', keybind);
           return null;
         }
 
@@ -660,8 +659,25 @@ export const duplicateKeybinding = async (req, res, next) => {
       return res.status(404).send({ message: 'Keybinding not found' });
     }
 
+    console.log('Original keybinding found:', {
+      id: originalKeybinding._id,
+      name: originalKeybinding.name,
+      keybindsCount: originalKeybinding.keybinds?.length
+    });
+
     // Convert mongoose document to plain object
     const originalData = originalKeybinding.toObject();
+
+    console.log('Original data after toObject:', {
+      id: originalData._id,
+      name: originalData.name,
+      keybindsCount: originalData.keybinds?.length,
+      keybinds: originalData.keybinds?.map(kb => ({
+        key: kb.key,
+        spellName: kb.spell?.name,
+        spellId: kb.spell?.spell_id
+      }))
+    });
 
     // Find existing copies of this keybinding (automatically excludes soft-deleted ones)
     const baseName = originalData.name;
@@ -693,6 +709,13 @@ export const duplicateKeybinding = async (req, res, next) => {
       keybinds: JSON.stringify(originalData.keybinds, null, 2)
     });
 
+    console.log('Original keybinding keybinds count:', originalData.keybinds?.length);
+    console.log('Original keybinding keybinds:', originalData.keybinds?.map(kb => ({
+      key: kb.key,
+      spellName: kb.spell?.name,
+      spellId: kb.spell?.spell_id
+    })));
+
     // Create a deep copy of the keybinding
     const duplicatedKeybinding = {
       name: newName,
@@ -702,25 +725,48 @@ export const duplicateKeybinding = async (req, res, next) => {
       version: originalData.version,
       is_public: false,
       user_id: req.decoded?.user_id || null,
-      keybinds: originalData.keybinds?.map(keybind => {
-        console.log('Processing keybind:', JSON.stringify(keybind, null, 2));
+      keybinds: originalData.keybinds?.map((keybind, index) => {
+        console.log(`Processing keybind ${index + 1}/${originalData.keybinds.length}:`, JSON.stringify(keybind, null, 2));
+
+        // Validate keybind has required fields
+        if (!keybind.key) {
+          console.error(`Keybind ${index + 1} missing key field:`, keybind);
+          return null;
+        }
+        if (!keybind.spell) {
+          console.error(`Keybind ${index + 1} missing spell field:`, keybind);
+          return null;
+        }
+        if (!keybind.spell.name) {
+          console.error(`Keybind ${index + 1} missing spell.name:`, keybind);
+          return null;
+        }
+
+        // Log keybind processing
+        console.log(`Processing keybind ${index + 1}: key="${keybind.key}", spell="${keybind.spell?.name}"`);
 
         // Create a complete copy of the keybind
         const newKeybind = {
           key: keybind.key,
           spell: {
-            key: keybind.key,
-            description: keybind.spell.description,
-            icon: keybind.spell.icon,
+            description: keybind.spell.description || '',
+            icon: keybind.spell.icon || '',
             name: keybind.spell.name,
-            spell_id: keybind.spell.spell_id
+            spell_id: keybind.spell.spell_id || keybind.spell.spellId || ''
           }
         };
 
-        console.log('Created new keybind:', JSON.stringify(newKeybind, null, 2));
+        console.log(`Created new keybind ${index + 1}:`, JSON.stringify(newKeybind, null, 2));
         return newKeybind;
-      }) || []
+      }).filter(keybind => keybind !== null) || []
     };
+
+    console.log('Duplicated keybinding keybinds count:', duplicatedKeybinding.keybinds?.length);
+    console.log('Duplicated keybinding keybinds:', duplicatedKeybinding.keybinds?.map(kb => ({
+      key: kb.key,
+      spellName: kb.spell?.name,
+      spellId: kb.spell?.spell_id
+    })));
 
     console.log('Creating duplicated keybinding:', {
       name: duplicatedKeybinding.name,
@@ -728,7 +774,21 @@ export const duplicateKeybinding = async (req, res, next) => {
       keybinds: JSON.stringify(duplicatedKeybinding.keybinds, null, 2)
     });
 
-    const createdKeybinding = await Keybinding.create(duplicatedKeybinding);
+    console.log('About to create keybinding with data:', JSON.stringify(duplicatedKeybinding, null, 2));
+
+    let createdKeybinding;
+    try {
+      createdKeybinding = await Keybinding.create(duplicatedKeybinding);
+      console.log('Successfully created keybinding:', createdKeybinding._id);
+    } catch (createError) {
+      console.error('Error during Keybinding.create():', createError);
+      console.error('Create error details:', {
+        name: createError.name,
+        message: createError.message,
+        errors: createError.errors
+      });
+      throw createError;
+    }
 
     // Populate version information for the response
     const populatedKeybinding = await Keybinding.findById(createdKeybinding._id).populate('version');

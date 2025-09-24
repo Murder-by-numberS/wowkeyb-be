@@ -12,11 +12,11 @@ router.get('/home',
 
 router.get('/',
   validateGetKeybindings,
-  AuthnMiddleware.decode,
+  AuthnMiddleware.authenticateToken,
   KeybindingsController.getKeybindings)
 router.get('/deleted',
   validateGetKeybindings,
-  AuthnMiddleware.decode,
+  AuthnMiddleware.authenticateToken,
   KeybindingsController.getDeletedKeybindings)
 router.get('/:keybinding_id',
   validateGetKeybinding,
@@ -24,15 +24,15 @@ router.get('/:keybinding_id',
   KeybindingsController.getKeybinding)
 router.post('/',
   validateCreateKeybinding,
-  AuthnMiddleware.decode,
+  AuthnMiddleware.authenticateToken,
   KeybindingsController.createKeybinding)
 router.post('/:keybinding_id/duplicate',
   validateGetKeybinding,
-  AuthnMiddleware.decode,
+  AuthnMiddleware.authenticateToken,
   KeybindingsController.duplicateKeybinding)
 router.put('/:keybinding_id',
   validateUpdateKeybinding,
-  AuthnMiddleware.decode,
+  AuthnMiddleware.authenticateToken,
   KeybindingsController.updateKeybinding)
 router.delete('/:keybinding_id',
   validateGetKeybinding,
@@ -49,11 +49,11 @@ router.delete('/:keybinding_id/permanent',
   KeybindingsController.permanentlyDeleteKeybinding)
 router.post('/:keybinding_id/migrate-to-latest',
   validateGetKeybinding,
-  AuthnMiddleware.decode,
+  AuthnMiddleware.authenticateToken,
   KeybindingsController.migrateKeybindingToLatestVersion)
 router.post('/:keybinding_id/migrate',
   validateGetKeybinding,
-  AuthnMiddleware.decode,
+  AuthnMiddleware.authenticateToken,
   KeybindingsController.migrateKeybindingToVersion)
 
 export default router;

@@ -251,11 +251,25 @@ export const updateKeybinding = async (req, res, next) => {
     }
 
     console.log('after req.body', req.body);
+    console.log('updateKeybinding - keybinds being updated:', req.body.keybinds?.length);
+    console.log('updateKeybinding - keybinds details:', req.body.keybinds?.map(kb => ({
+      key: kb.key,
+      spellName: kb.spell?.name,
+      spellId: kb.spell?.spell_id || kb.spell?.spellId
+    })));
+
     const updatedKeybinding = await Keybinding.findOneAndUpdate(
       { _id: keybinding_id },
       req.body,
       { new: true }
     ).populate('version');
+
+    console.log('updateKeybinding - updated keybinding keybinds:', updatedKeybinding.keybinds?.length);
+    console.log('updateKeybinding - updated keybinding keybinds details:', updatedKeybinding.keybinds?.map(kb => ({
+      key: kb.key,
+      spellName: kb.spell?.name,
+      spellId: kb.spell?.spell_id
+    })));
 
     return res.status(200).send(presentOne(updatedKeybinding));
   } catch (error) {

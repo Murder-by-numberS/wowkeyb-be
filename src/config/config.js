@@ -7,7 +7,7 @@ const Config = {
   nodeEnv: (process.env.NODE_ENV || 'development'),
   appEnv: process.env.APP_ENV,
   appName: appConfig.name,
-  appPort: (process.env.APP_PORT || 1337),
+  appPort: (process.env.APP_PORT || process.env.PORT || 1337),
   appURL: process.env.APP_URL || 'http://localhost:1337',
   appVersion: appConfig.version,
   // appSecretKey: process.env.SECRET_KEY,
@@ -24,6 +24,7 @@ const Config = {
   region: process.env.AWS_REGION,
   bucket: process.env.AWS_S3_BUCKET_NAME,
   s3Path: process.env.AWS_S3_PATH,
+  cloudfrontDomain: process.env.CLOUDFRONT_DOMAIN,
 
 }
 

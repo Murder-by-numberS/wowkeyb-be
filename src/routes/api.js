@@ -9,6 +9,9 @@ import AbilityRouter from './api/ability.js'
 import UserRouter from './api/user.js'
 import KeybindingsRouter from './api/keybindings.js'
 import VersionsRouter from './api/versions.js'
+import MacrosRouter from './api/macros.js'
+import WagoIconsRouter from './api/wago-icons.js'
+import IconsRouter from './api/icons.js'
 
 import AuthnMiddleware from '../middlewares/authn.js';
 
@@ -30,5 +33,14 @@ router
 
   //versions
   .use('/versions', VersionsRouter)
+
+  //macros
+  .use('/macros', MacrosRouter)
+
+  //wago-icons
+  .use('/wago-icons', WagoIconsRouter)
+
+  //icons
+  .use('/icons', IconsRouter)
 
 export default router;

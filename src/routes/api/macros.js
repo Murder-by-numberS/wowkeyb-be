@@ -1,0 +1,44 @@
+import express from 'express';
+import {
+    createMacro,
+    getMacros,
+    getMacro,
+    updateMacro,
+    deleteMacro,
+    duplicateMacro,
+    getMyMacros,
+    getPopularMacros,
+    getMacrosByTags,
+    getMacrosByAbility
+} from '../../controllers/macro/macros.js';
+import {
+    validateCreateMacro,
+    validateUpdateMacro,
+    validateGetMacro,
+    validateDeleteMacro,
+    validateDuplicateMacro,
+    validateGetMacros,
+    validateGetMyMacros,
+    validateGetPopularMacros,
+    validateGetMacrosByTags,
+    validateGetMacrosByAbility
+} from '../../validators/macro.validator.js';
+import AuthnMiddleware from '../../middlewares/authn.js';
+
+const router = express.Router();
+
+// Public routes (no authentication required)
+router.get('/', validateGetMacros, getMacros);
+router.get('/popular', validateGetPopularMacros, getPopularMacros);
+router.get('/by-tags', validateGetMacrosByTags, getMacrosByTags);
+router.get('/by-ability', validateGetMacrosByAbility, getMacrosByAbility);
+router.get('/:id', validateGetMacro, getMacro);
+
+// Protected routes (authentication required)
+router.post('/', AuthnMiddleware.authenticateToken, validateCreateMacro, createMacro);
+router.get('/my/list', AuthnMiddleware.authenticateToken, validateGetMyMacros, getMyMacros);
+router.put('/:id', AuthnMiddleware.authenticateToken, validateUpdateMacro, updateMacro);
+router.delete('/:id', AuthnMiddleware.authenticateToken, validateDeleteMacro, deleteMacro);
+router.post('/:id/duplicate', AuthnMiddleware.authenticateToken, validateDuplicateMacro, duplicateMacro);
+
+export default router;

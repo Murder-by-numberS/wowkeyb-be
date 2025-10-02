@@ -406,8 +406,6 @@ export const updateMacro = async (req, res) => {
             { path: 'icon', select: '_id name cloudfrontUrl keywords' }
         ]);
 
-        // Log the populated icon data
-        Logger.info(`Updated macro icon:`, JSON.stringify(updatedMacro.icon, null, 2));
 
         const transformedMacro = {
             id: updatedMacro._id,

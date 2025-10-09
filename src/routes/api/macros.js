@@ -5,8 +5,10 @@ import {
     getMacro,
     updateMacro,
     deleteMacro,
+    restoreMacro,
     duplicateMacro,
     getMyMacros,
+    getDeletedMacros,
     getPopularMacros,
     getMacrosByTags,
     getMacrosByAbility
@@ -37,8 +39,10 @@ router.get('/:id', validateGetMacro, getMacro);
 // Protected routes (authentication required)
 router.post('/', AuthnMiddleware.authenticateToken, validateCreateMacro, createMacro);
 router.get('/my/list', AuthnMiddleware.authenticateToken, validateGetMyMacros, getMyMacros);
+router.get('/my/deleted', AuthnMiddleware.authenticateToken, validateGetMyMacros, getDeletedMacros);
 router.put('/:id', AuthnMiddleware.authenticateToken, validateUpdateMacro, updateMacro);
 router.delete('/:id', AuthnMiddleware.authenticateToken, validateDeleteMacro, deleteMacro);
+router.post('/:id/restore', AuthnMiddleware.authenticateToken, validateDeleteMacro, restoreMacro);
 router.post('/:id/duplicate', AuthnMiddleware.authenticateToken, validateDuplicateMacro, duplicateMacro);
 
 export default router;

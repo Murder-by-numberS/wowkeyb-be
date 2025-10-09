@@ -16,10 +16,16 @@ export const validateCreateMacro = [
         .trim(),
 
     body('class')
-        .notEmpty()
-        .withMessage('Class is required')
+        .optional()
         .isIn(['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'])
-        .withMessage('Invalid class'),
+        .withMessage('Invalid class')
+        .custom((value, { req }) => {
+            // If ability is specified, class is required
+            if (req.body.ability && !value) {
+                throw new Error('Class is required when specifying an ability');
+            }
+            return true;
+        }),
 
     body('spec')
         .optional()
@@ -95,7 +101,14 @@ export const validateUpdateMacro = [
     body('class')
         .optional()
         .isIn(['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'])
-        .withMessage('Invalid class'),
+        .withMessage('Invalid class')
+        .custom((value, { req }) => {
+            // If ability is specified, class is required
+            if (req.body.ability && !value) {
+                throw new Error('Class is required when specifying an ability');
+            }
+            return true;
+        }),
 
     body('spec')
         .optional()
@@ -184,8 +197,16 @@ export const validateGetMacros = [
 
     query('class')
         .optional()
-        .isIn(['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'])
-        .withMessage('Invalid class'),
+        .custom((value) => {
+            if (value === null || value === 'null' || value === '') {
+                return true; // Allow null/empty values
+            }
+            const validClasses = ['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'];
+            if (!validClasses.includes(value)) {
+                throw new Error('Invalid class');
+            }
+            return true;
+        }),
 
     query('spec')
         .optional()
@@ -252,8 +273,16 @@ export const validateGetMyMacros = [
 
     query('class')
         .optional()
-        .isIn(['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'])
-        .withMessage('Invalid class'),
+        .custom((value) => {
+            if (value === null || value === 'null' || value === '') {
+                return true; // Allow null/empty values
+            }
+            const validClasses = ['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'];
+            if (!validClasses.includes(value)) {
+                throw new Error('Invalid class');
+            }
+            return true;
+        }),
 
     query('spec')
         .optional()

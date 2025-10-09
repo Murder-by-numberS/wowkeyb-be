@@ -474,8 +474,8 @@ export const deleteMacro = async (req, res) => {
             return res.status(403).json({ message: 'You can only delete your own macros' });
         }
 
-        // Soft delete (set is_active to false)
-        await Macro.findByIdAndUpdate(id, { is_active: false });
+        // Soft delete using the new method
+        await macro.softDelete();
 
         Logger.info(`Macro soft deleted successfully: ${id}`);
         return res.status(200).json({ message: 'Macro deleted successfully' });
@@ -483,6 +483,93 @@ export const deleteMacro = async (req, res) => {
     } catch (error) {
         Logger.error('Error deleting macro:', error);
         return res.status(500).json({ message: 'Error deleting macro' });
+    }
+};
+
+/**
+ * Restore a soft-deleted macro (only by creator)
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const restoreMacro = async (req, res) => {
+    try {
+        Logger.info('Restoring macro');
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            Logger.error('Validation errors in restoreMacro:', errors.array());
+            return res.status(422).json({ errors: errors.array() });
+        }
+
+        const { id } = req.params;
+        const { decoded } = req;
+
+        // Validate user is authenticated
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        // Find macro (including soft-deleted ones)
+        const macro = await Macro.findOne({
+            _id: id,
+            includeDeleted: true
+        }).setOptions({ includeDeleted: true });
+
+        if (!macro) {
+            return res.status(404).json({ message: 'Macro not found' });
+        }
+
+        // Check ownership
+        if (macro.created_by && macro.created_by.toString() !== decoded.user_id) {
+            return res.status(403).json({ message: 'You can only restore your own macros' });
+        }
+
+        // Check if macro is actually soft-deleted
+        if (!macro.deletedAt) {
+            return res.status(400).json({ message: 'Macro is not deleted' });
+        }
+
+        // Restore using the new method
+        await macro.restore();
+
+        // Populate related fields for response
+        await macro.populate([
+            { path: 'game_version', select: 'game_version' },
+            { path: 'ability', select: 'name icon description' },
+            { path: 'created_by', select: 'username email' },
+            { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+        ]);
+
+        const transformedMacro = {
+            id: macro._id,
+            name: macro.name,
+            description: macro.description,
+            class: macro.class,
+            spec: macro.spec,
+            hero_talent: macro.hero_talent,
+            game_version: macro.game_version,
+            ability: macro.ability,
+            macro_text: macro.macro_text,
+            icon: macro.icon,
+            tags: macro.tags,
+            is_public: macro.is_public,
+            is_active: macro.is_active,
+            created_by: macro.created_by,
+            usage_count: macro.usage_count,
+            rating: macro.rating,
+            created_at: macro.createdAt,
+            updated_at: macro.updatedAt
+        };
+
+        Logger.info(`Macro restored successfully: ${id}`);
+        return res.status(200).json({
+            message: 'Macro restored successfully',
+            macro: transformedMacro
+        });
+
+    } catch (error) {
+        Logger.error('Error restoring macro:', error);
+        return res.status(500).json({ message: 'Error restoring macro' });
     }
 };
 
@@ -709,6 +796,113 @@ export const getMyMacros = async (req, res) => {
     } catch (error) {
         Logger.error('Error retrieving user macros:', error);
         return res.status(500).json({ message: 'Error retrieving user macros' });
+    }
+};
+
+/**
+ * Get user's soft-deleted macros
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getDeletedMacros = async (req, res) => {
+    try {
+        Logger.info('Retrieving deleted user macros');
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            Logger.error('Validation errors in getDeletedMacros:', errors.array());
+            return res.status(422).json({ errors: errors.array() });
+        }
+
+        const { decoded } = req;
+
+        // Validate user is authenticated
+        if (!decoded || !decoded.user_id) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        const {
+            page = 1,
+            limit = 20,
+            sort_by = 'deletedAt',
+            sort_order = 'desc'
+        } = req.query;
+
+        // Build query for user's soft-deleted macros
+        const query = {
+            created_by: decoded.user_id,
+            deletedAt: { $ne: null }
+        };
+
+        // Get total count for pagination
+        const totalCount = await Macro.countDocuments(query);
+
+        // Calculate pagination values
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Build sort object
+        const sort = {};
+        sort[sort_by] = sort_order === 'desc' ? -1 : 1;
+
+        // Get macros with pagination (including soft-deleted)
+        const macros = await Macro.find(query)
+            .setOptions({ includeDeleted: true })
+            .populate([
+                { path: 'game_version', select: 'game_version' },
+                { path: 'ability', select: 'name icon description' },
+                { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+            ])
+            .sort(sort)
+            .skip(skip)
+            .limit(limitNum)
+            .lean();
+
+        // Transform macros for response
+        const transformedMacros = macros.map(macro => ({
+            id: macro._id,
+            name: macro.name,
+            description: macro.description,
+            class: macro.class,
+            spec: macro.spec,
+            hero_talent: macro.hero_talent,
+            game_version: macro.game_version,
+            ability: macro.ability,
+            macro_text: macro.macro_text,
+            icon: macro.icon,
+            tags: macro.tags,
+            is_public: macro.is_public,
+            is_active: macro.is_active,
+            usage_count: macro.usage_count,
+            rating: macro.rating,
+            created_at: macro.createdAt,
+            updated_at: macro.updatedAt,
+            deleted_at: macro.deletedAt
+        }));
+
+        // Calculate pagination metadata
+        const totalPages = Math.ceil(totalCount / limitNum);
+        const hasNextPage = pageNum < totalPages;
+        const hasPrevPage = pageNum > 1;
+
+        Logger.info(`Retrieved ${transformedMacros.length} deleted user macros (page: ${pageNum}/${totalPages})`);
+
+        return res.status(200).json({
+            macros: transformedMacros,
+            pagination: {
+                currentPage: pageNum,
+                totalPages,
+                totalCount,
+                hasNextPage,
+                hasPrevPage,
+                limit: limitNum
+            }
+        });
+
+    } catch (error) {
+        Logger.error('Error retrieving deleted user macros:', error);
+        return res.status(500).json({ message: 'Error retrieving deleted user macros' });
     }
 };
 

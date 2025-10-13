@@ -11,7 +11,8 @@ import {
     getDeletedMacros,
     getPopularMacros,
     getMacrosByTags,
-    getMacrosByAbility
+    getMacrosByAbility,
+    incrementUsageCount
 } from '../../controllers/macro/macros.js';
 import {
     validateCreateMacro,
@@ -35,6 +36,7 @@ router.get('/popular', validateGetPopularMacros, getPopularMacros);
 router.get('/by-tags', validateGetMacrosByTags, getMacrosByTags);
 router.get('/by-ability', validateGetMacrosByAbility, getMacrosByAbility);
 router.get('/:id', validateGetMacro, getMacro);
+router.post('/:id/usage', incrementUsageCount);
 
 // Protected routes (authentication required)
 router.post('/', AuthnMiddleware.authenticateToken, validateCreateMacro, createMacro);

@@ -238,10 +238,10 @@ export const validateGetMacros = [
         .isBoolean()
         .withMessage('is_public must be a boolean'),
 
-    query('created_by')
+    query('user_id')
         .optional()
         .isMongoId()
-        .withMessage('Invalid created_by ID'),
+        .withMessage('Invalid user_id ID'),
 
     query('search')
         .optional()
@@ -250,7 +250,7 @@ export const validateGetMacros = [
 
     query('sort_by')
         .optional()
-        .isIn(['name', 'created_at', 'updated_at', 'usage_count', 'rating'])
+        .isIn(['name', 'created_at', 'updated_at', 'usage_count'])
         .withMessage('Invalid sort_by field'),
 
     query('sort_order')
@@ -321,7 +321,7 @@ export const validateGetMyMacros = [
 
     query('sort_by')
         .optional()
-        .isIn(['name', 'created_at', 'updated_at', 'usage_count', 'rating'])
+        .isIn(['name', 'created_at', 'updated_at', 'usage_count'])
         .withMessage('Invalid sort_by field'),
 
     query('sort_order')

@@ -104,20 +104,13 @@ const macroSchema = new Schema({
     type: Boolean,
     default: false
   },
-  created_by: {
+  user_id: {
     type: Schema.Types.ObjectId,
-    ref: 'User',
-    default: null // null for system/community macros
+    ref: 'User'
   },
   usage_count: {
     type: Number,
     default: 0
-  },
-  rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-    default: null
   },
   deletedAt: {
     type: Date,
@@ -167,9 +160,8 @@ macroSchema.index({ hero_talent: 1, game_version: 1, is_active: 1, deletedAt: 1 
 macroSchema.index({ ability: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For ability-specific queries
 macroSchema.index({ tags: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For tag-based queries
 macroSchema.index({ is_public: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For public macro queries
-macroSchema.index({ created_by: 1, game_version: 1, deletedAt: 1 }); // For user-specific queries
+macroSchema.index({ user_id: 1, game_version: 1, deletedAt: 1 }); // For user-specific queries
 macroSchema.index({ usage_count: -1, game_version: 1, deletedAt: 1 }); // For popular macros
-macroSchema.index({ rating: -1, game_version: 1, deletedAt: 1 }); // For highly rated macros
 macroSchema.index({ name: 'text', description: 'text', macro_text: 'text' }); // For text search
 macroSchema.index({ deletedAt: 1 }); // For soft delete queries
 

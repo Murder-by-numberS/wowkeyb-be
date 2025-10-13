@@ -7,24 +7,24 @@ import { Macro, Version, User } from '../../models/index.js';
  * @returns {Promise<Object>} The latest version document
  */
 async function getLatestVersionBySemanticVersion() {
-    const allVersions = await Version.find({});
-    if (allVersions.length === 0) {
-        return null;
+  const allVersions = await Version.find({});
+  if (allVersions.length === 0) {
+    return null;
+  }
+
+  // Sort versions by semantic version number (highest first)
+  return allVersions.sort((a, b) => {
+    const aParts = a.game_version.split('.').map(Number);
+    const bParts = b.game_version.split('.').map(Number);
+
+    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+      const aPart = aParts[i] || 0;
+      const bPart = bParts[i] || 0;
+      if (aPart > bPart) return -1;
+      if (aPart < bPart) return 1;
     }
-
-    // Sort versions by semantic version number (highest first)
-    return allVersions.sort((a, b) => {
-        const aParts = a.game_version.split('.').map(Number);
-        const bParts = b.game_version.split('.').map(Number);
-
-        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-            const aPart = aParts[i] || 0;
-            const bPart = bParts[i] || 0;
-            if (aPart > bPart) return -1;
-            if (aPart < bPart) return 1;
-        }
-        return 0;
-    })[0];
+    return 0;
+  })[0];
 }
 
 /**
@@ -33,111 +33,110 @@ async function getLatestVersionBySemanticVersion() {
  * @param {import('express').Response} res
  */
 export const createMacro = async (req, res) => {
-    try {
-        Logger.info('Creating new macro');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Creating new macro');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in createMacro:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { decoded } = req;
-        const {
-            name,
-            description = '',
-            class: wowClass,
-            spec = null,
-            hero_talent = null,
-            game_version,
-            ability = null,
-            macro_text,
-            icon = null,
-            tags = [],
-            is_public = false
-        } = req.body;
-
-        // Validate user is authenticated
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        // Verify user exists
-        const user = await User.findById(decoded.user_id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Get game version - use provided version or latest if none provided
-        let version;
-        if (game_version) {
-            version = await Version.findById(game_version);
-            if (!version) {
-                return res.status(400).json({ message: 'Invalid game version' });
-            }
-        } else {
-            // Auto-set to latest version
-            version = await getLatestVersionBySemanticVersion();
-            if (!version) {
-                return res.status(500).json({ message: 'No game versions available' });
-            }
-            Logger.info(`Auto-setting macro to latest version: ${version.game_version}`);
-        }
-
-        // Create macro
-        const macro = new Macro({
-            name,
-            description,
-            class: wowClass,
-            spec,
-            hero_talent,
-            game_version: version._id,
-            ability,
-            macro_text,
-            icon,
-            tags: tags.map(tag => tag.toLowerCase().trim()),
-            is_public,
-            created_by: decoded.user_id
-        });
-
-        await macro.save();
-
-        // Populate related fields for response
-        await macro.populate([
-            { path: 'game_version', select: 'game_version' },
-            { path: 'ability', select: 'name icon description' },
-            { path: 'created_by', select: 'username email' }
-        ]);
-
-        Logger.info(`Macro created successfully: ${macro._id}`);
-        return res.status(201).json({
-            message: 'Macro created successfully',
-            macro: {
-                id: macro._id,
-                name: macro.name,
-                description: macro.description,
-                class: macro.class,
-                spec: macro.spec,
-                hero_talent: macro.hero_talent,
-                game_version: macro.game_version,
-                ability: macro.ability,
-                macro_text: macro.macro_text,
-                icon: macro.icon,
-                tags: macro.tags,
-                is_public: macro.is_public,
-                is_active: macro.is_active,
-                created_by: macro.created_by,
-                usage_count: macro.usage_count,
-                rating: macro.rating,
-                created_at: macro.createdAt,
-                updated_at: macro.updatedAt
-            }
-        });
-
-    } catch (error) {
-        Logger.error('Error creating macro:', error);
-        return res.status(500).json({ message: 'Error creating macro' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in createMacro:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { decoded } = req;
+    const {
+      name,
+      description = '',
+      class: wowClass,
+      spec = null,
+      hero_talent = null,
+      game_version,
+      ability = null,
+      macro_text,
+      icon = null,
+      tags = [],
+      is_public = false
+    } = req.body;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Verify user exists
+    const user = await User.findById(decoded.user_id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get game version - use provided version or latest if none provided
+    let version;
+    if (game_version) {
+      version = await Version.findById(game_version);
+      if (!version) {
+        return res.status(400).json({ message: 'Invalid game version' });
+      }
+    } else {
+      // Auto-set to latest version
+      version = await getLatestVersionBySemanticVersion();
+      if (!version) {
+        return res.status(500).json({ message: 'No game versions available' });
+      }
+      Logger.info(`Auto-setting macro to latest version: ${version.game_version}`);
+    }
+
+    // Create macro
+    const macro = new Macro({
+      name,
+      description,
+      class: wowClass,
+      spec,
+      hero_talent,
+      game_version: version._id,
+      ability,
+      macro_text,
+      icon,
+      tags: tags.map(tag => tag.toLowerCase().trim()),
+      is_public,
+      user_id: decoded.user_id
+    });
+
+    await macro.save();
+
+    // Populate related fields for response
+    await macro.populate([
+      { path: 'game_version', select: 'game_version' },
+      { path: 'ability', select: 'name icon description' },
+      { path: 'user_id', select: 'username email' }
+    ]);
+
+    Logger.info(`Macro created successfully: ${macro._id}`);
+    return res.status(201).json({
+      message: 'Macro created successfully',
+      macro: {
+        id: macro._id,
+        name: macro.name,
+        description: macro.description,
+        class: macro.class,
+        spec: macro.spec,
+        hero_talent: macro.hero_talent,
+        game_version: macro.game_version,
+        ability: macro.ability,
+        macro_text: macro.macro_text,
+        icon: macro.icon,
+        tags: macro.tags,
+        is_public: macro.is_public,
+        is_active: macro.is_active,
+        user_id: macro.user_id,
+        usage_count: macro.usage_count,
+        created_at: macro.createdAt,
+        updated_at: macro.updatedAt
+      }
+    });
+
+  } catch (error) {
+    Logger.error('Error creating macro:', error);
+    return res.status(500).json({ message: 'Error creating macro' });
+  }
 };
 
 /**
@@ -146,128 +145,127 @@ export const createMacro = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const getMacros = async (req, res) => {
-    try {
-        Logger.info('Retrieving macros');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Retrieving macros');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in getMacros:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const {
-            page = 1,
-            limit = 20,
-            class: wowClass,
-            spec,
-            hero_talent,
-            game_version,
-            ability,
-            tags,
-            is_public,
-            created_by,
-            search,
-            sort_by = 'created_at',
-            sort_order = 'desc'
-        } = req.query;
-
-        // Build query
-        const query = {};
-
-        // Add filters
-        if (wowClass) query.class = wowClass;
-        if (spec) query.spec = spec;
-        if (hero_talent) query.hero_talent = hero_talent;
-        if (game_version) query.game_version = game_version;
-        if (ability) query.ability = ability;
-        if (is_public !== undefined) query.is_public = is_public === 'true';
-        if (created_by) query.created_by = created_by;
-
-        // Handle tags filter (array of tags)
-        if (tags) {
-            const tagArray = Array.isArray(tags) ? tags : tags.split(',');
-            query.tags = { $in: tagArray.map(tag => tag.toLowerCase().trim()) };
-        }
-
-        // Handle search
-        if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } },
-                { macro_text: { $regex: search, $options: 'i' } }
-            ];
-        }
-
-        // Get total count for pagination
-        const totalCount = await Macro.countDocuments(query);
-
-        // Calculate pagination values
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-        const skip = (pageNum - 1) * limitNum;
-
-        // Build sort object
-        const sort = {};
-        sort[sort_by] = sort_order === 'desc' ? -1 : 1;
-
-        // Get macros with pagination
-        const macros = await Macro.find(query)
-            .populate([
-                { path: 'game_version', select: 'game_version' },
-                { path: 'ability', select: 'name icon description' },
-                { path: 'created_by', select: 'username email' },
-                { path: 'icon', select: '_id name cloudfrontUrl keywords' }
-            ])
-            .sort(sort)
-            .skip(skip)
-            .limit(limitNum)
-            .lean();
-
-        // Transform macros for response
-        const transformedMacros = macros.map(macro => ({
-            id: macro._id,
-            name: macro.name,
-            description: macro.description,
-            class: macro.class,
-            spec: macro.spec,
-            hero_talent: macro.hero_talent,
-            game_version: macro.game_version,
-            ability: macro.ability,
-            macro_text: macro.macro_text,
-            icon: macro.icon,
-            tags: macro.tags,
-            is_public: macro.is_public,
-            is_active: macro.is_active,
-            created_by: macro.created_by,
-            usage_count: macro.usage_count,
-            rating: macro.rating,
-            created_at: macro.createdAt,
-            updated_at: macro.updatedAt
-        }));
-
-        // Calculate pagination metadata
-        const totalPages = Math.ceil(totalCount / limitNum);
-        const hasNextPage = pageNum < totalPages;
-        const hasPrevPage = pageNum > 1;
-
-        Logger.info(`Retrieved ${transformedMacros.length} macros (page: ${pageNum}/${totalPages})`);
-
-        return res.status(200).json({
-            macros: transformedMacros,
-            pagination: {
-                currentPage: pageNum,
-                totalPages,
-                totalCount,
-                hasNextPage,
-                hasPrevPage,
-                limit: limitNum
-            }
-        });
-
-    } catch (error) {
-        Logger.error('Error retrieving macros:', error);
-        return res.status(500).json({ message: 'Error retrieving macros' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in getMacros:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const {
+      page = 1,
+      limit = 20,
+      class: wowClass,
+      spec,
+      hero_talent,
+      game_version,
+      ability,
+      tags,
+      is_public,
+      user_id,
+      search,
+      sort_by = 'created_at',
+      sort_order = 'desc'
+    } = req.query;
+
+    // Build query
+    const query = {};
+
+    // Add filters
+    if (wowClass) query.class = wowClass;
+    if (spec) query.spec = spec;
+    if (hero_talent) query.hero_talent = hero_talent;
+    if (game_version) query.game_version = game_version;
+    if (ability) query.ability = ability;
+    if (is_public !== undefined) query.is_public = is_public === 'true';
+    if (user_id) query.user_id = user_id;
+
+    // Handle tags filter (array of tags)
+    if (tags) {
+      const tagArray = Array.isArray(tags) ? tags : tags.split(',');
+      query.tags = { $in: tagArray.map(tag => tag.toLowerCase().trim()) };
+    }
+
+    // Handle search
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { macro_text: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get total count for pagination
+    const totalCount = await Macro.countDocuments(query);
+
+    // Calculate pagination values
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build sort object
+    const sort = {};
+    sort[sort_by] = sort_order === 'desc' ? -1 : 1;
+
+    // Get macros with pagination
+    const macros = await Macro.find(query)
+      .populate([
+        { path: 'game_version', select: 'game_version' },
+        { path: 'ability', select: 'name icon description' },
+        { path: 'user_id', select: 'username email' },
+        { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+      ])
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    // Transform macros for response
+    const transformedMacros = macros.map(macro => ({
+      id: macro._id,
+      name: macro.name,
+      description: macro.description,
+      class: macro.class,
+      spec: macro.spec,
+      hero_talent: macro.hero_talent,
+      game_version: macro.game_version,
+      ability: macro.ability,
+      macro_text: macro.macro_text,
+      icon: macro.icon,
+      tags: macro.tags,
+      is_public: macro.is_public,
+      is_active: macro.is_active,
+      user_id: macro.user_id,
+      usage_count: macro.usage_count,
+      created_at: macro.createdAt,
+      updated_at: macro.updatedAt
+    }));
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    Logger.info(`Retrieved ${transformedMacros.length} macros (page: ${pageNum}/${totalPages})`);
+
+    return res.status(200).json({
+      macros: transformedMacros,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCount,
+        hasNextPage,
+        hasPrevPage,
+        limit: limitNum
+      }
+    });
+
+  } catch (error) {
+    Logger.error('Error retrieving macros:', error);
+    return res.status(500).json({ message: 'Error retrieving macros' });
+  }
 };
 
 /**
@@ -276,60 +274,86 @@ export const getMacros = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const getMacro = async (req, res) => {
-    try {
-        Logger.info('Retrieving single macro');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Retrieving single macro');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in getMacro:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { id } = req.params;
-
-        const macro = await Macro.findById(id)
-            .populate([
-                { path: 'game_version', select: 'game_version' },
-                { path: 'ability', select: 'name icon description' },
-                { path: 'created_by', select: 'username email' },
-                { path: 'icon', select: '_id name cloudfrontUrl keywords' }
-            ]);
-
-        if (!macro) {
-            return res.status(404).json({ message: 'Macro not found' });
-        }
-
-        // Increment usage count
-        await macro.incrementUsage();
-
-        const transformedMacro = {
-            id: macro._id,
-            name: macro.name,
-            description: macro.description,
-            class: macro.class,
-            spec: macro.spec,
-            hero_talent: macro.hero_talent,
-            game_version: macro.game_version,
-            ability: macro.ability,
-            macro_text: macro.macro_text,
-            icon: macro.icon,
-            tags: macro.tags,
-            is_public: macro.is_public,
-            is_active: macro.is_active,
-            created_by: macro.created_by,
-            usage_count: macro.usage_count + 1, // Updated count
-            rating: macro.rating,
-            created_at: macro.createdAt,
-            updated_at: macro.updatedAt
-        };
-
-        Logger.info(`Retrieved macro: ${macro._id}`);
-        return res.status(200).json({ macro: transformedMacro });
-
-    } catch (error) {
-        Logger.error('Error retrieving macro:', error);
-        return res.status(500).json({ message: 'Error retrieving macro' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in getMacro:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { id } = req.params;
+
+    const macro = await Macro.findById(id)
+      .populate([
+        { path: 'game_version', select: 'game_version' },
+        { path: 'ability', select: 'name icon description' },
+        { path: 'user_id', select: 'username email' },
+        { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+      ]);
+
+    if (!macro) {
+      return res.status(404).json({ message: 'Macro not found' });
+    }
+
+    // Debug logging
+    Logger.info('Macro found:', {
+      id: macro._id,
+      name: macro.name,
+      macro_text: macro.macro_text,
+      icon: macro.icon,
+      iconType: typeof macro.icon
+    });
+
+    // If icon is not populated, try to fetch it manually
+    let iconData = macro.icon;
+    if (macro.icon && typeof macro.icon === 'string') {
+      try {
+        const Icon = (await import('../../models/icon.js')).default;
+        iconData = await Icon.findById(macro.icon).select('_id name cloudfrontUrl keywords');
+        Logger.info('Manually fetched icon:', iconData);
+      } catch (error) {
+        Logger.error('Error fetching icon manually:', error);
+        iconData = null;
+      }
+    }
+
+
+    const transformedMacro = {
+      id: macro._id,
+      name: macro.name,
+      description: macro.description,
+      class: macro.class,
+      spec: macro.spec,
+      hero_talent: macro.hero_talent,
+      game_version: macro.game_version,
+      ability: macro.ability,
+      macro_text: macro.macro_text,
+      text: macro.macro_text, // Frontend compatibility
+      macroText: macro.macro_text, // Frontend compatibility
+      icon: iconData,
+      tags: macro.tags,
+      is_public: macro.is_public,
+      isPublic: macro.is_public, // Frontend compatibility
+      is_active: macro.is_active,
+      user_id: macro.user_id,
+      createdBy: macro.user_id, // Frontend compatibility
+      usage_count: macro.usage_count,
+      usageCount: macro.usage_count,
+      created_at: macro.createdAt,
+      createdAt: macro.createdAt, // Frontend compatibility
+      updated_at: macro.updatedAt,
+      updatedAt: macro.updatedAt // Frontend compatibility
+    };
+
+    Logger.info(`Retrieved macro: ${macro._id}`);
+    return res.status(200).json({ macro: transformedMacro });
+
+  } catch (error) {
+    Logger.error('Error retrieving macro:', error);
+    return res.status(500).json({ message: 'Error retrieving macro' });
+  }
 };
 
 /**
@@ -338,106 +362,105 @@ export const getMacro = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const updateMacro = async (req, res) => {
-    try {
-        Logger.info('Updating macro');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Updating macro');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in updateMacro:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { id } = req.params;
-        const { decoded } = req;
-
-        // Validate user is authenticated
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        // Find macro
-        const macro = await Macro.findById(id);
-        if (!macro) {
-            return res.status(404).json({ message: 'Macro not found' });
-        }
-
-        // Check ownership
-        if (macro.created_by && macro.created_by.toString() !== decoded.user_id) {
-            return res.status(403).json({ message: 'You can only update your own macros' });
-        }
-
-        // Update fields
-        const {
-            name,
-            description,
-            class: wowClass,
-            spec,
-            hero_talent,
-            game_version,
-            ability,
-            macro_text,
-            icon,
-            tags,
-            is_public
-        } = req.body;
-
-        const updateData = {};
-        if (name !== undefined) updateData.name = name;
-        if (description !== undefined) updateData.description = description;
-        if (wowClass !== undefined) updateData.class = wowClass;
-        if (spec !== undefined) updateData.spec = spec;
-        if (hero_talent !== undefined) updateData.hero_talent = hero_talent;
-        if (game_version !== undefined) updateData.game_version = game_version;
-        if (ability !== undefined) updateData.ability = ability;
-        if (macro_text !== undefined) updateData.macro_text = macro_text;
-        if (icon !== undefined) updateData.icon = icon;
-        if (tags !== undefined) updateData.tags = tags.map(tag => tag.toLowerCase().trim());
-        if (is_public !== undefined) updateData.is_public = is_public;
-
-        // Update macro
-        const updatedMacro = await Macro.findByIdAndUpdate(
-            id,
-            updateData,
-            { new: true, runValidators: true }
-        ).populate([
-            { path: 'game_version', select: 'game_version' },
-            { path: 'ability', select: 'name icon description' },
-            { path: 'created_by', select: 'username email' },
-            { path: 'icon', select: '_id name cloudfrontUrl keywords' }
-        ]);
-
-
-        const transformedMacro = {
-            id: updatedMacro._id,
-            name: updatedMacro.name,
-            description: updatedMacro.description,
-            class: updatedMacro.class,
-            spec: updatedMacro.spec,
-            hero_talent: updatedMacro.hero_talent,
-            game_version: updatedMacro.game_version,
-            ability: updatedMacro.ability,
-            macro_text: updatedMacro.macro_text,
-            icon: updatedMacro.icon,
-            tags: updatedMacro.tags,
-            is_public: updatedMacro.is_public,
-            is_active: updatedMacro.is_active,
-            created_by: updatedMacro.created_by,
-            usage_count: updatedMacro.usage_count,
-            rating: updatedMacro.rating,
-            created_at: updatedMacro.createdAt,
-            updated_at: updatedMacro.updatedAt
-        };
-
-        Logger.info(`Macro updated successfully: ${updatedMacro._id}`);
-        return res.status(200).json({
-            message: 'Macro updated successfully',
-            macro: transformedMacro
-        });
-
-    } catch (error) {
-        Logger.error('Error updating macro:', error);
-        return res.status(500).json({ message: 'Error updating macro' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in updateMacro:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { id } = req.params;
+    const { decoded } = req;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Find macro
+    const macro = await Macro.findById(id);
+    if (!macro) {
+      return res.status(404).json({ message: 'Macro not found' });
+    }
+
+    // Check ownership
+    if (macro.user_id && macro.user_id.toString() !== decoded.user_id) {
+      return res.status(403).json({ message: 'You can only update your own macros' });
+    }
+
+    // Update fields
+    const {
+      name,
+      description,
+      class: wowClass,
+      spec,
+      hero_talent,
+      game_version,
+      ability,
+      macro_text,
+      icon,
+      tags,
+      is_public
+    } = req.body;
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (wowClass !== undefined) updateData.class = wowClass;
+    if (spec !== undefined) updateData.spec = spec;
+    if (hero_talent !== undefined) updateData.hero_talent = hero_talent;
+    if (game_version !== undefined) updateData.game_version = game_version;
+    if (ability !== undefined) updateData.ability = ability;
+    if (macro_text !== undefined) updateData.macro_text = macro_text;
+    if (icon !== undefined) updateData.icon = icon;
+    if (tags !== undefined) updateData.tags = tags.map(tag => tag.toLowerCase().trim());
+    if (is_public !== undefined) updateData.is_public = is_public;
+
+    // Update macro
+    const updatedMacro = await Macro.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate([
+      { path: 'game_version', select: 'game_version' },
+      { path: 'ability', select: 'name icon description' },
+      { path: 'user_id', select: 'username email' },
+      { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+    ]);
+
+
+    const transformedMacro = {
+      id: updatedMacro._id,
+      name: updatedMacro.name,
+      description: updatedMacro.description,
+      class: updatedMacro.class,
+      spec: updatedMacro.spec,
+      hero_talent: updatedMacro.hero_talent,
+      game_version: updatedMacro.game_version,
+      ability: updatedMacro.ability,
+      macro_text: updatedMacro.macro_text,
+      icon: updatedMacro.icon,
+      tags: updatedMacro.tags,
+      is_public: updatedMacro.is_public,
+      is_active: updatedMacro.is_active,
+      user_id: updatedMacro.user_id,
+      usage_count: updatedMacro.usage_count,
+      created_at: updatedMacro.createdAt,
+      updated_at: updatedMacro.updatedAt
+    };
+
+    Logger.info(`Macro updated successfully: ${updatedMacro._id}`);
+    return res.status(200).json({
+      message: 'Macro updated successfully',
+      macro: transformedMacro
+    });
+
+  } catch (error) {
+    Logger.error('Error updating macro:', error);
+    return res.status(500).json({ message: 'Error updating macro' });
+  }
 };
 
 /**
@@ -446,44 +469,44 @@ export const updateMacro = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const deleteMacro = async (req, res) => {
-    try {
-        Logger.info('Soft deleting macro');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Soft deleting macro');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in deleteMacro:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { id } = req.params;
-        const { decoded } = req;
-
-        // Validate user is authenticated
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        // Find macro
-        const macro = await Macro.findById(id);
-        if (!macro) {
-            return res.status(404).json({ message: 'Macro not found' });
-        }
-
-        // Check ownership
-        if (macro.created_by && macro.created_by.toString() !== decoded.user_id) {
-            return res.status(403).json({ message: 'You can only delete your own macros' });
-        }
-
-        // Soft delete using the new method
-        await macro.softDelete();
-
-        Logger.info(`Macro soft deleted successfully: ${id}`);
-        return res.status(200).json({ message: 'Macro deleted successfully' });
-
-    } catch (error) {
-        Logger.error('Error deleting macro:', error);
-        return res.status(500).json({ message: 'Error deleting macro' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in deleteMacro:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { id } = req.params;
+    const { decoded } = req;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Find macro
+    const macro = await Macro.findById(id);
+    if (!macro) {
+      return res.status(404).json({ message: 'Macro not found' });
+    }
+
+    // Check ownership
+    if (macro.user_id && macro.user_id.toString() !== decoded.user_id) {
+      return res.status(403).json({ message: 'You can only delete your own macros' });
+    }
+
+    // Soft delete using the new method
+    await macro.softDelete();
+
+    Logger.info(`Macro soft deleted successfully: ${id}`);
+    return res.status(200).json({ message: 'Macro deleted successfully' });
+
+  } catch (error) {
+    Logger.error('Error deleting macro:', error);
+    return res.status(500).json({ message: 'Error deleting macro' });
+  }
 };
 
 /**
@@ -492,85 +515,84 @@ export const deleteMacro = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const restoreMacro = async (req, res) => {
-    try {
-        Logger.info('Restoring macro');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Restoring macro');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in restoreMacro:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { id } = req.params;
-        const { decoded } = req;
-
-        // Validate user is authenticated
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        // Find macro (including soft-deleted ones)
-        const macro = await Macro.findOne({
-            _id: id,
-            includeDeleted: true
-        }).setOptions({ includeDeleted: true });
-
-        if (!macro) {
-            return res.status(404).json({ message: 'Macro not found' });
-        }
-
-        // Check ownership
-        if (macro.created_by && macro.created_by.toString() !== decoded.user_id) {
-            return res.status(403).json({ message: 'You can only restore your own macros' });
-        }
-
-        // Check if macro is actually soft-deleted
-        if (!macro.deletedAt) {
-            return res.status(400).json({ message: 'Macro is not deleted' });
-        }
-
-        // Restore using the new method
-        await macro.restore();
-
-        // Populate related fields for response
-        await macro.populate([
-            { path: 'game_version', select: 'game_version' },
-            { path: 'ability', select: 'name icon description' },
-            { path: 'created_by', select: 'username email' },
-            { path: 'icon', select: '_id name cloudfrontUrl keywords' }
-        ]);
-
-        const transformedMacro = {
-            id: macro._id,
-            name: macro.name,
-            description: macro.description,
-            class: macro.class,
-            spec: macro.spec,
-            hero_talent: macro.hero_talent,
-            game_version: macro.game_version,
-            ability: macro.ability,
-            macro_text: macro.macro_text,
-            icon: macro.icon,
-            tags: macro.tags,
-            is_public: macro.is_public,
-            is_active: macro.is_active,
-            created_by: macro.created_by,
-            usage_count: macro.usage_count,
-            rating: macro.rating,
-            created_at: macro.createdAt,
-            updated_at: macro.updatedAt
-        };
-
-        Logger.info(`Macro restored successfully: ${id}`);
-        return res.status(200).json({
-            message: 'Macro restored successfully',
-            macro: transformedMacro
-        });
-
-    } catch (error) {
-        Logger.error('Error restoring macro:', error);
-        return res.status(500).json({ message: 'Error restoring macro' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in restoreMacro:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { id } = req.params;
+    const { decoded } = req;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Find macro (including soft-deleted ones)
+    const macro = await Macro.findOne({
+      _id: id,
+      includeDeleted: true
+    }).setOptions({ includeDeleted: true });
+
+    if (!macro) {
+      return res.status(404).json({ message: 'Macro not found' });
+    }
+
+    // Check ownership
+    if (macro.user_id && macro.user_id.toString() !== decoded.user_id) {
+      return res.status(403).json({ message: 'You can only restore your own macros' });
+    }
+
+    // Check if macro is actually soft-deleted
+    if (!macro.deletedAt) {
+      return res.status(400).json({ message: 'Macro is not deleted' });
+    }
+
+    // Restore using the new method
+    await macro.restore();
+
+    // Populate related fields for response
+    await macro.populate([
+      { path: 'game_version', select: 'game_version' },
+      { path: 'ability', select: 'name icon description' },
+      { path: 'user_id', select: 'username email' },
+      { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+    ]);
+
+    const transformedMacro = {
+      id: macro._id,
+      name: macro.name,
+      description: macro.description,
+      class: macro.class,
+      spec: macro.spec,
+      hero_talent: macro.hero_talent,
+      game_version: macro.game_version,
+      ability: macro.ability,
+      macro_text: macro.macro_text,
+      icon: macro.icon,
+      tags: macro.tags,
+      is_public: macro.is_public,
+      is_active: macro.is_active,
+      user_id: macro.user_id,
+      usage_count: macro.usage_count,
+      created_at: macro.createdAt,
+      updated_at: macro.updatedAt
+    };
+
+    Logger.info(`Macro restored successfully: ${id}`);
+    return res.status(200).json({
+      message: 'Macro restored successfully',
+      macro: transformedMacro
+    });
+
+  } catch (error) {
+    Logger.error('Error restoring macro:', error);
+    return res.status(500).json({ message: 'Error restoring macro' });
+  }
 };
 
 /**
@@ -579,91 +601,94 @@ export const restoreMacro = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const duplicateMacro = async (req, res) => {
-    try {
-        Logger.info('Duplicating macro');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Duplicating macro');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in duplicateMacro:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { id } = req.params;
-        const { decoded } = req;
-
-        // Validate user is authenticated
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        // Verify user exists
-        const user = await User.findById(decoded.user_id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Find original macro
-        const originalMacro = await Macro.findById(id);
-        if (!originalMacro) {
-            return res.status(404).json({ message: 'Macro not found' });
-        }
-
-        // Create duplicate
-        const duplicatedMacro = new Macro({
-            name: `${originalMacro.name} (Copy)`,
-            description: originalMacro.description,
-            class: originalMacro.class,
-            spec: originalMacro.spec,
-            hero_talent: originalMacro.hero_talent,
-            game_version: originalMacro.game_version,
-            ability: originalMacro.ability,
-            macro_text: originalMacro.macro_text,
-            icon: originalMacro.icon,
-            tags: [...originalMacro.tags],
-            is_public: false, // Duplicated macros are private by default
-            created_by: decoded.user_id
-        });
-
-        await duplicatedMacro.save();
-
-        // Populate related fields for response
-        await duplicatedMacro.populate([
-            { path: 'game_version', select: 'game_version' },
-            { path: 'ability', select: 'name icon description' },
-            { path: 'created_by', select: 'username email' }
-        ]);
-
-        const transformedMacro = {
-            id: duplicatedMacro._id,
-            name: duplicatedMacro.name,
-            description: duplicatedMacro.description,
-            class: duplicatedMacro.class,
-            spec: duplicatedMacro.spec,
-            hero_talent: duplicatedMacro.hero_talent,
-            game_version: duplicatedMacro.game_version,
-            ability: duplicatedMacro.ability,
-            macro_text: duplicatedMacro.macro_text,
-            icon: duplicatedMacro.icon,
-            tags: duplicatedMacro.tags,
-            is_public: duplicatedMacro.is_public,
-            is_active: duplicatedMacro.is_active,
-            created_by: duplicatedMacro.created_by,
-            usage_count: duplicatedMacro.usage_count,
-            rating: duplicatedMacro.rating,
-            created_at: duplicatedMacro.createdAt,
-            updated_at: duplicatedMacro.updatedAt
-        };
-
-        Logger.info(`Macro duplicated successfully: ${duplicatedMacro._id}`);
-        return res.status(201).json({
-            message: 'Macro duplicated successfully',
-            macro: transformedMacro
-        });
-
-    } catch (error) {
-        Logger.error('Error duplicating macro:', error);
-        return res.status(500).json({ message: 'Error duplicating macro' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in duplicateMacro:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { id } = req.params;
+    const { decoded } = req;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Verify user exists
+    const user = await User.findById(decoded.user_id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Find original macro
+    const originalMacro = await Macro.findById(id);
+    if (!originalMacro) {
+      return res.status(404).json({ message: 'Macro not found' });
+    }
+
+    // Create duplicate
+    const duplicatedMacro = new Macro({
+      name: `${originalMacro.name} (Copy)`,
+      description: originalMacro.description,
+      class: originalMacro.class,
+      spec: originalMacro.spec,
+      hero_talent: originalMacro.hero_talent,
+      game_version: originalMacro.game_version,
+      ability: originalMacro.ability,
+      macro_text: originalMacro.macro_text,
+      icon: originalMacro.icon,
+      tags: [...originalMacro.tags],
+      is_public: false, // Duplicated macros are private by default
+      user_id: decoded.user_id
+    });
+
+    await duplicatedMacro.save();
+
+    // Increment usage count for the original macro
+    originalMacro.usage_count = (originalMacro.usage_count || 0) + 1;
+    await originalMacro.save();
+
+    // Populate related fields for response
+    await duplicatedMacro.populate([
+      { path: 'game_version', select: 'game_version' },
+      { path: 'ability', select: 'name icon description' },
+      { path: 'user_id', select: 'username email' }
+    ]);
+
+    const transformedMacro = {
+      id: duplicatedMacro._id,
+      name: duplicatedMacro.name,
+      description: duplicatedMacro.description,
+      class: duplicatedMacro.class,
+      spec: duplicatedMacro.spec,
+      hero_talent: duplicatedMacro.hero_talent,
+      game_version: duplicatedMacro.game_version,
+      ability: duplicatedMacro.ability,
+      macro_text: duplicatedMacro.macro_text,
+      icon: duplicatedMacro.icon,
+      tags: duplicatedMacro.tags,
+      is_public: duplicatedMacro.is_public,
+      is_active: duplicatedMacro.is_active,
+      user_id: duplicatedMacro.user_id,
+      usage_count: duplicatedMacro.usage_count,
+      created_at: duplicatedMacro.createdAt,
+      updated_at: duplicatedMacro.updatedAt
+    };
+
+    Logger.info(`Macro duplicated successfully: ${duplicatedMacro._id}`);
+    return res.status(201).json({
+      message: 'Macro duplicated successfully',
+      macro: transformedMacro
+    });
+
+  } catch (error) {
+    Logger.error('Error duplicating macro:', error);
+    return res.status(500).json({ message: 'Error duplicating macro' });
+  }
 };
 
 /**
@@ -672,131 +697,130 @@ export const duplicateMacro = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const getMyMacros = async (req, res) => {
-    try {
-        Logger.info('Retrieving user macros');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Retrieving user macros');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in getMyMacros:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { decoded } = req;
-
-        // Validate user is authenticated
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        const {
-            page = 1,
-            limit = 20,
-            class: wowClass,
-            spec,
-            hero_talent,
-            game_version,
-            ability,
-            tags,
-            is_public,
-            search,
-            sort_by = 'created_at',
-            sort_order = 'desc'
-        } = req.query;
-
-        // Build query for user's macros
-        const query = { created_by: decoded.user_id };
-
-        // Add filters
-        if (wowClass) query.class = wowClass;
-        if (spec) query.spec = spec;
-        if (hero_talent) query.hero_talent = hero_talent;
-        if (game_version) query.game_version = game_version;
-        if (ability) query.ability = ability;
-        if (is_public !== undefined) query.is_public = is_public === 'true';
-
-        // Handle tags filter
-        if (tags) {
-            const tagArray = Array.isArray(tags) ? tags : tags.split(',');
-            query.tags = { $in: tagArray.map(tag => tag.toLowerCase().trim()) };
-        }
-
-        // Handle search
-        if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } },
-                { macro_text: { $regex: search, $options: 'i' } }
-            ];
-        }
-
-        // Get total count for pagination
-        const totalCount = await Macro.countDocuments(query);
-
-        // Calculate pagination values
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-        const skip = (pageNum - 1) * limitNum;
-
-        // Build sort object
-        const sort = {};
-        sort[sort_by] = sort_order === 'desc' ? -1 : 1;
-
-        // Get macros with pagination
-        const macros = await Macro.find(query)
-            .populate([
-                { path: 'game_version', select: 'game_version' },
-                { path: 'ability', select: 'name icon description' },
-                { path: 'icon', select: '_id name cloudfrontUrl keywords' }
-            ])
-            .sort(sort)
-            .skip(skip)
-            .limit(limitNum)
-            .lean();
-
-        // Transform macros for response
-        const transformedMacros = macros.map(macro => ({
-            id: macro._id,
-            name: macro.name,
-            description: macro.description,
-            class: macro.class,
-            spec: macro.spec,
-            hero_talent: macro.hero_talent,
-            game_version: macro.game_version,
-            ability: macro.ability,
-            macro_text: macro.macro_text,
-            icon: macro.icon,
-            tags: macro.tags,
-            is_public: macro.is_public,
-            is_active: macro.is_active,
-            usage_count: macro.usage_count,
-            rating: macro.rating,
-            created_at: macro.createdAt,
-            updated_at: macro.updatedAt
-        }));
-
-        // Calculate pagination metadata
-        const totalPages = Math.ceil(totalCount / limitNum);
-        const hasNextPage = pageNum < totalPages;
-        const hasPrevPage = pageNum > 1;
-
-        Logger.info(`Retrieved ${transformedMacros.length} user macros (page: ${pageNum}/${totalPages})`);
-
-        return res.status(200).json({
-            macros: transformedMacros,
-            pagination: {
-                currentPage: pageNum,
-                totalPages,
-                totalCount,
-                hasNextPage,
-                hasPrevPage,
-                limit: limitNum
-            }
-        });
-
-    } catch (error) {
-        Logger.error('Error retrieving user macros:', error);
-        return res.status(500).json({ message: 'Error retrieving user macros' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in getMyMacros:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { decoded } = req;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const {
+      page = 1,
+      limit = 20,
+      class: wowClass,
+      spec,
+      hero_talent,
+      game_version,
+      ability,
+      tags,
+      is_public,
+      search,
+      sort_by = 'created_at',
+      sort_order = 'desc'
+    } = req.query;
+
+    // Build query for user's macros
+    const query = { user_id: decoded.user_id };
+
+    // Add filters
+    if (wowClass) query.class = wowClass;
+    if (spec) query.spec = spec;
+    if (hero_talent) query.hero_talent = hero_talent;
+    if (game_version) query.game_version = game_version;
+    if (ability) query.ability = ability;
+    if (is_public !== undefined) query.is_public = is_public === 'true';
+
+    // Handle tags filter
+    if (tags) {
+      const tagArray = Array.isArray(tags) ? tags : tags.split(',');
+      query.tags = { $in: tagArray.map(tag => tag.toLowerCase().trim()) };
+    }
+
+    // Handle search
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { macro_text: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get total count for pagination
+    const totalCount = await Macro.countDocuments(query);
+
+    // Calculate pagination values
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build sort object
+    const sort = {};
+    sort[sort_by] = sort_order === 'desc' ? -1 : 1;
+
+    // Get macros with pagination
+    const macros = await Macro.find(query)
+      .populate([
+        { path: 'game_version', select: 'game_version' },
+        { path: 'ability', select: 'name icon description' },
+        { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+      ])
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    // Transform macros for response
+    const transformedMacros = macros.map(macro => ({
+      id: macro._id,
+      name: macro.name,
+      description: macro.description,
+      class: macro.class,
+      spec: macro.spec,
+      hero_talent: macro.hero_talent,
+      game_version: macro.game_version,
+      ability: macro.ability,
+      macro_text: macro.macro_text,
+      icon: macro.icon,
+      tags: macro.tags,
+      is_public: macro.is_public,
+      is_active: macro.is_active,
+      usage_count: macro.usage_count,
+      created_at: macro.createdAt,
+      updated_at: macro.updatedAt
+    }));
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    Logger.info(`Retrieved ${transformedMacros.length} user macros (page: ${pageNum}/${totalPages})`);
+
+    return res.status(200).json({
+      macros: transformedMacros,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCount,
+        hasNextPage,
+        hasPrevPage,
+        limit: limitNum
+      }
+    });
+
+  } catch (error) {
+    Logger.error('Error retrieving user macros:', error);
+    return res.status(500).json({ message: 'Error retrieving user macros' });
+  }
 };
 
 /**
@@ -805,105 +829,104 @@ export const getMyMacros = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const getDeletedMacros = async (req, res) => {
-    try {
-        Logger.info('Retrieving deleted user macros');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Retrieving deleted user macros');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in getDeletedMacros:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { decoded } = req;
-
-        // Validate user is authenticated
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ message: 'Authentication required' });
-        }
-
-        const {
-            page = 1,
-            limit = 20,
-            sort_by = 'deletedAt',
-            sort_order = 'desc'
-        } = req.query;
-
-        // Build query for user's soft-deleted macros
-        const query = {
-            created_by: decoded.user_id,
-            deletedAt: { $ne: null }
-        };
-
-        // Get total count for pagination
-        const totalCount = await Macro.countDocuments(query);
-
-        // Calculate pagination values
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-        const skip = (pageNum - 1) * limitNum;
-
-        // Build sort object
-        const sort = {};
-        sort[sort_by] = sort_order === 'desc' ? -1 : 1;
-
-        // Get macros with pagination (including soft-deleted)
-        const macros = await Macro.find(query)
-            .setOptions({ includeDeleted: true })
-            .populate([
-                { path: 'game_version', select: 'game_version' },
-                { path: 'ability', select: 'name icon description' },
-                { path: 'icon', select: '_id name cloudfrontUrl keywords' }
-            ])
-            .sort(sort)
-            .skip(skip)
-            .limit(limitNum)
-            .lean();
-
-        // Transform macros for response
-        const transformedMacros = macros.map(macro => ({
-            id: macro._id,
-            name: macro.name,
-            description: macro.description,
-            class: macro.class,
-            spec: macro.spec,
-            hero_talent: macro.hero_talent,
-            game_version: macro.game_version,
-            ability: macro.ability,
-            macro_text: macro.macro_text,
-            icon: macro.icon,
-            tags: macro.tags,
-            is_public: macro.is_public,
-            is_active: macro.is_active,
-            usage_count: macro.usage_count,
-            rating: macro.rating,
-            created_at: macro.createdAt,
-            updated_at: macro.updatedAt,
-            deleted_at: macro.deletedAt
-        }));
-
-        // Calculate pagination metadata
-        const totalPages = Math.ceil(totalCount / limitNum);
-        const hasNextPage = pageNum < totalPages;
-        const hasPrevPage = pageNum > 1;
-
-        Logger.info(`Retrieved ${transformedMacros.length} deleted user macros (page: ${pageNum}/${totalPages})`);
-
-        return res.status(200).json({
-            macros: transformedMacros,
-            pagination: {
-                currentPage: pageNum,
-                totalPages,
-                totalCount,
-                hasNextPage,
-                hasPrevPage,
-                limit: limitNum
-            }
-        });
-
-    } catch (error) {
-        Logger.error('Error retrieving deleted user macros:', error);
-        return res.status(500).json({ message: 'Error retrieving deleted user macros' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in getDeletedMacros:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { decoded } = req;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const {
+      page = 1,
+      limit = 20,
+      sort_by = 'deletedAt',
+      sort_order = 'desc'
+    } = req.query;
+
+    // Build query for user's soft-deleted macros
+    const query = {
+      user_id: decoded.user_id,
+      deletedAt: { $ne: null }
+    };
+
+    // Get total count for pagination
+    const totalCount = await Macro.countDocuments(query);
+
+    // Calculate pagination values
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build sort object
+    const sort = {};
+    sort[sort_by] = sort_order === 'desc' ? -1 : 1;
+
+    // Get macros with pagination (including soft-deleted)
+    const macros = await Macro.find(query)
+      .setOptions({ includeDeleted: true })
+      .populate([
+        { path: 'game_version', select: 'game_version' },
+        { path: 'ability', select: 'name icon description' },
+        { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+      ])
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    // Transform macros for response
+    const transformedMacros = macros.map(macro => ({
+      id: macro._id,
+      name: macro.name,
+      description: macro.description,
+      class: macro.class,
+      spec: macro.spec,
+      hero_talent: macro.hero_talent,
+      game_version: macro.game_version,
+      ability: macro.ability,
+      macro_text: macro.macro_text,
+      icon: macro.icon,
+      tags: macro.tags,
+      is_public: macro.is_public,
+      is_active: macro.is_active,
+      usage_count: macro.usage_count,
+      created_at: macro.createdAt,
+      updated_at: macro.updatedAt,
+      deleted_at: macro.deletedAt
+    }));
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    Logger.info(`Retrieved ${transformedMacros.length} deleted user macros (page: ${pageNum}/${totalPages})`);
+
+    return res.status(200).json({
+      macros: transformedMacros,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCount,
+        hasNextPage,
+        hasPrevPage,
+        limit: limitNum
+      }
+    });
+
+  } catch (error) {
+    Logger.error('Error retrieving deleted user macros:', error);
+    return res.status(500).json({ message: 'Error retrieving deleted user macros' });
+  }
 };
 
 /**
@@ -912,73 +935,72 @@ export const getDeletedMacros = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const getPopularMacros = async (req, res) => {
-    try {
-        Logger.info('Retrieving popular macros');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Retrieving popular macros');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in getPopularMacros:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { game_version, limit = 10 } = req.query;
-
-        // Determine which version to use
-        let targetVersion;
-        if (game_version && game_version !== 'latest') {
-            targetVersion = await Version.findOne({ game_version });
-            if (!targetVersion) {
-                return res.status(400).json({ message: `Game version ${game_version} not found` });
-            }
-        } else {
-            // Get the latest version
-            const allVersions = await Version.find({});
-            if (allVersions.length === 0) {
-                return res.status(400).json({ message: 'No versions available' });
-            }
-            targetVersion = allVersions.sort((a, b) => {
-                const aParts = a.game_version.split('.').map(Number);
-                const bParts = b.game_version.split('.').map(Number);
-                for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-                    const aPart = aParts[i] || 0;
-                    const bPart = bParts[i] || 0;
-                    if (aPart > bPart) return -1;
-                    if (aPart < bPart) return 1;
-                }
-                return 0;
-            })[0];
-        }
-
-        const macros = await Macro.findPopular(targetVersion._id, parseInt(limit));
-
-        const transformedMacros = macros.map(macro => ({
-            id: macro._id,
-            name: macro.name,
-            description: macro.description,
-            class: macro.class,
-            spec: macro.spec,
-            hero_talent: macro.hero_talent,
-            game_version: macro.game_version,
-            ability: macro.ability,
-            macro_text: macro.macro_text,
-            icon: macro.icon,
-            tags: macro.tags,
-            is_public: macro.is_public,
-            is_active: macro.is_active,
-            created_by: macro.created_by,
-            usage_count: macro.usage_count,
-            rating: macro.rating,
-            created_at: macro.createdAt,
-            updated_at: macro.updatedAt
-        }));
-
-        Logger.info(`Retrieved ${transformedMacros.length} popular macros`);
-        return res.status(200).json({ macros: transformedMacros });
-
-    } catch (error) {
-        Logger.error('Error retrieving popular macros:', error);
-        return res.status(500).json({ message: 'Error retrieving popular macros' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in getPopularMacros:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { game_version, limit = 10 } = req.query;
+
+    // Determine which version to use
+    let targetVersion;
+    if (game_version && game_version !== 'latest') {
+      targetVersion = await Version.findOne({ game_version });
+      if (!targetVersion) {
+        return res.status(400).json({ message: `Game version ${game_version} not found` });
+      }
+    } else {
+      // Get the latest version
+      const allVersions = await Version.find({});
+      if (allVersions.length === 0) {
+        return res.status(400).json({ message: 'No versions available' });
+      }
+      targetVersion = allVersions.sort((a, b) => {
+        const aParts = a.game_version.split('.').map(Number);
+        const bParts = b.game_version.split('.').map(Number);
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const aPart = aParts[i] || 0;
+          const bPart = bParts[i] || 0;
+          if (aPart > bPart) return -1;
+          if (aPart < bPart) return 1;
+        }
+        return 0;
+      })[0];
+    }
+
+    const macros = await Macro.findPopular(targetVersion._id, parseInt(limit));
+
+    const transformedMacros = macros.map(macro => ({
+      id: macro._id,
+      name: macro.name,
+      description: macro.description,
+      class: macro.class,
+      spec: macro.spec,
+      hero_talent: macro.hero_talent,
+      game_version: macro.game_version,
+      ability: macro.ability,
+      macro_text: macro.macro_text,
+      icon: macro.icon,
+      tags: macro.tags,
+      is_public: macro.is_public,
+      is_active: macro.is_active,
+      user_id: macro.user_id,
+      usage_count: macro.usage_count,
+      created_at: macro.createdAt,
+      updated_at: macro.updatedAt
+    }));
+
+    Logger.info(`Retrieved ${transformedMacros.length} popular macros`);
+    return res.status(200).json({ macros: transformedMacros });
+
+  } catch (error) {
+    Logger.error('Error retrieving popular macros:', error);
+    return res.status(500).json({ message: 'Error retrieving popular macros' });
+  }
 };
 
 /**
@@ -987,79 +1009,78 @@ export const getPopularMacros = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const getMacrosByTags = async (req, res) => {
-    try {
-        Logger.info('Retrieving macros by tags');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Retrieving macros by tags');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in getMacrosByTags:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { tags, game_version, limit = 20 } = req.query;
-
-        if (!tags) {
-            return res.status(400).json({ message: 'Tags parameter is required' });
-        }
-
-        const tagArray = Array.isArray(tags) ? tags : tags.split(',');
-
-        // Determine which version to use
-        let targetVersion;
-        if (game_version && game_version !== 'latest') {
-            targetVersion = await Version.findOne({ game_version });
-            if (!targetVersion) {
-                return res.status(400).json({ message: `Game version ${game_version} not found` });
-            }
-        } else {
-            // Get the latest version
-            const allVersions = await Version.find({});
-            if (allVersions.length === 0) {
-                return res.status(400).json({ message: 'No versions available' });
-            }
-            targetVersion = allVersions.sort((a, b) => {
-                const aParts = a.game_version.split('.').map(Number);
-                const bParts = b.game_version.split('.').map(Number);
-                for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-                    const aPart = aParts[i] || 0;
-                    const bPart = bParts[i] || 0;
-                    if (aPart > bPart) return -1;
-                    if (aPart < bPart) return 1;
-                }
-                return 0;
-            })[0];
-        }
-
-        const macros = await Macro.findByTags(tagArray, targetVersion._id, parseInt(limit));
-
-        const transformedMacros = macros.map(macro => ({
-            id: macro._id,
-            name: macro.name,
-            description: macro.description,
-            class: macro.class,
-            spec: macro.spec,
-            hero_talent: macro.hero_talent,
-            game_version: macro.game_version,
-            ability: macro.ability,
-            macro_text: macro.macro_text,
-            icon: macro.icon,
-            tags: macro.tags,
-            is_public: macro.is_public,
-            is_active: macro.is_active,
-            created_by: macro.created_by,
-            usage_count: macro.usage_count,
-            rating: macro.rating,
-            created_at: macro.createdAt,
-            updated_at: macro.updatedAt
-        }));
-
-        Logger.info(`Retrieved ${transformedMacros.length} macros by tags`);
-        return res.status(200).json({ macros: transformedMacros });
-
-    } catch (error) {
-        Logger.error('Error retrieving macros by tags:', error);
-        return res.status(500).json({ message: 'Error retrieving macros by tags' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in getMacrosByTags:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { tags, game_version, limit = 20 } = req.query;
+
+    if (!tags) {
+      return res.status(400).json({ message: 'Tags parameter is required' });
+    }
+
+    const tagArray = Array.isArray(tags) ? tags : tags.split(',');
+
+    // Determine which version to use
+    let targetVersion;
+    if (game_version && game_version !== 'latest') {
+      targetVersion = await Version.findOne({ game_version });
+      if (!targetVersion) {
+        return res.status(400).json({ message: `Game version ${game_version} not found` });
+      }
+    } else {
+      // Get the latest version
+      const allVersions = await Version.find({});
+      if (allVersions.length === 0) {
+        return res.status(400).json({ message: 'No versions available' });
+      }
+      targetVersion = allVersions.sort((a, b) => {
+        const aParts = a.game_version.split('.').map(Number);
+        const bParts = b.game_version.split('.').map(Number);
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const aPart = aParts[i] || 0;
+          const bPart = bParts[i] || 0;
+          if (aPart > bPart) return -1;
+          if (aPart < bPart) return 1;
+        }
+        return 0;
+      })[0];
+    }
+
+    const macros = await Macro.findByTags(tagArray, targetVersion._id, parseInt(limit));
+
+    const transformedMacros = macros.map(macro => ({
+      id: macro._id,
+      name: macro.name,
+      description: macro.description,
+      class: macro.class,
+      spec: macro.spec,
+      hero_talent: macro.hero_talent,
+      game_version: macro.game_version,
+      ability: macro.ability,
+      macro_text: macro.macro_text,
+      icon: macro.icon,
+      tags: macro.tags,
+      is_public: macro.is_public,
+      is_active: macro.is_active,
+      user_id: macro.user_id,
+      usage_count: macro.usage_count,
+      created_at: macro.createdAt,
+      updated_at: macro.updatedAt
+    }));
+
+    Logger.info(`Retrieved ${transformedMacros.length} macros by tags`);
+    return res.status(200).json({ macros: transformedMacros });
+
+  } catch (error) {
+    Logger.error('Error retrieving macros by tags:', error);
+    return res.status(500).json({ message: 'Error retrieving macros by tags' });
+  }
 };
 
 /**
@@ -1068,75 +1089,107 @@ export const getMacrosByTags = async (req, res) => {
  * @param {import('express').Response} res
  */
 export const getMacrosByAbility = async (req, res) => {
-    try {
-        Logger.info('Retrieving macros by ability');
-        const errors = validationResult(req);
+  try {
+    Logger.info('Retrieving macros by ability');
+    const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            Logger.error('Validation errors in getMacrosByAbility:', errors.array());
-            return res.status(422).json({ errors: errors.array() });
-        }
-
-        const { ability_id, game_version, limit = 20 } = req.query;
-
-        if (!ability_id) {
-            return res.status(400).json({ message: 'ability_id parameter is required' });
-        }
-
-        // Determine which version to use
-        let targetVersion;
-        if (game_version && game_version !== 'latest') {
-            targetVersion = await Version.findOne({ game_version });
-            if (!targetVersion) {
-                return res.status(400).json({ message: `Game version ${game_version} not found` });
-            }
-        } else {
-            // Get the latest version
-            const allVersions = await Version.find({});
-            if (allVersions.length === 0) {
-                return res.status(400).json({ message: 'No versions available' });
-            }
-            targetVersion = allVersions.sort((a, b) => {
-                const aParts = a.game_version.split('.').map(Number);
-                const bParts = b.game_version.split('.').map(Number);
-                for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-                    const aPart = aParts[i] || 0;
-                    const bPart = bParts[i] || 0;
-                    if (aPart > bPart) return -1;
-                    if (aPart < bPart) return 1;
-                }
-                return 0;
-            })[0];
-        }
-
-        const macros = await Macro.findByAbility(ability_id, targetVersion._id, parseInt(limit));
-
-        const transformedMacros = macros.map(macro => ({
-            id: macro._id,
-            name: macro.name,
-            description: macro.description,
-            class: macro.class,
-            spec: macro.spec,
-            hero_talent: macro.hero_talent,
-            game_version: macro.game_version,
-            ability: macro.ability,
-            macro_text: macro.macro_text,
-            icon: macro.icon,
-            tags: macro.tags,
-            is_public: macro.is_public,
-            is_active: macro.is_active,
-            created_by: macro.created_by,
-            usage_count: macro.usage_count,
-            rating: macro.rating,
-            created_at: macro.createdAt,
-            updated_at: macro.updatedAt
-        }));
-
-        Logger.info(`Retrieved ${transformedMacros.length} macros by ability`);
-        return res.status(200).json({ macros: transformedMacros });
-
-    } catch (error) {
-        Logger.error('Error retrieving macros by ability:', error);
-        return res.status(500).json({ message: 'Error retrieving macros by ability' });
+    if (!errors.isEmpty()) {
+      Logger.error('Validation errors in getMacrosByAbility:', errors.array());
+      return res.status(422).json({ errors: errors.array() });
     }
+
+    const { ability_id, game_version, limit = 20 } = req.query;
+
+    if (!ability_id) {
+      return res.status(400).json({ message: 'ability_id parameter is required' });
+    }
+
+    // Determine which version to use
+    let targetVersion;
+    if (game_version && game_version !== 'latest') {
+      targetVersion = await Version.findOne({ game_version });
+      if (!targetVersion) {
+        return res.status(400).json({ message: `Game version ${game_version} not found` });
+      }
+    } else {
+      // Get the latest version
+      const allVersions = await Version.find({});
+      if (allVersions.length === 0) {
+        return res.status(400).json({ message: 'No versions available' });
+      }
+      targetVersion = allVersions.sort((a, b) => {
+        const aParts = a.game_version.split('.').map(Number);
+        const bParts = b.game_version.split('.').map(Number);
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const aPart = aParts[i] || 0;
+          const bPart = bParts[i] || 0;
+          if (aPart > bPart) return -1;
+          if (aPart < bPart) return 1;
+        }
+        return 0;
+      })[0];
+    }
+
+    const macros = await Macro.findByAbility(ability_id, targetVersion._id, parseInt(limit));
+
+    const transformedMacros = macros.map(macro => ({
+      id: macro._id,
+      name: macro.name,
+      description: macro.description,
+      class: macro.class,
+      spec: macro.spec,
+      hero_talent: macro.hero_talent,
+      game_version: macro.game_version,
+      ability: macro.ability,
+      macro_text: macro.macro_text,
+      icon: macro.icon,
+      tags: macro.tags,
+      is_public: macro.is_public,
+      is_active: macro.is_active,
+      user_id: macro.user_id,
+      usage_count: macro.usage_count,
+      created_at: macro.createdAt,
+      updated_at: macro.updatedAt
+    }));
+
+    Logger.info(`Retrieved ${transformedMacros.length} macros by ability`);
+    return res.status(200).json({ macros: transformedMacros });
+
+  } catch (error) {
+    Logger.error('Error retrieving macros by ability:', error);
+    return res.status(500).json({ message: 'Error retrieving macros by ability' });
+  }
+};
+
+/**
+ * Increment usage count for a macro
+ */
+export const incrementUsageCount = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: 'Macro ID is required' });
+    }
+
+    const macro = await Macro.findById(id);
+    if (!macro) {
+      return res.status(404).json({ message: 'Macro not found' });
+    }
+
+    // Increment usage count
+    macro.usage_count = (macro.usage_count || 0) + 1;
+    await macro.save();
+
+    Logger.info(`Incremented usage count for macro ${id} to ${macro.usage_count}`);
+
+    return res.status(200).json({
+      message: 'Usage count incremented successfully',
+      usage_count: macro.usage_count
+    });
+
+  } catch (error) {
+    Logger.error('Error incrementing usage count:', error);
+    return res.status(500).json({ message: 'Error incrementing usage count' });
+  }
 };

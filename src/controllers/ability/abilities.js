@@ -552,8 +552,28 @@ export const getAbilitiesFlexible = async (req, res) => {
 
       // Use $or to combine all inclusion queries
       query = inclusionQueries.length > 1 ? { $or: inclusionQueries } : inclusionQueries[0];
+
+      // Apply column filters to the inclusion query for additional filtering
+      if (columnName) {
+        // If query is already complex, wrap in $and, otherwise just add to existing query
+        if (query.$or) {
+          query = { $and: [query, { name: { $regex: columnName, $options: 'i' } }] };
+        } else {
+          query.name = { $regex: columnName, $options: 'i' };
+        }
+      }
+      if (columnDescription) {
+        if (query.$or || columnName) {
+          query = query.$and
+            ? { $and: [...query.$and, { description: { $regex: columnDescription, $options: 'i' } }] }
+            : { $and: [query, { description: { $regex: columnDescription, $options: 'i' } }] };
+        } else {
+          query.description = { $regex: columnDescription, $options: 'i' };
+        }
+      }
     }
 
+    Logger.info('Final query:', JSON.stringify(query, null, 2));
 
     // Get total count for pagination
     const totalCount = await Ability.countDocuments(query);

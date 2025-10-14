@@ -10,6 +10,7 @@ import UserRouter from './api/user.js'
 import KeybindingsRouter from './api/keybindings.js'
 import VersionsRouter from './api/versions.js'
 import MacrosRouter from './api/macros.js'
+import MacroBuilderRouter from './api/macro-builder.js'
 import WagoIconsRouter from './api/wago-icons.js'
 import IconsRouter from './api/icons.js'
 
@@ -36,6 +37,9 @@ router
 
   //macros
   .use('/macros', MacrosRouter)
+  
+  //macro-builder
+  .use('/macro-builder', MacroBuilderRouter)
 
   //wago-icons
   .use('/wago-icons', WagoIconsRouter)

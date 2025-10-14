@@ -12,7 +12,8 @@ import {
     getPopularMacros,
     getMacrosByTags,
     getMacrosByAbility,
-    incrementUsageCount
+    incrementUsageCount,
+    validateMacroText
 } from '../../controllers/macro/macros.js';
 import {
     validateCreateMacro,
@@ -37,6 +38,7 @@ router.get('/by-tags', validateGetMacrosByTags, getMacrosByTags);
 router.get('/by-ability', validateGetMacrosByAbility, getMacrosByAbility);
 router.get('/:id', validateGetMacro, getMacro);
 router.post('/:id/usage', incrementUsageCount);
+router.post('/validate', validateMacroText); // Real-time validation endpoint
 
 // Protected routes (authentication required)
 router.post('/', AuthnMiddleware.authenticateToken, validateCreateMacro, createMacro);

@@ -79,6 +79,10 @@ const macroSchema = new Schema({
     ref: 'Ability',
     default: null
   },
+  show_tooltip: {
+    type: Boolean,
+    default: false
+  },
   macro_text: {
     type: String,
     required: true,

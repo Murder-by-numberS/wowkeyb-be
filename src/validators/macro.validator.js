@@ -47,6 +47,16 @@ export const validateCreateMacro = [
         .isMongoId()
         .withMessage('Invalid ability ID'),
 
+    body('show_tooltip')
+        .optional()
+        .isBoolean()
+        .withMessage('show_tooltip must be a boolean'),
+
+    body('showTooltip')
+        .optional()
+        .isBoolean()
+        .withMessage('showTooltip must be a boolean'),
+
     body('macro_text')
         .notEmpty()
         .withMessage('Macro text is required')
@@ -120,6 +130,11 @@ export const validateUpdateMacro = [
         .isString()
         .withMessage('Hero talent must be a string'),
 
+    body('heroTalent')
+        .optional()
+        .isString()
+        .withMessage('Hero talent must be a string'),
+
     body('game_version')
         .optional()
         .isMongoId()
@@ -130,10 +145,26 @@ export const validateUpdateMacro = [
         .isMongoId()
         .withMessage('Invalid ability ID'),
 
+    body('show_tooltip')
+        .optional()
+        .isBoolean()
+        .withMessage('show_tooltip must be a boolean'),
+
+    body('showTooltip')
+        .optional()
+        .isBoolean()
+        .withMessage('showTooltip must be a boolean'),
+
     body('macro_text')
         .optional()
         .isLength({ max: 255 })
         .withMessage('Macro text cannot exceed 255 characters')
+        .trim(),
+
+    body('text')
+        .optional()
+        .isLength({ max: 255 })
+        .withMessage('Text cannot exceed 255 characters')
         .trim(),
 
     body('icon')

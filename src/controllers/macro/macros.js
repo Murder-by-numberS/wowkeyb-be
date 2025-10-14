@@ -51,6 +51,7 @@ export const createMacro = async (req, res) => {
       hero_talent = null,
       game_version,
       ability = null,
+      show_tooltip = false,
       macro_text,
       icon = null,
       tags = [],
@@ -93,6 +94,7 @@ export const createMacro = async (req, res) => {
       hero_talent,
       game_version: version._id,
       ability,
+      show_tooltip,
       macro_text,
       icon,
       tags: tags.map(tag => tag.toLowerCase().trim()),
@@ -121,6 +123,7 @@ export const createMacro = async (req, res) => {
         hero_talent: macro.hero_talent,
         game_version: macro.game_version,
         ability: macro.ability,
+        show_tooltip: macro.show_tooltip,
         macro_text: macro.macro_text,
         icon: macro.icon,
         tags: macro.tags,
@@ -232,6 +235,7 @@ export const getMacros = async (req, res) => {
       hero_talent: macro.hero_talent,
       game_version: macro.game_version,
       ability: macro.ability,
+      show_tooltip: macro.show_tooltip,
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
@@ -329,6 +333,8 @@ export const getMacro = async (req, res) => {
       hero_talent: macro.hero_talent,
       game_version: macro.game_version,
       ability: macro.ability,
+      show_tooltip: macro.show_tooltip,
+      showTooltip: macro.show_tooltip, // Frontend compatibility
       macro_text: macro.macro_text,
       text: macro.macro_text, // Frontend compatibility
       macroText: macro.macro_text, // Frontend compatibility
@@ -397,9 +403,13 @@ export const updateMacro = async (req, res) => {
       class: wowClass,
       spec,
       hero_talent,
+      heroTalent, // Accept camelCase version
       game_version,
       ability,
+      show_tooltip,
+      showTooltip, // Accept camelCase version
       macro_text,
+      text, // Accept 'text' as alias for macro_text
       icon,
       tags,
       is_public
@@ -410,13 +420,22 @@ export const updateMacro = async (req, res) => {
     if (description !== undefined) updateData.description = description;
     if (wowClass !== undefined) updateData.class = wowClass;
     if (spec !== undefined) updateData.spec = spec;
+    // Accept both snake_case and camelCase
     if (hero_talent !== undefined) updateData.hero_talent = hero_talent;
+    if (heroTalent !== undefined) updateData.hero_talent = heroTalent;
     if (game_version !== undefined) updateData.game_version = game_version;
     if (ability !== undefined) updateData.ability = ability;
+    // Accept both snake_case and camelCase
+    if (show_tooltip !== undefined) updateData.show_tooltip = show_tooltip;
+    if (showTooltip !== undefined) updateData.show_tooltip = showTooltip;
+    // Accept both 'text' and 'macro_text' for backwards compatibility
+    if (text !== undefined) updateData.macro_text = text;
     if (macro_text !== undefined) updateData.macro_text = macro_text;
     if (icon !== undefined) updateData.icon = icon;
     if (tags !== undefined) updateData.tags = tags.map(tag => tag.toLowerCase().trim());
     if (is_public !== undefined) updateData.is_public = is_public;
+
+    Logger.info('Update macro request:', { id, updateData });
 
     // Update macro
     const updatedMacro = await Macro.findByIdAndUpdate(
@@ -440,6 +459,7 @@ export const updateMacro = async (req, res) => {
       hero_talent: updatedMacro.hero_talent,
       game_version: updatedMacro.game_version,
       ability: updatedMacro.ability,
+      show_tooltip: updatedMacro.show_tooltip,
       macro_text: updatedMacro.macro_text,
       icon: updatedMacro.icon,
       tags: updatedMacro.tags,
@@ -572,6 +592,7 @@ export const restoreMacro = async (req, res) => {
       hero_talent: macro.hero_talent,
       game_version: macro.game_version,
       ability: macro.ability,
+      show_tooltip: macro.show_tooltip,
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
@@ -639,6 +660,7 @@ export const duplicateMacro = async (req, res) => {
       hero_talent: originalMacro.hero_talent,
       game_version: originalMacro.game_version,
       ability: originalMacro.ability,
+      show_tooltip: originalMacro.show_tooltip,
       macro_text: originalMacro.macro_text,
       icon: originalMacro.icon,
       tags: [...originalMacro.tags],
@@ -668,6 +690,7 @@ export const duplicateMacro = async (req, res) => {
       hero_talent: duplicatedMacro.hero_talent,
       game_version: duplicatedMacro.game_version,
       ability: duplicatedMacro.ability,
+      show_tooltip: duplicatedMacro.show_tooltip,
       macro_text: duplicatedMacro.macro_text,
       icon: duplicatedMacro.icon,
       tags: duplicatedMacro.tags,
@@ -788,6 +811,7 @@ export const getMyMacros = async (req, res) => {
       hero_talent: macro.hero_talent,
       game_version: macro.game_version,
       ability: macro.ability,
+      show_tooltip: macro.show_tooltip,
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
@@ -893,6 +917,7 @@ export const getDeletedMacros = async (req, res) => {
       hero_talent: macro.hero_talent,
       game_version: macro.game_version,
       ability: macro.ability,
+      show_tooltip: macro.show_tooltip,
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
@@ -983,6 +1008,7 @@ export const getPopularMacros = async (req, res) => {
       hero_talent: macro.hero_talent,
       game_version: macro.game_version,
       ability: macro.ability,
+      show_tooltip: macro.show_tooltip,
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
@@ -1063,6 +1089,7 @@ export const getMacrosByTags = async (req, res) => {
       hero_talent: macro.hero_talent,
       game_version: macro.game_version,
       ability: macro.ability,
+      show_tooltip: macro.show_tooltip,
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
@@ -1141,6 +1168,7 @@ export const getMacrosByAbility = async (req, res) => {
       hero_talent: macro.hero_talent,
       game_version: macro.game_version,
       ability: macro.ability,
+      show_tooltip: macro.show_tooltip,
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,

@@ -1,31 +1,31 @@
 import express from 'express';
 import {
-    createMacro,
-    getMacros,
-    getMacro,
-    updateMacro,
-    deleteMacro,
-    restoreMacro,
-    duplicateMacro,
-    getMyMacros,
-    getDeletedMacros,
-    getPopularMacros,
-    getMacrosByTags,
-    getMacrosByAbility,
-    incrementUsageCount,
-    validateMacroText
+  createMacro,
+  getMacros,
+  getMacro,
+  updateMacro,
+  deleteMacro,
+  restoreMacro,
+  duplicateMacro,
+  getMyMacros,
+  getDeletedMacros,
+  getPopularMacros,
+  getMacrosByTags,
+  getMacrosByAbility,
+  incrementUsageCount,
+  validateMacroText
 } from '../../controllers/macro/macros.js';
 import {
-    validateCreateMacro,
-    validateUpdateMacro,
-    validateGetMacro,
-    validateDeleteMacro,
-    validateDuplicateMacro,
-    validateGetMacros,
-    validateGetMyMacros,
-    validateGetPopularMacros,
-    validateGetMacrosByTags,
-    validateGetMacrosByAbility
+  validateCreateMacro,
+  validateUpdateMacro,
+  validateGetMacro,
+  validateDeleteMacro,
+  validateDuplicateMacro,
+  validateGetMacros,
+  validateGetMyMacros,
+  validateGetPopularMacros,
+  validateGetMacrosByTags,
+  validateGetMacrosByAbility
 } from '../../validators/macro.validator.js';
 import AuthnMiddleware from '../../middlewares/authn.js';
 

@@ -8,73 +8,73 @@
  * Macro template types
  */
 export const MACRO_TEMPLATES = {
-  MOUSEOVER: 'mouseover',
-  FOCUS: 'focus',
-  SELF_CAST: 'self_cast',
-  ARENA_123: 'arena_123',
-  DEFENSIVE: 'defensive',
-  OFFENSIVE: 'offensive',
-  PET_ASSIST: 'pet_assist',
-  CASTSEQUENCE: 'castsequence',
-  MODIFIED_KEYS: 'modified_keys',
-  STOP_CAST: 'stop_cast'
+    MOUSEOVER: 'mouseover',
+    FOCUS: 'focus',
+    SELF_CAST: 'self_cast',
+    ARENA_123: 'arena_123',
+    DEFENSIVE: 'defensive',
+    OFFENSIVE: 'offensive',
+    PET_ASSIST: 'pet_assist',
+    CASTSEQUENCE: 'castsequence',
+    MODIFIED_KEYS: 'modified_keys',
+    STOP_CAST: 'stop_cast'
 };
 
 /**
  * Spell/Ability types for smart conditional generation
  */
 export const ABILITY_TYPES = {
-  HEAL: 'heal',
-  DAMAGE: 'damage',
-  BUFF: 'buff',
-  DEBUFF: 'debuff',
-  DISPEL: 'dispel',
-  UTILITY: 'utility',
-  DEFENSIVE_COOLDOWN: 'defensive_cooldown',
-  OFFENSIVE_COOLDOWN: 'offensive_cooldown',
-  CC: 'crowd_control',
-  MOVEMENT: 'movement'
+    HEAL: 'heal',
+    DAMAGE: 'damage',
+    BUFF: 'buff',
+    DEBUFF: 'debuff',
+    DISPEL: 'dispel',
+    UTILITY: 'utility',
+    DEFENSIVE_COOLDOWN: 'defensive_cooldown',
+    OFFENSIVE_COOLDOWN: 'offensive_cooldown',
+    CC: 'crowd_control',
+    MOVEMENT: 'movement'
 };
 
 /**
  * Common WoW macro conditionals
  */
 export const CONDITIONALS = {
-  // Target conditionals
-  MOUSEOVER: 'mouseover',
-  TARGET: 'target',
-  FOCUS: 'focus',
-  PLAYER: 'player',
-  PET: 'pet',
-  PARTY1: 'party1',
-  PARTY2: 'party2',
-  ARENA1: 'arena1',
-  ARENA2: 'arena2',
-  ARENA3: 'arena3',
-  
-  // State conditionals
-  HELP: 'help',           // Friendly target
-  HARM: 'harm',           // Enemy target
-  DEAD: 'dead',
-  NODEAD: 'nodead',
-  EXISTS: 'exists',
-  NOEXISTS: 'noexists',
-  
-  // Combat conditionals
-  COMBAT: 'combat',
-  NOCOMBAT: 'nocombat',
-  
-  // Modifier keys
-  MOD_SHIFT: 'mod:shift',
-  MOD_CTRL: 'mod:ctrl',
-  MOD_ALT: 'mod:alt',
-  NOMOD: 'nomod',
-  
-  // Stance/Form
-  STANCE: 'stance',
-  FORM: 'form',
-  STEALTH: 'stealth',
-  NOSTEALTH: 'nostealth'
+    // Target conditionals
+    MOUSEOVER: 'mouseover',
+    TARGET: 'target',
+    FOCUS: 'focus',
+    PLAYER: 'player',
+    PET: 'pet',
+    PARTY1: 'party1',
+    PARTY2: 'party2',
+    ARENA1: 'arena1',
+    ARENA2: 'arena2',
+    ARENA3: 'arena3',
+
+    // State conditionals
+    HELP: 'help',           // Friendly target
+    HARM: 'harm',           // Enemy target
+    DEAD: 'dead',
+    NODEAD: 'nodead',
+    EXISTS: 'exists',
+    NOEXISTS: 'noexists',
+
+    // Combat conditionals
+    COMBAT: 'combat',
+    NOCOMBAT: 'nocombat',
+
+    // Modifier keys
+    MOD_SHIFT: 'mod:shift',
+    MOD_CTRL: 'mod:ctrl',
+    MOD_ALT: 'mod:alt',
+    NOMOD: 'nomod',
+
+    // Stance/Form
+    STANCE: 'stance',
+    FORM: 'form',
+    STEALTH: 'stealth',
+    NOSTEALTH: 'nostealth'
 };
 
 /**
@@ -85,46 +85,46 @@ export const CONDITIONALS = {
  * @returns {string} Generated macro text
  */
 export function generateMouseoverMacro(spellName, abilityType = ABILITY_TYPES.DAMAGE, options = {}) {
-  const { 
-    includeTooltip = true,
-    fallbackToTarget = true,
-    fallbackToPlayer = false
-  } = options;
+    const {
+        includeTooltip = true,
+        fallbackToTarget = true,
+        fallbackToPlayer = false
+    } = options;
 
-  let macro = '';
-  
-  // Add tooltip
-  if (includeTooltip) {
-    macro += `#showtooltip ${spellName}\n`;
-  }
+    let macro = '';
 
-  // Generate conditional based on ability type
-  if (abilityType === ABILITY_TYPES.HEAL) {
-    // Healing spell - target friendly units
-    macro += `/cast [@mouseover,help,nodead][] ${spellName}`;
-    if (fallbackToPlayer) {
-      // If no mouseover or target, cast on self
-      macro = `/cast [@mouseover,help,nodead][@player] ${spellName}`;
+    // Add tooltip
+    if (includeTooltip) {
+        macro += `#showtooltip ${spellName}\n`;
     }
-  } else if (abilityType === ABILITY_TYPES.DAMAGE || abilityType === ABILITY_TYPES.DEBUFF) {
-    // Damage/Debuff - target enemies
-    macro += `/cast [@mouseover,harm,nodead][] ${spellName}`;
-  } else if (abilityType === ABILITY_TYPES.BUFF) {
-    // Buff - target friendly units or self
-    if (fallbackToPlayer) {
-      macro += `/cast [@mouseover,help][@player] ${spellName}`;
+
+    // Generate conditional based on ability type
+    if (abilityType === ABILITY_TYPES.HEAL) {
+        // Healing spell - target friendly units
+        macro += `/cast [@mouseover,help,nodead][] ${spellName}`;
+        if (fallbackToPlayer) {
+            // If no mouseover or target, cast on self
+            macro = `/cast [@mouseover,help,nodead][@player] ${spellName}`;
+        }
+    } else if (abilityType === ABILITY_TYPES.DAMAGE || abilityType === ABILITY_TYPES.DEBUFF) {
+        // Damage/Debuff - target enemies
+        macro += `/cast [@mouseover,harm,nodead][] ${spellName}`;
+    } else if (abilityType === ABILITY_TYPES.BUFF) {
+        // Buff - target friendly units or self
+        if (fallbackToPlayer) {
+            macro += `/cast [@mouseover,help][@player] ${spellName}`;
+        } else {
+            macro += `/cast [@mouseover,help][] ${spellName}`;
+        }
+    } else if (abilityType === ABILITY_TYPES.DISPEL) {
+        // Dispel - target friendly units
+        macro += `/cast [@mouseover,help,nodead][] ${spellName}`;
     } else {
-      macro += `/cast [@mouseover,help][] ${spellName}`;
+        // Default - just mouseover with fallback to target
+        macro += `/cast [@mouseover,nodead][] ${spellName}`;
     }
-  } else if (abilityType === ABILITY_TYPES.DISPEL) {
-    // Dispel - target friendly units
-    macro += `/cast [@mouseover,help,nodead][] ${spellName}`;
-  } else {
-    // Default - just mouseover with fallback to target
-    macro += `/cast [@mouseover,nodead][] ${spellName}`;
-  }
 
-  return macro;
+    return macro;
 }
 
 /**
@@ -134,31 +134,31 @@ export function generateMouseoverMacro(spellName, abilityType = ABILITY_TYPES.DA
  * @returns {string} Generated macro text
  */
 export function generateFocusMacro(spellName, options = {}) {
-  const { 
-    includeTooltip = true,
-    fallbackToTarget = true,
-    modifierKey = null // 'shift', 'ctrl', 'alt'
-  } = options;
+    const {
+        includeTooltip = true,
+        fallbackToTarget = true,
+        modifierKey = null // 'shift', 'ctrl', 'alt'
+    } = options;
 
-  let macro = '';
-  
-  if (includeTooltip) {
-    macro += `#showtooltip ${spellName}\n`;
-  }
+    let macro = '';
 
-  if (modifierKey) {
-    // Use modifier to cast on focus, normal cast on target
-    macro += `/cast [mod:${modifierKey},@focus,exists,nodead][] ${spellName}`;
-  } else {
-    // Always cast on focus if exists, fallback to target
-    if (fallbackToTarget) {
-      macro += `/cast [@focus,exists,nodead][] ${spellName}`;
-    } else {
-      macro += `/cast [@focus,exists,nodead] ${spellName}`;
+    if (includeTooltip) {
+        macro += `#showtooltip ${spellName}\n`;
     }
-  }
 
-  return macro;
+    if (modifierKey) {
+        // Use modifier to cast on focus, normal cast on target
+        macro += `/cast [mod:${modifierKey},@focus,exists,nodead][] ${spellName}`;
+    } else {
+        // Always cast on focus if exists, fallback to target
+        if (fallbackToTarget) {
+            macro += `/cast [@focus,exists,nodead][] ${spellName}`;
+        } else {
+            macro += `/cast [@focus,exists,nodead] ${spellName}`;
+        }
+    }
+
+    return macro;
 }
 
 /**
@@ -168,18 +168,18 @@ export function generateFocusMacro(spellName, options = {}) {
  * @returns {string} Generated macro text
  */
 export function generateArenaMacro(spellName, options = {}) {
-  const { includeTooltip = true } = options;
+    const { includeTooltip = true } = options;
 
-  let macro = '';
-  
-  if (includeTooltip) {
-    macro += `#showtooltip ${spellName}\n`;
-  }
+    let macro = '';
 
-  // Shift for arena1, Ctrl for arena2, Alt for arena3, no mod for target
-  macro += `/cast [mod:shift,@arena1,exists,nodead][mod:ctrl,@arena2,exists,nodead][mod:alt,@arena3,exists,nodead][] ${spellName}`;
+    if (includeTooltip) {
+        macro += `#showtooltip ${spellName}\n`;
+    }
 
-  return macro;
+    // Shift for arena1, Ctrl for arena2, Alt for arena3, no mod for target
+    macro += `/cast [mod:shift,@arena1,exists,nodead][mod:ctrl,@arena2,exists,nodead][mod:alt,@arena3,exists,nodead][] ${spellName}`;
+
+    return macro;
 }
 
 /**
@@ -189,26 +189,26 @@ export function generateArenaMacro(spellName, options = {}) {
  * @returns {string} Generated macro text
  */
 export function generateSelfCastMacro(spellName, options = {}) {
-  const { 
-    includeTooltip = true,
-    modifierKey = null // 'shift', 'ctrl', 'alt' - if specified, only self-cast with modifier
-  } = options;
+    const {
+        includeTooltip = true,
+        modifierKey = null // 'shift', 'ctrl', 'alt' - if specified, only self-cast with modifier
+    } = options;
 
-  let macro = '';
-  
-  if (includeTooltip) {
-    macro += `#showtooltip ${spellName}\n`;
-  }
+    let macro = '';
 
-  if (modifierKey) {
-    // Self-cast with modifier, normal cast otherwise
-    macro += `/cast [mod:${modifierKey},@player][] ${spellName}`;
-  } else {
-    // Always self-cast
-    macro += `/cast [@player] ${spellName}`;
-  }
+    if (includeTooltip) {
+        macro += `#showtooltip ${spellName}\n`;
+    }
 
-  return macro;
+    if (modifierKey) {
+        // Self-cast with modifier, normal cast otherwise
+        macro += `/cast [mod:${modifierKey},@player][] ${spellName}`;
+    } else {
+        // Always self-cast
+        macro += `/cast [@player] ${spellName}`;
+    }
+
+    return macro;
 }
 
 /**
@@ -218,26 +218,26 @@ export function generateSelfCastMacro(spellName, options = {}) {
  * @returns {string} Generated macro text
  */
 export function generateCastSequenceMacro(spells, options = {}) {
-  const { 
-    includeTooltip = true,
-    resetCondition = 'target', // 'target', 'combat', 'alt', '15' (seconds), etc.
-    includeAutoAttack = false
-  } = options;
+    const {
+        includeTooltip = true,
+        resetCondition = 'target', // 'target', 'combat', 'alt', '15' (seconds), etc.
+        includeAutoAttack = false
+    } = options;
 
-  let macro = '';
-  
-  if (includeTooltip) {
-    macro += `#showtooltip\n`;
-  }
+    let macro = '';
 
-  const sequenceText = spells.join(', ');
-  macro += `/castsequence reset=${resetCondition} ${sequenceText}`;
+    if (includeTooltip) {
+        macro += `#showtooltip\n`;
+    }
 
-  if (includeAutoAttack) {
-    macro += '\n/startattack';
-  }
+    const sequenceText = spells.join(', ');
+    macro += `/castsequence reset=${resetCondition} ${sequenceText}`;
 
-  return macro;
+    if (includeAutoAttack) {
+        macro += '\n/startattack';
+    }
+
+    return macro;
 }
 
 /**
@@ -247,33 +247,33 @@ export function generateCastSequenceMacro(spells, options = {}) {
  * @returns {string} Generated macro text
  */
 export function generateModifiedKeyMacro(spellMap, options = {}) {
-  const { includeTooltip = true } = options;
-  // spellMap example: { shift: 'Fireball', ctrl: 'Frostbolt', alt: 'Arcane Blast', none: 'Fire Blast' }
+    const { includeTooltip = true } = options;
+    // spellMap example: { shift: 'Fireball', ctrl: 'Frostbolt', alt: 'Arcane Blast', none: 'Fire Blast' }
 
-  let macro = '';
-  
-  if (includeTooltip) {
-    macro += `#showtooltip\n`;
-  }
+    let macro = '';
 
-  const conditions = [];
-  
-  if (spellMap.shift) {
-    conditions.push(`[mod:shift] ${spellMap.shift}`);
-  }
-  if (spellMap.ctrl) {
-    conditions.push(`[mod:ctrl] ${spellMap.ctrl}`);
-  }
-  if (spellMap.alt) {
-    conditions.push(`[mod:alt] ${spellMap.alt}`);
-  }
-  if (spellMap.none) {
-    conditions.push(`${spellMap.none}`);
-  }
+    if (includeTooltip) {
+        macro += `#showtooltip\n`;
+    }
 
-  macro += `/cast ${conditions.join('; ')}`;
+    const conditions = [];
 
-  return macro;
+    if (spellMap.shift) {
+        conditions.push(`[mod:shift] ${spellMap.shift}`);
+    }
+    if (spellMap.ctrl) {
+        conditions.push(`[mod:ctrl] ${spellMap.ctrl}`);
+    }
+    if (spellMap.alt) {
+        conditions.push(`[mod:alt] ${spellMap.alt}`);
+    }
+    if (spellMap.none) {
+        conditions.push(`${spellMap.none}`);
+    }
+
+    macro += `/cast ${conditions.join('; ')}`;
+
+    return macro;
 }
 
 /**
@@ -283,25 +283,25 @@ export function generateModifiedKeyMacro(spellMap, options = {}) {
  * @returns {string} Generated macro text
  */
 export function generateStopCastMacro(spellName, options = {}) {
-  const { 
-    includeTooltip = true,
-    includeAutoAttack = false
-  } = options;
+    const {
+        includeTooltip = true,
+        includeAutoAttack = false
+    } = options;
 
-  let macro = '';
-  
-  if (includeTooltip) {
-    macro += `#showtooltip ${spellName}\n`;
-  }
+    let macro = '';
 
-  macro += `/stopcasting\n`;
-  macro += `/cast ${spellName}`;
+    if (includeTooltip) {
+        macro += `#showtooltip ${spellName}\n`;
+    }
 
-  if (includeAutoAttack) {
-    macro += '\n/startattack';
-  }
+    macro += `/stopcasting\n`;
+    macro += `/cast ${spellName}`;
 
-  return macro;
+    if (includeAutoAttack) {
+        macro += '\n/startattack';
+    }
+
+    return macro;
 }
 
 /**
@@ -311,23 +311,23 @@ export function generateStopCastMacro(spellName, options = {}) {
  * @returns {string} Generated macro text
  */
 export function generatePetAssistMacro(spellName = null, options = {}) {
-  const { includeTooltip = true } = options;
+    const { includeTooltip = true } = options;
 
-  let macro = '';
-  
-  if (includeTooltip && spellName) {
-    macro += `#showtooltip ${spellName}\n`;
-  }
+    let macro = '';
 
-  macro += `/petattack\n`;
-  
-  if (spellName) {
-    macro += `/cast ${spellName}`;
-  }
-  
-  macro += '\n/startattack';
+    if (includeTooltip && spellName) {
+        macro += `#showtooltip ${spellName}\n`;
+    }
 
-  return macro;
+    macro += `/petattack\n`;
+
+    if (spellName) {
+        macro += `/cast ${spellName}`;
+    }
+
+    macro += '\n/startattack';
+
+    return macro;
 }
 
 /**
@@ -337,87 +337,87 @@ export function generatePetAssistMacro(spellName = null, options = {}) {
  * @returns {object} Suggested conditionals and explanation
  */
 export function suggestConditionals(abilityType, wowClass = null) {
-  const suggestions = {
-    conditionals: [],
-    explanation: '',
-    examples: []
-  };
+    const suggestions = {
+        conditionals: [],
+        explanation: '',
+        examples: []
+    };
 
-  switch (abilityType) {
-    case ABILITY_TYPES.HEAL:
-      suggestions.conditionals = ['mouseover,help,nodead', 'target,help,nodead', 'player'];
-      suggestions.explanation = 'Healing spells should target friendly units that are alive. Mouseover is ideal for quick targeting.';
-      suggestions.examples = [
-        { type: 'Mouseover with self-cast fallback', macro: '[@mouseover,help,nodead][@player]' },
-        { type: 'Mouseover with target fallback', macro: '[@mouseover,help,nodead][]' },
-        { type: 'Self-cast only', macro: '[@player]' }
-      ];
-      break;
+    switch (abilityType) {
+        case ABILITY_TYPES.HEAL:
+            suggestions.conditionals = ['mouseover,help,nodead', 'target,help,nodead', 'player'];
+            suggestions.explanation = 'Healing spells should target friendly units that are alive. Mouseover is ideal for quick targeting.';
+            suggestions.examples = [
+                { type: 'Mouseover with self-cast fallback', macro: '[@mouseover,help,nodead][@player]' },
+                { type: 'Mouseover with target fallback', macro: '[@mouseover,help,nodead][]' },
+                { type: 'Self-cast only', macro: '[@player]' }
+            ];
+            break;
 
-    case ABILITY_TYPES.DAMAGE:
-      suggestions.conditionals = ['mouseover,harm,nodead', 'target,harm,nodead', 'focus,harm,nodead'];
-      suggestions.explanation = 'Damage spells should target hostile units. Mouseover allows quick target switching without losing current target.';
-      suggestions.examples = [
-        { type: 'Mouseover with target fallback', macro: '[@mouseover,harm,nodead][]' },
-        { type: 'Focus target with modifier', macro: '[mod:shift,@focus,harm,nodead][]' },
-        { type: 'Arena targeting', macro: '[mod:shift,@arena1][mod:ctrl,@arena2][]' }
-      ];
-      break;
+        case ABILITY_TYPES.DAMAGE:
+            suggestions.conditionals = ['mouseover,harm,nodead', 'target,harm,nodead', 'focus,harm,nodead'];
+            suggestions.explanation = 'Damage spells should target hostile units. Mouseover allows quick target switching without losing current target.';
+            suggestions.examples = [
+                { type: 'Mouseover with target fallback', macro: '[@mouseover,harm,nodead][]' },
+                { type: 'Focus target with modifier', macro: '[mod:shift,@focus,harm,nodead][]' },
+                { type: 'Arena targeting', macro: '[mod:shift,@arena1][mod:ctrl,@arena2][]' }
+            ];
+            break;
 
-    case ABILITY_TYPES.BUFF:
-      suggestions.conditionals = ['mouseover,help', 'target,help', 'player'];
-      suggestions.explanation = 'Buffs can be cast on friendly units. Self-cast fallback is common for personal buffs.';
-      suggestions.examples = [
-        { type: 'Mouseover with self-cast', macro: '[@mouseover,help][@player]' },
-        { type: 'Self-cast with modifier', macro: '[mod:shift,@player][]' }
-      ];
-      break;
+        case ABILITY_TYPES.BUFF:
+            suggestions.conditionals = ['mouseover,help', 'target,help', 'player'];
+            suggestions.explanation = 'Buffs can be cast on friendly units. Self-cast fallback is common for personal buffs.';
+            suggestions.examples = [
+                { type: 'Mouseover with self-cast', macro: '[@mouseover,help][@player]' },
+                { type: 'Self-cast with modifier', macro: '[mod:shift,@player][]' }
+            ];
+            break;
 
-    case ABILITY_TYPES.DEBUFF:
-      suggestions.conditionals = ['mouseover,harm,nodead', 'target,harm,nodead', 'focus,harm,nodead'];
-      suggestions.explanation = 'Debuffs should target hostile units.';
-      suggestions.examples = [
-        { type: 'Mouseover', macro: '[@mouseover,harm,nodead][]' },
-        { type: 'Focus target', macro: '[@focus,harm,nodead][]' }
-      ];
-      break;
+        case ABILITY_TYPES.DEBUFF:
+            suggestions.conditionals = ['mouseover,harm,nodead', 'target,harm,nodead', 'focus,harm,nodead'];
+            suggestions.explanation = 'Debuffs should target hostile units.';
+            suggestions.examples = [
+                { type: 'Mouseover', macro: '[@mouseover,harm,nodead][]' },
+                { type: 'Focus target', macro: '[@focus,harm,nodead][]' }
+            ];
+            break;
 
-    case ABILITY_TYPES.DISPEL:
-      suggestions.conditionals = ['mouseover,help,nodead', 'target,help,nodead', 'player'];
-      suggestions.explanation = 'Dispels should target friendly units that need cleansing.';
-      suggestions.examples = [
-        { type: 'Mouseover', macro: '[@mouseover,help,nodead][]' },
-        { type: 'Party members', macro: '[@mouseover,help,nodead][@party1][@party2][]' }
-      ];
-      break;
+        case ABILITY_TYPES.DISPEL:
+            suggestions.conditionals = ['mouseover,help,nodead', 'target,help,nodead', 'player'];
+            suggestions.explanation = 'Dispels should target friendly units that need cleansing.';
+            suggestions.examples = [
+                { type: 'Mouseover', macro: '[@mouseover,help,nodead][]' },
+                { type: 'Party members', macro: '[@mouseover,help,nodead][@party1][@party2][]' }
+            ];
+            break;
 
-    case ABILITY_TYPES.DEFENSIVE_COOLDOWN:
-      suggestions.conditionals = ['player'];
-      suggestions.explanation = 'Defensive cooldowns are typically self-cast.';
-      suggestions.examples = [
-        { type: 'Self-cast', macro: '[@player]' },
-        { type: 'Self-cast with mouseover fallback', macro: '[@mouseover,help][@player]' }
-      ];
-      break;
+        case ABILITY_TYPES.DEFENSIVE_COOLDOWN:
+            suggestions.conditionals = ['player'];
+            suggestions.explanation = 'Defensive cooldowns are typically self-cast.';
+            suggestions.examples = [
+                { type: 'Self-cast', macro: '[@player]' },
+                { type: 'Self-cast with mouseover fallback', macro: '[@mouseover,help][@player]' }
+            ];
+            break;
 
-    case ABILITY_TYPES.CC:
-      suggestions.conditionals = ['mouseover,harm,nodead', 'focus,harm,nodead', 'arena1', 'arena2', 'arena3'];
-      suggestions.explanation = 'Crowd control abilities benefit from focus and arena targeting.';
-      suggestions.examples = [
-        { type: 'Focus with modifier', macro: '[mod:shift,@focus,harm,nodead][]' },
-        { type: 'Arena targeting', macro: '[mod:shift,@arena1][mod:ctrl,@arena2][]' }
-      ];
-      break;
+        case ABILITY_TYPES.CC:
+            suggestions.conditionals = ['mouseover,harm,nodead', 'focus,harm,nodead', 'arena1', 'arena2', 'arena3'];
+            suggestions.explanation = 'Crowd control abilities benefit from focus and arena targeting.';
+            suggestions.examples = [
+                { type: 'Focus with modifier', macro: '[mod:shift,@focus,harm,nodead][]' },
+                { type: 'Arena targeting', macro: '[mod:shift,@arena1][mod:ctrl,@arena2][]' }
+            ];
+            break;
 
-    default:
-      suggestions.conditionals = ['mouseover,nodead', 'target'];
-      suggestions.explanation = 'General utility spells work with mouseover for convenience.';
-      suggestions.examples = [
-        { type: 'Mouseover', macro: '[@mouseover,nodead][]' }
-      ];
-  }
+        default:
+            suggestions.conditionals = ['mouseover,nodead', 'target'];
+            suggestions.explanation = 'General utility spells work with mouseover for convenience.';
+            suggestions.examples = [
+                { type: 'Mouseover', macro: '[@mouseover,nodead][]' }
+            ];
+    }
 
-  return suggestions;
+    return suggestions;
 }
 
 /**
@@ -427,46 +427,46 @@ export function suggestConditionals(abilityType, wowClass = null) {
  * @returns {string} Detected ability type
  */
 export function detectAbilityType(abilityName = '', description = '') {
-  const name = abilityName.toLowerCase();
-  const desc = description.toLowerCase();
-  const combined = `${name} ${desc}`;
+    const name = abilityName.toLowerCase();
+    const desc = description.toLowerCase();
+    const combined = `${name} ${desc}`;
 
-  // Healing
-  if (combined.match(/heal|restore|health|regenerat|mend|renew|rejuvenat/)) {
-    return ABILITY_TYPES.HEAL;
-  }
+    // Healing
+    if (combined.match(/heal|restore|health|regenerat|mend|renew|rejuvenat/)) {
+        return ABILITY_TYPES.HEAL;
+    }
 
-  // Dispel
-  if (combined.match(/dispel|cleanse|purify|remove|cure/)) {
-    return ABILITY_TYPES.DISPEL;
-  }
+    // Dispel
+    if (combined.match(/dispel|cleanse|purify|remove|cure/)) {
+        return ABILITY_TYPES.DISPEL;
+    }
 
-  // Buffs
-  if (combined.match(/buff|fortitude|blessing|shield|ward|armor|intellect|stamina|increase/)) {
-    return ABILITY_TYPES.BUFF;
-  }
+    // Buffs
+    if (combined.match(/buff|fortitude|blessing|shield|ward|armor|intellect|stamina|increase/)) {
+        return ABILITY_TYPES.BUFF;
+    }
 
-  // Defensive cooldowns
-  if (combined.match(/barrier|wall|shield wall|ice block|divine shield|pain suppression|ironbark/)) {
-    return ABILITY_TYPES.DEFENSIVE_COOLDOWN;
-  }
+    // Defensive cooldowns
+    if (combined.match(/barrier|wall|shield wall|ice block|divine shield|pain suppression|ironbark/)) {
+        return ABILITY_TYPES.DEFENSIVE_COOLDOWN;
+    }
 
-  // Crowd Control
-  if (combined.match(/polymorph|fear|stun|silence|incapacitate|disorient|cyclone|hex|sap/)) {
-    return ABILITY_TYPES.CC;
-  }
+    // Crowd Control
+    if (combined.match(/polymorph|fear|stun|silence|incapacitate|disorient|cyclone|hex|sap/)) {
+        return ABILITY_TYPES.CC;
+    }
 
-  // Debuffs
-  if (combined.match(/curse|corruption|poison|disease|weaken|slow|root/)) {
-    return ABILITY_TYPES.DEBUFF;
-  }
+    // Debuffs
+    if (combined.match(/curse|corruption|poison|disease|weaken|slow|root/)) {
+        return ABILITY_TYPES.DEBUFF;
+    }
 
-  // Damage (default for offensive abilities)
-  if (combined.match(/damage|strike|blast|bolt|shot|attack|hit|destroy|kill|fire|frost|shadow|arcane/)) {
-    return ABILITY_TYPES.DAMAGE;
-  }
+    // Damage (default for offensive abilities)
+    if (combined.match(/damage|strike|blast|bolt|shot|attack|hit|destroy|kill|fire|frost|shadow|arcane/)) {
+        return ABILITY_TYPES.DAMAGE;
+    }
 
-  return ABILITY_TYPES.UTILITY;
+    return ABILITY_TYPES.UTILITY;
 }
 
 /**
@@ -474,64 +474,64 @@ export function detectAbilityType(abilityName = '', description = '') {
  * @returns {array} Array of template objects
  */
 export function getAvailableTemplates() {
-  return [
-    {
-      type: MACRO_TEMPLATES.MOUSEOVER,
-      name: 'Mouseover',
-      description: 'Cast spell on mouseover target without losing current target',
-      useCase: 'Quick targeting for heals, damage, or utility spells',
-      icon: '🖱️'
-    },
-    {
-      type: MACRO_TEMPLATES.FOCUS,
-      name: 'Focus Target',
-      description: 'Cast spell on focus target while maintaining main target',
-      useCase: 'Multi-target scenarios, keeping CC on one target while DPSing another',
-      icon: '🎯'
-    },
-    {
-      type: MACRO_TEMPLATES.SELF_CAST,
-      name: 'Self-Cast',
-      description: 'Always cast spell on yourself',
-      useCase: 'Buffs, heals, or defensive abilities that you use on yourself',
-      icon: '👤'
-    },
-    {
-      type: MACRO_TEMPLATES.ARENA_123,
-      name: 'Arena 1-2-3',
-      description: 'Quick targeting for arena opponents using modifier keys',
-      useCase: 'PvP arena matches - Shift=Arena1, Ctrl=Arena2, Alt=Arena3',
-      icon: '⚔️'
-    },
-    {
-      type: MACRO_TEMPLATES.CASTSEQUENCE,
-      name: 'Cast Sequence',
-      description: 'Cast multiple spells in order with each button press',
-      useCase: 'Rotation sequences, buff chains, or ability combos',
-      icon: '🔄'
-    },
-    {
-      type: MACRO_TEMPLATES.MODIFIED_KEYS,
-      name: 'Modified Keys',
-      description: 'Different spells based on modifier keys (Shift/Ctrl/Alt)',
-      useCase: 'Consolidate related abilities on one button',
-      icon: '⌨️'
-    },
-    {
-      type: MACRO_TEMPLATES.STOP_CAST,
-      name: 'Stop Cast',
-      description: 'Cancel current cast and immediately use instant ability',
-      useCase: 'Interrupt your own cast to use instant CC or defensive',
-      icon: '⏹️'
-    },
-    {
-      type: MACRO_TEMPLATES.PET_ASSIST,
-      name: 'Pet Assist',
-      description: 'Send pet to attack and start auto-attack',
-      useCase: 'Pet classes - combines pet attack with your attack',
-      icon: '🐾'
-    }
-  ];
+    return [
+        {
+            type: MACRO_TEMPLATES.MOUSEOVER,
+            name: 'Mouseover',
+            description: 'Cast spell on mouseover target without losing current target',
+            useCase: 'Quick targeting for heals, damage, or utility spells',
+            icon: '🖱️'
+        },
+        {
+            type: MACRO_TEMPLATES.FOCUS,
+            name: 'Focus Target',
+            description: 'Cast spell on focus target while maintaining main target',
+            useCase: 'Multi-target scenarios, keeping CC on one target while DPSing another',
+            icon: '🎯'
+        },
+        {
+            type: MACRO_TEMPLATES.SELF_CAST,
+            name: 'Self-Cast',
+            description: 'Always cast spell on yourself',
+            useCase: 'Buffs, heals, or defensive abilities that you use on yourself',
+            icon: '👤'
+        },
+        {
+            type: MACRO_TEMPLATES.ARENA_123,
+            name: 'Arena 1-2-3',
+            description: 'Quick targeting for arena opponents using modifier keys',
+            useCase: 'PvP arena matches - Shift=Arena1, Ctrl=Arena2, Alt=Arena3',
+            icon: '⚔️'
+        },
+        {
+            type: MACRO_TEMPLATES.CASTSEQUENCE,
+            name: 'Cast Sequence',
+            description: 'Cast multiple spells in order with each button press',
+            useCase: 'Rotation sequences, buff chains, or ability combos',
+            icon: '🔄'
+        },
+        {
+            type: MACRO_TEMPLATES.MODIFIED_KEYS,
+            name: 'Modified Keys',
+            description: 'Different spells based on modifier keys (Shift/Ctrl/Alt)',
+            useCase: 'Consolidate related abilities on one button',
+            icon: '⌨️'
+        },
+        {
+            type: MACRO_TEMPLATES.STOP_CAST,
+            name: 'Stop Cast',
+            description: 'Cancel current cast and immediately use instant ability',
+            useCase: 'Interrupt your own cast to use instant CC or defensive',
+            icon: '⏹️'
+        },
+        {
+            type: MACRO_TEMPLATES.PET_ASSIST,
+            name: 'Pet Assist',
+            description: 'Send pet to attack and start auto-attack',
+            useCase: 'Pet classes - combines pet attack with your attack',
+            icon: '🐾'
+        }
+    ];
 }
 
 /**
@@ -540,95 +540,95 @@ export function getAvailableTemplates() {
  * @returns {object} Generated macro and metadata
  */
 export function buildMacro(params) {
-  const {
-    spellName,
-    templateType,
-    abilityType = null,
-    wowClass = null,
-    customOptions = {}
-  } = params;
+    const {
+        spellName,
+        templateType,
+        abilityType = null,
+        wowClass = null,
+        customOptions = {}
+    } = params;
 
-  let macro = '';
-  let generatedTags = [];
-  let explanation = '';
+    let macro = '';
+    let generatedTags = [];
+    let explanation = '';
 
-  const detectedType = abilityType || detectAbilityType(spellName);
+    const detectedType = abilityType || detectAbilityType(spellName);
 
-  switch (templateType) {
-    case MACRO_TEMPLATES.MOUSEOVER:
-      macro = generateMouseoverMacro(spellName, detectedType, customOptions);
-      generatedTags = ['mouseover', 'targeting'];
-      explanation = `Mouseover macro for ${spellName}. Casts on mouseover target, falls back to current target.`;
-      break;
+    switch (templateType) {
+        case MACRO_TEMPLATES.MOUSEOVER:
+            macro = generateMouseoverMacro(spellName, detectedType, customOptions);
+            generatedTags = ['mouseover', 'targeting'];
+            explanation = `Mouseover macro for ${spellName}. Casts on mouseover target, falls back to current target.`;
+            break;
 
-    case MACRO_TEMPLATES.FOCUS:
-      macro = generateFocusMacro(spellName, customOptions);
-      generatedTags = ['focus', 'targeting'];
-      explanation = `Focus target macro for ${spellName}. Casts on focus target if it exists.`;
-      break;
+        case MACRO_TEMPLATES.FOCUS:
+            macro = generateFocusMacro(spellName, customOptions);
+            generatedTags = ['focus', 'targeting'];
+            explanation = `Focus target macro for ${spellName}. Casts on focus target if it exists.`;
+            break;
 
-    case MACRO_TEMPLATES.SELF_CAST:
-      macro = generateSelfCastMacro(spellName, customOptions);
-      generatedTags = ['self-cast'];
-      explanation = `Self-cast macro for ${spellName}. Always casts on yourself.`;
-      break;
+        case MACRO_TEMPLATES.SELF_CAST:
+            macro = generateSelfCastMacro(spellName, customOptions);
+            generatedTags = ['self-cast'];
+            explanation = `Self-cast macro for ${spellName}. Always casts on yourself.`;
+            break;
 
-    case MACRO_TEMPLATES.ARENA_123:
-      macro = generateArenaMacro(spellName, customOptions);
-      generatedTags = ['arena', 'pvp', 'targeting'];
-      explanation = `Arena targeting macro for ${spellName}. Use Shift for Arena1, Ctrl for Arena2, Alt for Arena3.`;
-      break;
+        case MACRO_TEMPLATES.ARENA_123:
+            macro = generateArenaMacro(spellName, customOptions);
+            generatedTags = ['arena', 'pvp', 'targeting'];
+            explanation = `Arena targeting macro for ${spellName}. Use Shift for Arena1, Ctrl for Arena2, Alt for Arena3.`;
+            break;
 
-    case MACRO_TEMPLATES.STOP_CAST:
-      macro = generateStopCastMacro(spellName, customOptions);
-      generatedTags = ['stop-cast', 'instant'];
-      explanation = `Stop-cast macro for ${spellName}. Cancels current cast and uses this ability immediately.`;
-      break;
+        case MACRO_TEMPLATES.STOP_CAST:
+            macro = generateStopCastMacro(spellName, customOptions);
+            generatedTags = ['stop-cast', 'instant'];
+            explanation = `Stop-cast macro for ${spellName}. Cancels current cast and uses this ability immediately.`;
+            break;
 
-    case MACRO_TEMPLATES.PET_ASSIST:
-      macro = generatePetAssistMacro(spellName, customOptions);
-      generatedTags = ['pet', 'combat'];
-      explanation = `Pet assist macro. Sends pet to attack and starts your auto-attack.`;
-      break;
+        case MACRO_TEMPLATES.PET_ASSIST:
+            macro = generatePetAssistMacro(spellName, customOptions);
+            generatedTags = ['pet', 'combat'];
+            explanation = `Pet assist macro. Sends pet to attack and starts your auto-attack.`;
+            break;
 
-    default:
-      macro = `#showtooltip ${spellName}\n/cast ${spellName}`;
-      generatedTags = [];
-      explanation = `Basic macro for ${spellName}.`;
-  }
+        default:
+            macro = `#showtooltip ${spellName}\n/cast ${spellName}`;
+            generatedTags = [];
+            explanation = `Basic macro for ${spellName}.`;
+    }
 
-  // Add ability type tag
-  if (detectedType) {
-    generatedTags.push(detectedType);
-  }
+    // Add ability type tag
+    if (detectedType) {
+        generatedTags.push(detectedType);
+    }
 
-  // Get conditional suggestions
-  const suggestions = suggestConditionals(detectedType, wowClass);
+    // Get conditional suggestions
+    const suggestions = suggestConditionals(detectedType, wowClass);
 
-  return {
-    macro,
-    tags: generatedTags,
-    explanation,
-    abilityType: detectedType,
-    suggestions
-  };
+    return {
+        macro,
+        tags: generatedTags,
+        explanation,
+        abilityType: detectedType,
+        suggestions
+    };
 }
 
 export default {
-  MACRO_TEMPLATES,
-  ABILITY_TYPES,
-  CONDITIONALS,
-  generateMouseoverMacro,
-  generateFocusMacro,
-  generateArenaMacro,
-  generateSelfCastMacro,
-  generateCastSequenceMacro,
-  generateModifiedKeyMacro,
-  generateStopCastMacro,
-  generatePetAssistMacro,
-  suggestConditionals,
-  detectAbilityType,
-  getAvailableTemplates,
-  buildMacro
+    MACRO_TEMPLATES,
+    ABILITY_TYPES,
+    CONDITIONALS,
+    generateMouseoverMacro,
+    generateFocusMacro,
+    generateArenaMacro,
+    generateSelfCastMacro,
+    generateCastSequenceMacro,
+    generateModifiedKeyMacro,
+    generateStopCastMacro,
+    generatePetAssistMacro,
+    suggestConditionals,
+    detectAbilityType,
+    getAvailableTemplates,
+    buildMacro
 };
 

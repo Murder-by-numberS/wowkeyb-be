@@ -350,12 +350,12 @@ const validateMacro = debounce(async (text: string, wowClass: string) => {
       class: wowClass
     })
   });
-  
+
   const { validation, suggested_tags } = await response.json();
-  
+
   // Show errors/warnings in UI
   displayValidation(validation);
-  
+
   // Suggest tags
   suggestTags(suggested_tags);
 }, 500);
@@ -369,9 +369,9 @@ const getSuggestions = async (spellName: string, abilityId: string) => {
   const response = await fetch(
     `/api/macro-builder/suggestions?ability_id=${abilityId}`
   );
-  
+
   const { suggestions } = await response.json();
-  
+
   // Show conditional suggestions
   displaySuggestions(suggestions.examples);
 };

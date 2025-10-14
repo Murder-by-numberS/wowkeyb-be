@@ -1,11 +1,11 @@
 import { validationResult } from "express-validator";
 import Logger from '../../utils/logger.js';
 import { Macro, Version, User } from '../../models/index.js';
-import { 
-  validateMacroCommands, 
-  validateMacroForClass, 
+import {
+  validateMacroCommands,
+  validateMacroForClass,
   generateMacroTags,
-  evaluateMacroQuality 
+  evaluateMacroQuality
 } from '../../utils/macro-commands.examples.js';
 
 /**
@@ -95,12 +95,12 @@ export const createMacro = async (req, res) => {
     const commandValidation = validateMacroCommands(macro_text);
     const classValidation = wowClass ? validateMacroForClass(macro_text, wowClass) : [];
     const qualityScore = evaluateMacroQuality(macro_text, wowClass);
-    
+
     // Auto-generate tags if none provided
-    let finalTags = tags && tags.length > 0 
+    let finalTags = tags && tags.length > 0
       ? tags.map(tag => tag.toLowerCase().trim())
       : generateMacroTags(macro_text);
-    
+
     Logger.info('Macro validation results:', {
       errors: commandValidation.errors.length,
       warnings: commandValidation.warnings.length + classValidation.length,

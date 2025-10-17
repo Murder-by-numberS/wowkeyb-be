@@ -535,6 +535,74 @@ export function getAvailableTemplates() {
 }
 
 /**
+ * Generate a custom macro with user-selected options
+ * @param {string} spellName - Name of the spell
+ * @param {string} abilityType - Type of ability (heal, damage, etc.)
+ * @param {object} options - Custom options from user
+ * @returns {string} Generated macro text
+ */
+export function generateCustomMacro(spellName, abilityType = ABILITY_TYPES.DAMAGE, options = {}) {
+    const {
+        includeTooltip = true,
+        targetModifier = null,
+        conditionals = [],
+        keyModifiers = []
+    } = options;
+
+    let macro = '';
+
+    // Add tooltip (no leading space)
+    if (includeTooltip) {
+        macro += `#showtooltip ${spellName}\n`;
+    }
+
+    // Build the cast command with conditionals
+    let castCommand = '/cast';
+
+    // Add conditionals if any
+    if (conditionals.length > 0 || targetModifier) {
+        castCommand += ' [';
+
+        // Add target modifier first
+        if (targetModifier) {
+            castCommand += `@${targetModifier}`;
+        }
+
+        // Add conditionals
+        if (conditionals.length > 0) {
+            if (targetModifier) {
+                castCommand += ', ';
+            }
+            castCommand += conditionals.join(', ');
+        }
+
+        castCommand += ']';
+    }
+
+    // Add key modifiers
+    if (keyModifiers.length > 0) {
+        if (conditionals.length > 0 || targetModifier) {
+            castCommand += ';';
+        } else {
+            castCommand += ' [';
+        }
+
+        castCommand += keyModifiers.join(', ');
+
+        if (!targetModifier && conditionals.length === 0) {
+            castCommand += ']';
+        }
+    }
+
+    // Add the spell name
+    castCommand += ` ${spellName}`;
+
+    macro += castCommand;
+
+    return macro;
+}
+
+/**
  * Build a complete macro based on user preferences
  * @param {object} params - Macro building parameters
  * @returns {object} Generated macro and metadata
@@ -591,6 +659,12 @@ export function buildMacro(params) {
             explanation = `Pet assist macro. Sends pet to attack and starts your auto-attack.`;
             break;
 
+        case 'custom':
+            macro = generateCustomMacro(spellName, detectedType, customOptions);
+            generatedTags = ['custom'];
+            explanation = `Custom macro for ${spellName} with user-selected options.`;
+            break;
+
         default:
             macro = `#showtooltip ${spellName}\n/cast ${spellName}`;
             generatedTags = [];
@@ -626,6 +700,7 @@ export default {
     generateModifiedKeyMacro,
     generateStopCastMacro,
     generatePetAssistMacro,
+    generateCustomMacro,
     suggestConditionals,
     detectAbilityType,
     getAvailableTemplates,

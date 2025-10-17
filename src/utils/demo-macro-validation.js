@@ -10,7 +10,6 @@ import {
   validateMacroForClass,
   generateMacroTags,
   extractMacroCommands,
-  evaluateMacroQuality,
   generateValidationReport
 } from './macro-commands.examples.js';
 
@@ -112,38 +111,8 @@ console.log(`   Invalid: ${extracted.invalid.length}`);
 console.log('\n🏷️  Auto-generated tags:', generateMacroTags(complexMacro).join(', '));
 console.log('\n');
 
-// Example 5: Quality Score
-console.log('📋 Example 5: Macro Quality Evaluation');
-console.log('─────────────────────────────────────────────────────\n');
-
-const goodMacro = `#showtooltip Sinister Strike
-/cast Sinister Strike
-/startattack`;
-
-const poorMacro = `#showwtooltip
-/csat Sinister Strike
-/usetalents
-/petattack`;
-
-console.log('Good Macro:');
-console.log(goodMacro);
-const goodScore = evaluateMacroQuality(goodMacro, 'rogue');
-console.log(`   Score: ${goodScore.total}/100 (Grade: ${goodScore.grade})`);
-console.log(`   Issues: ${goodScore.issues.length}`);
-console.log(`   Suggestions: ${goodScore.suggestions.length}`);
-
-console.log('\nPoor Macro:');
-console.log(poorMacro);
-const poorScore = evaluateMacroQuality(poorMacro, 'rogue');
-console.log(`   Score: ${poorScore.total}/100 (Grade: ${poorScore.grade})`);
-console.log(`   Issues: ${poorScore.issues.length}`);
-poorScore.issues.forEach(issue => {
-  console.log(`      ${issue.severity.toUpperCase()}: ${issue.message}`);
-});
-console.log('\n');
-
-// Example 6: Comprehensive Report
-console.log('📋 Example 6: Comprehensive Validation Report');
+// Example 5: Comprehensive Report
+console.log('📋 Example 5: Comprehensive Validation Report');
 console.log('─────────────────────────────────────────────────────\n');
 
 const report = generateValidationReport(validMacro, 'mage');
@@ -154,14 +123,7 @@ console.log(`   Commands: ${report.summary.commandCount}`);
 console.log(`   Metacommands: ${report.summary.metacommandCount}`);
 console.log(`   Errors: ${report.summary.errorCount}`);
 console.log(`   Warnings: ${report.summary.warningCount}`);
-console.log(`   Quality Score: ${report.quality.total}/100 (${report.quality.grade})`);
 console.log(`   Suggested Tags: ${report.suggestedTags.join(', ')}`);
-if (report.recommendations.length > 0) {
-  console.log('   Recommendations:');
-  report.recommendations.forEach(rec => {
-    console.log(`      • ${rec}`);
-  });
-}
 
 console.log('\n═══════════════════════════════════════════════════════');
 console.log('   Phase 1 Command Reference: Complete! ✅');

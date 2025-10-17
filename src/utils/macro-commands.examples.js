@@ -1,6 +1,6 @@
 /**
  * Usage Examples for macro-commands utility
- * 
+ *
  * This file demonstrates practical applications of the macro command reference
  * for validation, parsing, and enhancing the macro system.
  */
@@ -26,7 +26,7 @@ export function validateMacroCommands(macroText) {
 
   lines.forEach((line, index) => {
     const trimmed = line.trim();
-    
+
     // Skip empty lines and comments
     if (!trimmed || trimmed.startsWith('--')) {
       return;
@@ -37,7 +37,7 @@ export function validateMacroCommands(macroText) {
       const commandMatch = trimmed.match(/^\/(\w+)/);
       if (commandMatch) {
         const command = commandMatch[1];
-        
+
         if (!isValidCommand(command)) {
           // Check if it's a disabled command
           if (isDisabledCommand(command)) {
@@ -60,13 +60,13 @@ export function validateMacroCommands(macroText) {
         }
       }
     }
-    
+
     // Check for metacommands
     if (trimmed.startsWith('#')) {
       const commandMatch = trimmed.match(/^#(\w+)/);
       if (commandMatch) {
         const command = commandMatch[1];
-        
+
         if (!isMetacommand(command)) {
           errors.push({
             line: index + 1,
@@ -92,12 +92,12 @@ export function validateMacroForClass(macroText, wowClass) {
 
   lines.forEach((line, index) => {
     const trimmed = line.trim();
-    
+
     if (trimmed.startsWith('/')) {
       const commandMatch = trimmed.match(/^\/(\w+)/);
       if (commandMatch) {
         const command = commandMatch[1];
-        
+
         if (isValidCommand(command) && !isCommandValidForClass(command, wowClass)) {
           warnings.push({
             line: index + 1,
@@ -123,17 +123,17 @@ export function generateMacroTags(macroText) {
 
   lines.forEach(line => {
     const trimmed = line.trim();
-    
+
     if (trimmed.startsWith('/')) {
       const commandMatch = trimmed.match(/^\/(\w+)/);
       if (commandMatch) {
         const command = commandMatch[1];
         const category = getCommandCategory(command);
-        
+
         if (category) {
           // Add category as tag
           tags.add(category);
-          
+
           // Add specific tags for certain commands
           if (command === 'castsequence') {
             tags.add('sequence');
@@ -170,7 +170,7 @@ export function extractMacroCommands(macroText) {
 
   lines.forEach((line, index) => {
     const trimmed = line.trim();
-    
+
     // Skip empty lines
     if (!trimmed) return;
 
@@ -195,14 +195,14 @@ export function extractMacroCommands(macroText) {
         }
       }
     }
-    
+
     // Parse slash commands
     else if (trimmed.startsWith('/')) {
       const match = trimmed.match(/^\/(\w+)(.*)$/);
       if (match) {
         const [, command, args] = match;
         const category = getCommandCategory(command);
-        
+
         if (isValidCommand(command)) {
           const commandInfo = {
             line: index + 1,
@@ -211,7 +211,7 @@ export function extractMacroCommands(macroText) {
             category,
             description: getCommandDescription(command)
           };
-          
+
           if (category === 'emote') {
             commands.emotes.push(commandInfo);
           } else {
@@ -238,13 +238,13 @@ export function extractMacroCommands(macroText) {
  */
 export function getAutocompleteSuggestions(currentLine, cursorPosition) {
   const textBeforeCursor = currentLine.substring(0, cursorPosition);
-  
+
   // Check for slash command
   const slashMatch = textBeforeCursor.match(/\/(\w*)$/);
   if (slashMatch) {
     const partial = slashMatch[1];
     const suggestions = getCommandSuggestions(partial, 15);
-    
+
     return suggestions.map(cmd => ({
       text: cmd,
       displayText: `/${cmd}`,
@@ -253,15 +253,15 @@ export function getAutocompleteSuggestions(currentLine, cursorPosition) {
       type: 'command'
     }));
   }
-  
+
   // Check for metacommand
   const metaMatch = textBeforeCursor.match(/#(\w*)$/);
   if (metaMatch) {
     const partial = metaMatch[1].toLowerCase();
-    const suggestions = ['show', 'showtooltip'].filter(cmd => 
+    const suggestions = ['show', 'showtooltip'].filter(cmd =>
       cmd.startsWith(partial)
     );
-    
+
     return suggestions.map(cmd => ({
       text: cmd,
       displayText: `#${cmd}`,
@@ -269,75 +269,12 @@ export function getAutocompleteSuggestions(currentLine, cursorPosition) {
       type: 'metacommand'
     }));
   }
-  
+
   return [];
 }
 
 /**
- * Example 6: Macro Quality Score
- * Evaluate macro quality based on command usage
- */
-export function evaluateMacroQuality(macroText, wowClass = null) {
-  const validation = validateMacroCommands(macroText);
-  const classWarnings = wowClass ? validateMacroForClass(macroText, wowClass) : [];
-  const commands = extractMacroCommands(macroText);
-  
-  const score = {
-    total: 100,
-    issues: [],
-    suggestions: []
-  };
-
-  // Deduct points for errors
-  if (validation.errors.length > 0) {
-    score.total -= validation.errors.length * 20;
-    score.issues.push({
-      severity: 'error',
-      count: validation.errors.length,
-      message: `${validation.errors.length} invalid command(s) found`
-    });
-  }
-
-  // Deduct points for warnings
-  if (validation.warnings.length > 0) {
-    score.total -= validation.warnings.length * 10;
-    score.issues.push({
-      severity: 'warning',
-      count: validation.warnings.length,
-      message: `${validation.warnings.length} deprecated command(s) found`
-    });
-  }
-
-  // Deduct points for class-inappropriate commands
-  if (classWarnings.length > 0) {
-    score.total -= classWarnings.length * 15;
-    score.issues.push({
-      severity: 'warning',
-      count: classWarnings.length,
-      message: `${classWarnings.length} command(s) not available for this class`
-    });
-  }
-
-  // Check for best practices
-  if (macroText.length > 200) {
-    score.suggestions.push('Consider breaking this into multiple macros for better readability');
-  }
-
-  if (commands.metacommands.length === 0) {
-    score.suggestions.push('Consider adding #showtooltip for better action bar integration');
-  }
-
-  score.total = Math.max(0, score.total);
-  score.grade = score.total >= 90 ? 'A' : 
-                score.total >= 80 ? 'B' :
-                score.total >= 70 ? 'C' :
-                score.total >= 60 ? 'D' : 'F';
-
-  return score;
-}
-
-/**
- * Example 7: Detailed Validation Report
+ * Example 6: Detailed Validation Report
  * Generate a comprehensive validation report
  */
 export function generateValidationReport(macroText, wowClass = null) {
@@ -345,7 +282,6 @@ export function generateValidationReport(macroText, wowClass = null) {
   const classValidation = wowClass ? validateMacroForClass(macroText, wowClass) : [];
   const commands = extractMacroCommands(macroText);
   const tags = generateMacroTags(macroText);
-  const quality = evaluateMacroQuality(macroText, wowClass);
 
   return {
     isValid: basicValidation.errors.length === 0,
@@ -361,9 +297,7 @@ export function generateValidationReport(macroText, wowClass = null) {
       warnings: [...basicValidation.warnings, ...classValidation]
     },
     commands,
-    suggestedTags: tags,
-    quality,
-    recommendations: quality.suggestions
+    suggestedTags: tags
   };
 }
 
@@ -414,7 +348,6 @@ export default {
   generateMacroTags,
   extractMacroCommands,
   getAutocompleteSuggestions,
-  evaluateMacroQuality,
   generateValidationReport
 };
 

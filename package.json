@@ -122,7 +122,13 @@
     "fetch-icon-fdid-resume:prod": "node --env-file .env.production src/scripts/fetchIconFdid.js",
     "fetch-icon-fdid-fast:dev": "node --env-file .env.development src/scripts/fetchIconFdidOptimized.js",
     "fetch-icon-fdid-fast:staging": "node --env-file .env.staging src/scripts/fetchIconFdidOptimized.js",
-    "fetch-icon-fdid-fast:prod": "node --env-file .env.production src/scripts/fetchIconFdidOptimized.js"
+    "fetch-icon-fdid-fast:prod": "node --env-file .env.production src/scripts/fetchIconFdidOptimized.js",
+    "migrate-user-fields:dev": "node --env-file .env.development src/scripts/migrate-user-fields.js",
+    "migrate-user-fields:staging": "node --env-file .env.staging src/scripts/migrate-user-fields.js",
+    "migrate-user-fields:prod": "node --env-file .env.production src/scripts/migrate-user-fields.js",
+    "reset-password:dev": "node --env-file .env.development src/scripts/reset-user-password.js",
+    "reset-password:staging": "node --env-file .env.staging src/scripts/reset-user-password.js",
+    "reset-password:prod": "node --env-file .env.production src/scripts/reset-user-password.js"
   },
   "author": "Logan Born",
   "license": "MIT",

@@ -40,3 +40,9 @@ export const validateSaveSetting = [
   check('theme').isString().optional(),
   check('scheme').isString().optional()
 ];
+
+export const validateUpdateProfile = [
+  check('description').isString().optional().isLength({ max: 500 }),
+  check('username').isString().optional().isLength({ min: 3, max: 30 }).matches(/^[a-zA-Z0-9_]+$/, 'g'),
+  check('favorite_class').isString().optional()
+];

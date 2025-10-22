@@ -264,12 +264,12 @@ export const getMacros = async (req, res) => {
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
-      is_public: macro.is_public,
-      is_active: macro.is_active,
-      user_id: macro.user_id,
-      usage_count: macro.usage_count,
-      created_at: macro.createdAt,
-      updated_at: macro.updatedAt
+      isPublic: macro.is_public,
+      isActive: macro.is_active,
+      userId: macro.user_id,
+      usageCount: macro.usage_count,
+      createdAt: macro.createdAt,
+      updatedAt: macro.updatedAt
     }));
 
     // Calculate pagination metadata
@@ -366,16 +366,13 @@ export const getMacro = async (req, res) => {
       icon: iconData,
       tags: macro.tags,
       is_public: macro.is_public,
-      isPublic: macro.is_public, // Frontend compatibility
-      is_active: macro.is_active,
-      user_id: macro.user_id,
-      createdBy: macro.user_id, // Frontend compatibility
-      usage_count: macro.usage_count,
+      isPublic: macro.is_public,
+      isActive: macro.is_active,
+      userId: macro.user_id,
+      createdBy: macro.user_id,
       usageCount: macro.usage_count,
-      created_at: macro.createdAt,
-      createdAt: macro.createdAt, // Frontend compatibility
-      updated_at: macro.updatedAt,
-      updatedAt: macro.updatedAt // Frontend compatibility
+      createdAt: macro.createdAt,
+      updatedAt: macro.updatedAt
     };
 
     Logger.info(`Retrieved macro: ${macro._id}`);
@@ -488,12 +485,12 @@ export const updateMacro = async (req, res) => {
       macro_text: updatedMacro.macro_text,
       icon: updatedMacro.icon,
       tags: updatedMacro.tags,
-      is_public: updatedMacro.is_public,
-      is_active: updatedMacro.is_active,
-      user_id: updatedMacro.user_id,
-      usage_count: updatedMacro.usage_count,
-      created_at: updatedMacro.createdAt,
-      updated_at: updatedMacro.updatedAt
+      isPublic: updatedMacro.is_public,
+      isActive: updatedMacro.is_active,
+      userId: updatedMacro.user_id,
+      usageCount: updatedMacro.usage_count,
+      createdAt: updatedMacro.createdAt,
+      updatedAt: updatedMacro.updatedAt
     };
 
     Logger.info(`Macro updated successfully: ${updatedMacro._id}`);
@@ -621,12 +618,12 @@ export const restoreMacro = async (req, res) => {
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
-      is_public: macro.is_public,
-      is_active: macro.is_active,
-      user_id: macro.user_id,
-      usage_count: macro.usage_count,
-      created_at: macro.createdAt,
-      updated_at: macro.updatedAt
+      isPublic: macro.is_public,
+      isActive: macro.is_active,
+      userId: macro.user_id,
+      usageCount: macro.usage_count,
+      createdAt: macro.createdAt,
+      updatedAt: macro.updatedAt
     };
 
     Logger.info(`Macro restored successfully: ${id}`);
@@ -1037,12 +1034,12 @@ export const getPopularMacros = async (req, res) => {
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
-      is_public: macro.is_public,
-      is_active: macro.is_active,
-      user_id: macro.user_id,
-      usage_count: macro.usage_count,
-      created_at: macro.createdAt,
-      updated_at: macro.updatedAt
+      isPublic: macro.is_public,
+      isActive: macro.is_active,
+      userId: macro.user_id,
+      usageCount: macro.usage_count,
+      createdAt: macro.createdAt,
+      updatedAt: macro.updatedAt
     }));
 
     Logger.info(`Retrieved ${transformedMacros.length} popular macros`);
@@ -1118,12 +1115,12 @@ export const getMacrosByTags = async (req, res) => {
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
-      is_public: macro.is_public,
-      is_active: macro.is_active,
-      user_id: macro.user_id,
-      usage_count: macro.usage_count,
-      created_at: macro.createdAt,
-      updated_at: macro.updatedAt
+      isPublic: macro.is_public,
+      isActive: macro.is_active,
+      userId: macro.user_id,
+      usageCount: macro.usage_count,
+      createdAt: macro.createdAt,
+      updatedAt: macro.updatedAt
     }));
 
     Logger.info(`Retrieved ${transformedMacros.length} macros by tags`);
@@ -1197,12 +1194,12 @@ export const getMacrosByAbility = async (req, res) => {
       macro_text: macro.macro_text,
       icon: macro.icon,
       tags: macro.tags,
-      is_public: macro.is_public,
-      is_active: macro.is_active,
-      user_id: macro.user_id,
-      usage_count: macro.usage_count,
-      created_at: macro.createdAt,
-      updated_at: macro.updatedAt
+      isPublic: macro.is_public,
+      isActive: macro.is_active,
+      userId: macro.user_id,
+      usageCount: macro.usage_count,
+      createdAt: macro.createdAt,
+      updatedAt: macro.updatedAt
     }));
 
     Logger.info(`Retrieved ${transformedMacros.length} macros by ability`);

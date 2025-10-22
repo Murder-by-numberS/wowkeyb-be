@@ -45,7 +45,35 @@ export const login = async (req, res) => {
         .json({ code: "USER005", message: "User Not Confirmed" });
     }
 
-    const valid = await bcrypt.compare(password, user.encryptedPassword);
+    // Handle both old and new field names for backward compatibility
+    const encryptedPassword = user.encrypted_password || user.encryptedPassword;
+
+    if (!encryptedPassword) {
+      Logger.error('No password found for user');
+      return res
+        .status(400)
+        .json({ code: "USER004", message: "Error Logging In User" });
+    }
+
+    // Auto-migrate old field names to new ones if needed
+    const needsMigration = user.encryptedPassword && !user.encrypted_password;
+    if (needsMigration) {
+      Logger.info(`Auto-migrating user ${user._id} from old field names to new ones`);
+      const migrationFields = {};
+
+      if (user.encryptedPassword) migrationFields.encrypted_password = user.encryptedPassword;
+      if (user.passwordChangedAt) migrationFields.password_changed_at = user.passwordChangedAt;
+      if (user.accessLevel) migrationFields.access_level = user.accessLevel;
+      if (user.confirmCode) migrationFields.confirm_code = user.confirmCode;
+      if (user.resetCode) migrationFields.reset_code = user.resetCode;
+      if (user.resetPassword !== undefined) migrationFields.reset_password = user.resetPassword;
+      if (user.resetTime) migrationFields.reset_time = user.resetTime;
+
+      await User.updateOne({ _id: user._id }, migrationFields);
+      Logger.info(`Auto-migration completed for user ${user._id}`);
+    }
+
+    const valid = await bcrypt.compare(password, encryptedPassword);
 
     if (!valid) {
       Logger.error('Invalid Password');
@@ -67,11 +95,11 @@ export const login = async (req, res) => {
 
     }
 
-    Logger.verbose(`Logging in user ${email} with accessLevel ${user.accessLevel}`);
+    Logger.verbose(`Logging in user ${email} with access_level ${user.access_level}`);
 
     const token = jwt.sign(
       {
-        accessLevel: user.accessLevel,
+        accessLevel: user.access_level,
         user_id: user._id
       },
       process.env.TOKEN_SECRET,
@@ -138,14 +166,14 @@ export const register = async (req, res) => {
     console.log('about to hash')
     //hash the password
     const passwordSalt = await bcrypt.genSalt(saltRounds);
-    const encryptedPassword = await bcrypt.hash(password, passwordSalt);
-    const confirmCode = generateCode();
+    const encrypted_password = await bcrypt.hash(password, passwordSalt);
+    const confirm_code = generateCode();
     // store the emails and usernames all lowercase
     const newUser = {
       email: email.toLowerCase(),
       username: username.toLowerCase(),
-      encryptedPassword,
-      confirmCode
+      encrypted_password,
+      confirm_code
     };
 
     Logger.verbose(`Creating User with email: ${email} and username: ${username}`)
@@ -160,7 +188,7 @@ export const register = async (req, res) => {
 
     const data = {
       email: createdUser.email,
-      link: `${Config.feURL}/confirmation?confirmCode=${confirmCode}`,
+      link: `${Config.feURL}/confirmation?confirmCode=${confirm_code}`,
     };
 
     const to = createdUser.email;
@@ -189,7 +217,7 @@ export const confirmUser = async (req, res) => {
     }
 
     const { confirmCode } = req.body;
-    const user = await User.find({ confirmCode })
+    const user = await User.find({ confirm_code: confirmCode })
 
     if (!user || user.length != 1) {
       Logger.error('User Not Found');
@@ -269,7 +297,7 @@ export const refreshAccessToken = async (req, res) => {
 
     const token = jwt.sign(
       {
-        accessLevel: user.accessLevel,
+        accessLevel: user.access_level,
         user_id: user._id
       },
       process.env.TOKEN_SECRET,
@@ -339,9 +367,9 @@ export const forgotPassword = async (req, res) => {
     let updatedUser = await User.updateOne(
       { _id: user._id },
       {
-        resetCode: newCode,
-        resetPassword: true,
-        resetTime: now,
+        reset_code: newCode,
+        reset_password: true,
+        reset_time: now,
       }
     );
 
@@ -349,7 +377,7 @@ export const forgotPassword = async (req, res) => {
 
     Logger.verbose(`user.email = ${user.email}`);
     Logger.verbose(`user.username =  ${user.username}`);
-    Logger.verbose(`user.resetCode = ${newCode}`);
+    Logger.verbose(`user.reset_code = ${newCode}`);
 
     let resetLink = `${Config.feURL}/reset-password?rc=${newCode}`;
     Logger.info(`resetLink = ${resetLink}`);
@@ -392,7 +420,7 @@ export const setNewPassword = async (req, res) => {
 
     console.log('req.body', req.body);
 
-    const users = await User.find({ resetCode });
+    const users = await User.find({ reset_code: resetCode });
 
     if (!users || users.length === 0) {
       Logger.error('User Not Found');
@@ -410,7 +438,7 @@ export const setNewPassword = async (req, res) => {
     }
     const user = users[0]; //should be first
 
-    if (user.resetPassword === false) {
+    if (user.reset_password === false) {
       return res
         .status(400)
         .json({ code: "USER011", message: "Reset Code Already Used" });
@@ -421,7 +449,7 @@ export const setNewPassword = async (req, res) => {
     const now = new Date();
     const TWENTYFOUR_HOURS = 60 * 60 * 1000 * 24;
 
-    if (!(now - user.resetTime < TWENTYFOUR_HOURS)) {
+    if (!(now - user.reset_time < TWENTYFOUR_HOURS)) {
       Logger.error('Reset Time is Invalid');
       return res
         .status(400)
@@ -430,9 +458,13 @@ export const setNewPassword = async (req, res) => {
 
     //hash the password
     const passwordSalt = await bcrypt.genSalt(saltRounds);
-    const encryptedPassword = await bcrypt.hash(newPassword, passwordSalt);
+    const encrypted_password = await bcrypt.hash(newPassword, passwordSalt);
 
-    await User.updateOne({ _id: user._id }, { encryptedPassword, resetPassword: false });
+    await User.updateOne({ _id: user._id }, {
+      encrypted_password,
+      reset_password: false,
+      password_changed_at: new Date()
+    });
 
     Logger.info('Reset Password Successful');
 
@@ -493,7 +525,35 @@ export const changePassword = async (req, res) => {
     }
 
     //make sure its the right old password
-    const valid = await bcrypt.compare(oldPassword, user.encryptedPassword);
+    // Handle both old and new field names for backward compatibility
+    const encryptedPassword = user.encrypted_password || user.encryptedPassword;
+
+    if (!encryptedPassword) {
+      Logger.error('No password found for user');
+      return res
+        .status(400)
+        .json({ code: "USER013", message: "Error Changing Password: No password found" });
+    }
+
+    // Auto-migrate old field names to new ones if needed
+    const needsMigration = user.encryptedPassword && !user.encrypted_password;
+    if (needsMigration) {
+      Logger.info(`Auto-migrating user ${user._id} from old field names to new ones`);
+      const migrationFields = {};
+
+      if (user.encryptedPassword) migrationFields.encrypted_password = user.encryptedPassword;
+      if (user.passwordChangedAt) migrationFields.password_changed_at = user.passwordChangedAt;
+      if (user.accessLevel) migrationFields.access_level = user.accessLevel;
+      if (user.confirmCode) migrationFields.confirm_code = user.confirmCode;
+      if (user.resetCode) migrationFields.reset_code = user.resetCode;
+      if (user.resetPassword !== undefined) migrationFields.reset_password = user.resetPassword;
+      if (user.resetTime) migrationFields.reset_time = user.resetTime;
+
+      await User.updateOne({ _id: user._id }, migrationFields);
+      Logger.info(`Auto-migration completed for user ${user._id}`);
+    }
+
+    const valid = await bcrypt.compare(oldPassword, encryptedPassword);
 
     if (!valid) {
       Logger.error('Invalid Password');
@@ -505,9 +565,10 @@ export const changePassword = async (req, res) => {
     Logger.info(`Setting new password for user ${user._id}`);
 
     const passwordSalt = await bcrypt.genSalt(saltRounds);
-    const encryptedPassword = await bcrypt.hash(newPassword, passwordSalt);
+    const encrypted_password = await bcrypt.hash(newPassword, passwordSalt);
 
-    user.encryptedPassword = encryptedPassword;
+    user.encrypted_password = encrypted_password;
+    user.password_changed_at = new Date();
     await user.save();
 
     Logger.info('Change Password Successful');
@@ -522,7 +583,11 @@ export const changePassword = async (req, res) => {
 
     sendEmailWithTemplate(USER_EMAIL_TEMPLATE_NAMES.changePassword, to, data);
 
-    return res.status(200).json({ changed: true, message: "Change Password Successful" });
+    return res.status(200).json({
+      changed: true,
+      message: "Change Password Successful",
+      passwordChangedAt: user.password_changed_at
+    });
 
   } catch (e) {
     Logger.error('Error Changing Password')

@@ -66,8 +66,10 @@ You'll need:
 ### Install Required Package
 
 ```bash
-npm install jira-client
+npm install jira.js
 ```
+
+**Note:** We use the modern [jira.js](https://mrrefactoring.github.io/jira.js/) library instead of the deprecated `jira-client`.
 
 ### Create Jira Service
 

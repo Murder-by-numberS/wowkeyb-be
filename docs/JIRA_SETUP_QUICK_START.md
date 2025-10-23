@@ -8,6 +8,10 @@ This guide will help you set up Jira integration for the WowKeyb support ticket 
 - Jira project for support tickets (recommended project key: `SUPPORT`)
 - Jira API token
 
+## Prerequisites
+
+The WowKeyb backend uses the modern [jira.js](https://mrrefactoring.github.io/jira.js/) library for Jira integration.
+
 ## Quick Setup
 
 ### 1. Get Jira API Credentials

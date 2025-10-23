@@ -16,28 +16,35 @@ const userSchema = Schema({
     type: Boolean,
     default: false,
   },
-  confirmCode: {
+  confirm_code: {
     type: String,
   },
-  firstName: {
+  reset_code: {
     type: String,
   },
-  lastName: {
-    type: String,
-  },
-  resetCode: {
-    type: String,
-  },
-  resetPassword: {
+  reset_password: {
     type: Boolean,
   },
-  resetTime: {
+  reset_time: {
     type: Date,
   },
-  encryptedPassword: {
+  encrypted_password: {
     type: String,
   },
-  accessLevel: {
+  password_changed_at: {
+    type: Date,
+    default: null,
+  },
+  description: {
+    type: String,
+    default: '',
+    maxlength: 500,
+  },
+  favorite_class: {
+    type: String,
+    default: null,
+  },
+  access_level: {
     type: Number,
     default: 1,
     // 1-user

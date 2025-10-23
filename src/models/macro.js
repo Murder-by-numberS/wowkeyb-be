@@ -53,9 +53,10 @@ const macroSchema = new Schema({
   },
   class: {
     type: String,
-    required: true,
-    enum: CLASS_ENUM,
-    lowercase: true
+    required: false,
+    enum: [...CLASS_ENUM, null],
+    lowercase: true,
+    default: null
   },
   spec: {
     type: String,
@@ -77,6 +78,10 @@ const macroSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Ability',
     default: null
+  },
+  show_tooltip: {
+    type: Boolean,
+    default: false
   },
   macro_text: {
     type: String,
@@ -103,30 +108,38 @@ const macroSchema = new Schema({
     type: Boolean,
     default: false
   },
-  created_by: {
+  user_id: {
     type: Schema.Types.ObjectId,
-    ref: 'User',
-    default: null // null for system/community macros
+    ref: 'User'
   },
   usage_count: {
     type: Number,
     default: 0
   },
-  rating: {
-    type: Number,
-    min: 1,
-    max: 5,
+  deletedAt: {
+    type: Date,
     default: null
   },
 }, {
   timestamps: true
 });
 
-// Add a pre-find middleware to exclude inactive macros
+// Add a pre-find middleware to exclude inactive and soft-deleted macros
 macroSchema.pre(/^find/, function (next) {
-  // Only apply this filter if we're not explicitly looking for inactive macros
-  if (!this.getQuery().includeInactive) {
-    this.where({ is_active: true });
+  // Only apply this filter if we're not explicitly looking for inactive or deleted macros
+  if (!this.getQuery().includeInactive && !this.getQuery().includeDeleted) {
+    this.where({
+      is_active: true,
+      deletedAt: null
+    });
+  }
+  next();
+});
+
+// Custom validation for class when ability is specified
+macroSchema.pre('validate', function (next) {
+  if (this.ability && !this.class) {
+    return next(new Error('Class is required when specifying an ability'));
   }
   next();
 });
@@ -134,6 +147,7 @@ macroSchema.pre(/^find/, function (next) {
 // Custom validation for spec based on selected class
 macroSchema.path('spec').validate(function (value) {
   if (!value) return true; // Allow empty spec for class-wide macros
+  if (!this.class) return true; // Skip validation if no class is specified
   const classSpecs = SPEC_ENUM[this.class];
   return classSpecs && classSpecs.includes(value);
 }, 'Invalid spec for the selected class');
@@ -144,19 +158,20 @@ macroSchema.path('macro_text').validate(function (value) {
 }, 'Macro text cannot exceed 255 characters');
 
 // Indexes for efficient queries
-macroSchema.index({ class: 1, spec: 1, game_version: 1, is_active: 1 });
-macroSchema.index({ class: 1, game_version: 1, is_active: 1 }); // For class-only queries
-macroSchema.index({ hero_talent: 1, game_version: 1, is_active: 1 }); // For hero talent queries
-macroSchema.index({ ability: 1, game_version: 1, is_active: 1 }); // For ability-specific queries
-macroSchema.index({ tags: 1, game_version: 1, is_active: 1 }); // For tag-based queries
-macroSchema.index({ is_public: 1, game_version: 1, is_active: 1 }); // For public macro queries
-macroSchema.index({ created_by: 1, game_version: 1 }); // For user-specific queries
-macroSchema.index({ usage_count: -1, game_version: 1 }); // For popular macros
-macroSchema.index({ rating: -1, game_version: 1 }); // For highly rated macros
+macroSchema.index({ class: 1, spec: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For class-specific queries
+macroSchema.index({ game_version: 1, is_active: 1, deletedAt: 1 }); // For general queries without class
+macroSchema.index({ hero_talent: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For hero talent queries
+macroSchema.index({ ability: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For ability-specific queries
+macroSchema.index({ tags: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For tag-based queries
+macroSchema.index({ is_public: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For public macro queries
+macroSchema.index({ user_id: 1, game_version: 1, deletedAt: 1 }); // For user-specific queries
+macroSchema.index({ usage_count: -1, game_version: 1, deletedAt: 1 }); // For popular macros
 macroSchema.index({ name: 'text', description: 'text', macro_text: 'text' }); // For text search
+macroSchema.index({ deletedAt: 1 }); // For soft delete queries
 
 // Virtual for formatted class name
 macroSchema.virtual('formatted_class').get(function () {
+  if (!this.class) return null;
   return this.class.charAt(0).toUpperCase() + this.class.slice(1);
 });
 
@@ -188,6 +203,20 @@ macroSchema.methods.removeTag = function (tag) {
   return this.save();
 };
 
+// Method to soft delete a macro
+macroSchema.methods.softDelete = function () {
+  this.is_active = false;
+  this.deletedAt = new Date();
+  return this.save();
+};
+
+// Method to restore a soft-deleted macro
+macroSchema.methods.restore = function () {
+  this.is_active = true;
+  this.deletedAt = null;
+  return this.save();
+};
+
 // Static method to find popular macros
 macroSchema.statics.findPopular = function (gameVersion, limit = 10) {
   return this.find({
@@ -197,7 +226,8 @@ macroSchema.statics.findPopular = function (gameVersion, limit = 10) {
   })
     .sort({ usage_count: -1 })
     .limit(limit)
-    .populate('game_version', 'game_version');
+    .populate('game_version', 'game_version')
+    .populate('user_id', 'username');
 };
 
 // Static method to find macros by tags
@@ -209,7 +239,8 @@ macroSchema.statics.findByTags = function (tags, gameVersion, limit = 20) {
   })
     .sort({ usage_count: -1 })
     .limit(limit)
-    .populate('game_version', 'game_version');
+    .populate('game_version', 'game_version')
+    .populate('user_id', 'username');
 };
 
 // Static method to find macros by ability
@@ -222,7 +253,8 @@ macroSchema.statics.findByAbility = function (abilityId, gameVersion, limit = 20
     .sort({ usage_count: -1 })
     .limit(limit)
     .populate('game_version', 'game_version')
-    .populate('ability', 'name icon description');
+    .populate('ability', 'name icon description')
+    .populate('user_id', 'username');
 };
 
 const Macro = mongoose.model('Macro', macroSchema);

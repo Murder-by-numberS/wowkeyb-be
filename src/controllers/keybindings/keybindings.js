@@ -115,13 +115,14 @@ export const getHomeKeybindings = async (req, res, next) => {
     // Get all public keybindings with limits
     const keybindings = await Keybinding.find({ is_public: true })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version createdAt duplication_count keybinds')
+      .populate('user_id', 'username')
+      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds')
       .limit(500) // Limit for home page performance
       .lean(); // Use lean() for better performance
 
     // Group keybindings by class
     const classGroups = keybindings.reduce((acc, keybinding) => {
-      const className = keybinding.class.charAt(0).toUpperCase() + keybinding.class.slice(1);
+      const className = keybinding.class; // Use the class name as-is (lowercase)
       if (!acc[className]) {
         acc[className] = {
           recent: [],
@@ -148,6 +149,37 @@ export const getHomeKeybindings = async (req, res, next) => {
 
     res.status(200).send(result);
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get popular keybindings (public endpoint)
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+export const getPopularKeybindings = async (req, res, next) => {
+  try {
+    Logger.info('Getting Popular Keybindings');
+
+    const { page = 1, limit = 50 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get public keybindings sorted by popularity (duplication count)
+    const keybindings = await Keybinding.find({ is_public: true })
+      .populate('version', 'game_version')
+      .populate('user_id', 'username')
+      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds is_public')
+      .sort({ duplication_count: -1, createdAt: -1 }) // Sort by duplication count desc, then by creation date desc
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    Logger.info(`Retrieved ${keybindings.length} popular keybindings`);
+    res.status(200).json(keybindings);
+  } catch (error) {
+    Logger.error('Error retrieving popular keybindings:', error);
     next(error);
   }
 };
@@ -590,7 +622,9 @@ export const getKeybinding = async (req, res, next) => {
     }
 
     // Find the keybinding (automatically excludes soft-deleted ones due to middleware)
-    const keybinding = await Keybinding.findById(keybinding_id).populate('version');
+    const keybinding = await Keybinding.findById(keybinding_id)
+      .populate('version')
+      .populate('user_id', 'username');
 
     if (!keybinding) {
       return res.status(404).send({ message: 'Keybinding not found' });

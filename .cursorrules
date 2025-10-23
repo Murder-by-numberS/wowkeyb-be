@@ -1,0 +1,78 @@
+# Backend Coding Standards
+
+## Naming Conventions
+
+### Database Fields (MongoDB/Mongoose)
+- **ALWAYS use snake_case** for all database field names
+- Examples: `user_id`, `created_at`, `password_changed_at`, `favorite_class`
+- This applies to:
+  - Mongoose schema definitions
+  - Database queries and updates
+  - API request/response field names
+  - Model field references
+
+### JavaScript/Node.js Code
+- **ALWAYS use camelCase** for JavaScript variables, functions, and object properties
+- Examples: `userId`, `createdAt`, `passwordChangedAt`, `favoriteClass`
+- This applies to:
+  - Variable names
+  - Function names
+  - Object properties in JavaScript code
+  - Method names
+
+## Field Mapping
+When working with database operations, map between snake_case (database) and camelCase (JavaScript):
+
+```javascript
+// Database field (snake_case)
+const user = await User.findOne({ user_id: userId });
+
+// JavaScript property (camelCase)
+const userData = {
+  userId: user.user_id,
+  createdAt: user.created_at,
+  passwordChangedAt: user.password_changed_at
+};
+```
+
+## API Responses
+- Backend API responses should use snake_case field names
+- Frontend should map snake_case to camelCase when processing responses
+
+## Examples
+
+### ✅ Correct Database Schema
+```javascript
+const userSchema = Schema({
+  user_id: { type: Schema.Types.ObjectId },
+  created_at: { type: Date },
+  password_changed_at: { type: Date },
+  favorite_class: { type: String }
+});
+```
+
+### ✅ Correct JavaScript Code
+```javascript
+const userId = req.params.userId;
+const createdAt = new Date();
+const passwordChangedAt = user.password_changed_at;
+```
+
+### ❌ Incorrect (mixing conventions)
+```javascript
+// Don't use camelCase in database fields
+const userSchema = Schema({
+  userId: { type: Schema.Types.ObjectId }, // WRONG
+  createdAt: { type: Date } // WRONG
+});
+
+// Don't use snake_case in JavaScript variables
+const user_id = req.params.userId; // WRONG
+const created_at = new Date(); // WRONG
+```
+
+## Enforcement
+- All new database fields MUST use snake_case
+- All JavaScript variables MUST use camelCase
+- When updating existing code, convert to these conventions
+- Code reviews should enforce these naming standards

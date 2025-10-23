@@ -16,10 +16,16 @@ export const validateCreateMacro = [
         .trim(),
 
     body('class')
-        .notEmpty()
-        .withMessage('Class is required')
+        .optional()
         .isIn(['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'])
-        .withMessage('Invalid class'),
+        .withMessage('Invalid class')
+        .custom((value, { req }) => {
+            // If ability is specified, class is required
+            if (req.body.ability && !value) {
+                throw new Error('Class is required when specifying an ability');
+            }
+            return true;
+        }),
 
     body('spec')
         .optional()
@@ -40,6 +46,16 @@ export const validateCreateMacro = [
         .optional()
         .isMongoId()
         .withMessage('Invalid ability ID'),
+
+    body('show_tooltip')
+        .optional()
+        .isBoolean()
+        .withMessage('show_tooltip must be a boolean'),
+
+    body('showTooltip')
+        .optional()
+        .isBoolean()
+        .withMessage('showTooltip must be a boolean'),
 
     body('macro_text')
         .notEmpty()
@@ -95,7 +111,14 @@ export const validateUpdateMacro = [
     body('class')
         .optional()
         .isIn(['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'])
-        .withMessage('Invalid class'),
+        .withMessage('Invalid class')
+        .custom((value, { req }) => {
+            // If ability is specified, class is required
+            if (req.body.ability && !value) {
+                throw new Error('Class is required when specifying an ability');
+            }
+            return true;
+        }),
 
     body('spec')
         .optional()
@@ -103,6 +126,11 @@ export const validateUpdateMacro = [
         .withMessage('Spec must be a string'),
 
     body('hero_talent')
+        .optional()
+        .isString()
+        .withMessage('Hero talent must be a string'),
+
+    body('heroTalent')
         .optional()
         .isString()
         .withMessage('Hero talent must be a string'),
@@ -117,10 +145,26 @@ export const validateUpdateMacro = [
         .isMongoId()
         .withMessage('Invalid ability ID'),
 
+    body('show_tooltip')
+        .optional()
+        .isBoolean()
+        .withMessage('show_tooltip must be a boolean'),
+
+    body('showTooltip')
+        .optional()
+        .isBoolean()
+        .withMessage('showTooltip must be a boolean'),
+
     body('macro_text')
         .optional()
         .isLength({ max: 255 })
         .withMessage('Macro text cannot exceed 255 characters')
+        .trim(),
+
+    body('text')
+        .optional()
+        .isLength({ max: 255 })
+        .withMessage('Text cannot exceed 255 characters')
         .trim(),
 
     body('icon')
@@ -184,8 +228,16 @@ export const validateGetMacros = [
 
     query('class')
         .optional()
-        .isIn(['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'])
-        .withMessage('Invalid class'),
+        .custom((value) => {
+            if (value === null || value === 'null' || value === '') {
+                return true; // Allow null/empty values
+            }
+            const validClasses = ['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'];
+            if (!validClasses.includes(value)) {
+                throw new Error('Invalid class');
+            }
+            return true;
+        }),
 
     query('spec')
         .optional()
@@ -217,10 +269,10 @@ export const validateGetMacros = [
         .isBoolean()
         .withMessage('is_public must be a boolean'),
 
-    query('created_by')
+    query('user_id')
         .optional()
         .isMongoId()
-        .withMessage('Invalid created_by ID'),
+        .withMessage('Invalid user_id ID'),
 
     query('search')
         .optional()
@@ -229,7 +281,7 @@ export const validateGetMacros = [
 
     query('sort_by')
         .optional()
-        .isIn(['name', 'created_at', 'updated_at', 'usage_count', 'rating'])
+        .isIn(['name', 'created_at', 'updated_at', 'usage_count'])
         .withMessage('Invalid sort_by field'),
 
     query('sort_order')
@@ -252,8 +304,16 @@ export const validateGetMyMacros = [
 
     query('class')
         .optional()
-        .isIn(['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'])
-        .withMessage('Invalid class'),
+        .custom((value) => {
+            if (value === null || value === 'null' || value === '') {
+                return true; // Allow null/empty values
+            }
+            const validClasses = ['deathknight', 'demonhunter', 'druid', 'evoker', 'hunter', 'mage', 'monk', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'];
+            if (!validClasses.includes(value)) {
+                throw new Error('Invalid class');
+            }
+            return true;
+        }),
 
     query('spec')
         .optional()
@@ -292,7 +352,7 @@ export const validateGetMyMacros = [
 
     query('sort_by')
         .optional()
-        .isIn(['name', 'created_at', 'updated_at', 'usage_count', 'rating'])
+        .isIn(['name', 'created_at', 'updated_at', 'usage_count'])
         .withMessage('Invalid sort_by field'),
 
     query('sort_order')

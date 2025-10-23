@@ -36,6 +36,21 @@ const coreAbilities = [
     cost_amount: 0
   },
   {
+    name: 'Flash Heal',
+    spell_id: '2061',
+    description: 'A quick and efficient heal that restores a moderate amount of health.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_flashheal.jpg',
+    class: 'priest',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Mana',
+    cost_amount: 900
+  },
+  {
     name: 'Divine Star',
     spell_id: '110744',
     description: 'Throws a Divine Star forward 24 yds, healing allies and damaging enemies in its path.',

@@ -131,19 +131,19 @@ const sendConfirmationEmail = async ({ email, name, subject, issueKey, issueUrl 
         <div class="content">
             <p>Hi ${name},</p>
             <p>Thank you for contacting WowKeyb Support. We've received your support ticket and our team will respond within 24-48 hours.</p>
-            
+
             <div class="ticket-details">
                 <h3>Ticket Details</h3>
                 <div class="ticket-info"><strong>Ticket ID:</strong> ${issueKey}</div>
                 <div class="ticket-info"><strong>Subject:</strong> ${subject}</div>
                 <div class="ticket-info"><strong>Status:</strong> Open</div>
             </div>
-            
+
             ${issueUrl ? `<p>You can track the status of your ticket here:</p>
             <a href="${issueUrl}" class="button">View Ticket</a>` : ''}
-            
+
             <p>You will receive an email notification when our team responds to your ticket.</p>
-            
+
             <p>Best regards,<br><strong>WowKeyb Support Team</strong></p>
         </div>
         <div class="footer">
@@ -217,7 +217,7 @@ const sendSupportNotification = async ({ ticketData, issueKey, issueUrl }) => {
         </div>
         <div class="content">
             <p>A new support ticket has been submitted and requires attention.</p>
-            
+
             <div class="ticket-details">
                 <h3>Ticket Information</h3>
                 <div class="ticket-info ${ticketData.priority === 'high' || ticketData.priority === 'urgent' ? 'priority-high' : ''}">
@@ -245,9 +245,9 @@ const sendSupportNotification = async ({ ticketData, issueKey, issueUrl }) => {
                     <div class="description">${ticketData.description}</div>
                 </div>
             </div>
-            
+
             ${issueUrl ? `<a href="${issueUrl}" class="button">View Ticket in Jira</a>` : ''}
-            
+
             <p><em>Please respond to the customer within 24-48 hours.</em></p>
         </div>
     </div>

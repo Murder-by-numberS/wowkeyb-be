@@ -20,7 +20,7 @@ async function testJiraConnection() {
 
         console.log('✅ Jira is configured and enabled\n');
         console.log('Creating test ticket...\n');
-        
+
         // Test ticket creation
         const result = await jiraService.createTicket({
             name: 'Test User',
@@ -39,7 +39,7 @@ async function testJiraConnection() {
         console.log(`  Issue ID:  ${result.issueId}`);
         console.log(`  URL:       ${result.url}`);
         console.log('\n');
-        
+
     } catch (error) {
         console.log('\n===========================================');
         console.log('❌ Error creating Jira ticket');

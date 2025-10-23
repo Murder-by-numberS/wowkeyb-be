@@ -1,4 +1,4 @@
-import JiraClient from 'jira-client';
+import { Version3Client } from 'jira.js';
 import Config from '../config/config.js';
 
 class JiraService {
@@ -10,13 +10,14 @@ class JiraService {
         const jiraProjectKey = process.env.JIRA_PROJECT_KEY;
 
         if (jiraHost && jiraEmail && jiraApiToken) {
-            this.jira = new JiraClient({
-                protocol: 'https',
-                host: jiraHost, // e.g., 'your-domain.atlassian.net'
-                username: jiraEmail,
-                password: jiraApiToken,
-                apiVersion: '2',
-                strictSSL: true
+            this.jira = new Version3Client({
+                host: `https://${jiraHost}`,
+                authentication: {
+                    basic: {
+                        email: jiraEmail,
+                        apiToken: jiraApiToken
+                    }
+                }
             });
 
             this.projectKey = jiraProjectKey || 'SUPPORT';
@@ -32,17 +33,9 @@ class JiraService {
      * Map support ticket category to Jira issue type
      */
     getIssueType(category) {
-        const issueTypeMap = {
-            'technical': 'Bug',
-            'bug': 'Bug',
-            'account': 'Task',
-            'keybind': 'Task',
-            'macro': 'Task',
-            'feature': 'Story',
-            'other': 'Task'
-        };
-
-        return issueTypeMap[category] || 'Task';
+        // All tickets will be created as "Task" type
+        // The category will be reflected in labels instead
+        return 'Task';
     }
 
     /**
@@ -107,7 +100,7 @@ class JiraService {
             }
 
             // Create the issue in Jira
-            const result = await this.jira.addNewIssue(issue);
+            const result = await this.jira.issues.createIssue(issue);
 
             return {
                 success: true,
@@ -118,7 +111,7 @@ class JiraService {
 
         } catch (error) {
             console.error('Error creating Jira ticket:', error);
-            
+
             // Don't throw error - log it and return a fallback ticket ID
             console.error('Jira ticket creation failed, ticket will be logged:', {
                 from: ticketData.email,
@@ -169,7 +162,10 @@ _Submitted at: ${new Date().toISOString()}_
         }
 
         try {
-            await this.jira.addComment(issueKey, comment);
+            await this.jira.issueComments.addComment({
+                issueIdOrKey: issueKey,
+                body: comment
+            });
             return { success: true };
         } catch (error) {
             console.error('Error adding comment to Jira ticket:', error);
@@ -190,7 +186,9 @@ _Submitted at: ${new Date().toISOString()}_
         }
 
         try {
-            const issue = await this.jira.findIssue(issueKey);
+            const issue = await this.jira.issues.getIssue({
+                issueIdOrKey: issueKey
+            });
             return {
                 status: issue.fields.status.name,
                 assignee: issue.fields.assignee?.displayName || 'Unassigned',

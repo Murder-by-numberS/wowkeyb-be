@@ -115,7 +115,8 @@ export const getHomeKeybindings = async (req, res, next) => {
     // Get all public keybindings with limits
     const keybindings = await Keybinding.find({ is_public: true })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version createdAt duplication_count keybinds')
+      .populate('user_id', 'username')
+      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds')
       .limit(500) // Limit for home page performance
       .lean(); // Use lean() for better performance
 
@@ -168,7 +169,8 @@ export const getPopularKeybindings = async (req, res, next) => {
     // Get public keybindings sorted by popularity (duplication count)
     const keybindings = await Keybinding.find({ is_public: true })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version createdAt duplication_count keybinds is_public created_by')
+      .populate('user_id', 'username')
+      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds is_public')
       .sort({ duplication_count: -1, createdAt: -1 }) // Sort by duplication count desc, then by creation date desc
       .skip(skip)
       .limit(parseInt(limit))
@@ -620,7 +622,9 @@ export const getKeybinding = async (req, res, next) => {
     }
 
     // Find the keybinding (automatically excludes soft-deleted ones due to middleware)
-    const keybinding = await Keybinding.findById(keybinding_id).populate('version');
+    const keybinding = await Keybinding.findById(keybinding_id)
+      .populate('version')
+      .populate('user_id', 'username');
 
     if (!keybinding) {
       return res.status(404).send({ message: 'Keybinding not found' });

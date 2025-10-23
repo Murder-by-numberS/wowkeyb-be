@@ -266,7 +266,8 @@ export const getMacros = async (req, res) => {
       tags: macro.tags,
       isPublic: macro.is_public,
       isActive: macro.is_active,
-      userId: macro.user_id,
+      userId: macro.user_id?._id || macro.user_id,
+      creatorUsername: macro.user_id?.username,
       usageCount: macro.usage_count,
       createdAt: macro.createdAt,
       updatedAt: macro.updatedAt
@@ -368,8 +369,9 @@ export const getMacro = async (req, res) => {
       is_public: macro.is_public,
       isPublic: macro.is_public,
       isActive: macro.is_active,
-      userId: macro.user_id,
-      createdBy: macro.user_id,
+      userId: macro.user_id?._id || macro.user_id,
+      createdBy: macro.user_id?._id || macro.user_id,
+      creatorUsername: macro.user_id?.username,
       usageCount: macro.usage_count,
       createdAt: macro.createdAt,
       updatedAt: macro.updatedAt
@@ -1036,7 +1038,8 @@ export const getPopularMacros = async (req, res) => {
       tags: macro.tags,
       isPublic: macro.is_public,
       isActive: macro.is_active,
-      userId: macro.user_id,
+      userId: macro.user_id?._id || macro.user_id,
+      creatorUsername: macro.user_id?.username,
       usageCount: macro.usage_count,
       createdAt: macro.createdAt,
       updatedAt: macro.updatedAt
@@ -1117,7 +1120,8 @@ export const getMacrosByTags = async (req, res) => {
       tags: macro.tags,
       isPublic: macro.is_public,
       isActive: macro.is_active,
-      userId: macro.user_id,
+      userId: macro.user_id?._id || macro.user_id,
+      creatorUsername: macro.user_id?.username,
       usageCount: macro.usage_count,
       createdAt: macro.createdAt,
       updatedAt: macro.updatedAt
@@ -1196,7 +1200,8 @@ export const getMacrosByAbility = async (req, res) => {
       tags: macro.tags,
       isPublic: macro.is_public,
       isActive: macro.is_active,
-      userId: macro.user_id,
+      userId: macro.user_id?._id || macro.user_id,
+      creatorUsername: macro.user_id?.username,
       usageCount: macro.usage_count,
       createdAt: macro.createdAt,
       updatedAt: macro.updatedAt

@@ -7,6 +7,7 @@ import AbilitiesRouter from './api/abilities.js'
 import AbilityRouter from './api/ability.js'
 
 import UserRouter from './api/user.js'
+import ProfileRouter from './api/profile.js'
 import KeybindingsRouter from './api/keybindings.js'
 import VersionsRouter from './api/versions.js'
 import MacrosRouter from './api/macros.js'
@@ -28,6 +29,9 @@ router
 
   //user
   .use('/user', UserRouter)
+
+  //profile (public user profiles)
+  .use('/profile', ProfileRouter)
 
   //keybindings
   .use('/keybindings', KeybindingsRouter)

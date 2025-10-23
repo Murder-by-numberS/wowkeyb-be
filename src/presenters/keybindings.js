@@ -25,7 +25,8 @@ const toTitleCase = (str) => {
 const mapToData = (keybinding) => ({
   keybindingId: keybinding._id || null,
   name: toTitleCase(keybinding.name) || null,
-  userId: keybinding.user_id || null,
+  userId: keybinding.user_id?._id || keybinding.user_id || null,
+  creatorUsername: keybinding.user_id?.username || null,
   class: toTitleCase(keybinding.class) || null,
   spec: toTitleCase(keybinding.spec) || null,
   heroTalent: toTitleCase(keybinding.hero_talent) || null,

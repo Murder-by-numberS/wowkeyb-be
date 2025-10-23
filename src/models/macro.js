@@ -226,7 +226,8 @@ macroSchema.statics.findPopular = function (gameVersion, limit = 10) {
   })
     .sort({ usage_count: -1 })
     .limit(limit)
-    .populate('game_version', 'game_version');
+    .populate('game_version', 'game_version')
+    .populate('user_id', 'username');
 };
 
 // Static method to find macros by tags
@@ -238,7 +239,8 @@ macroSchema.statics.findByTags = function (tags, gameVersion, limit = 20) {
   })
     .sort({ usage_count: -1 })
     .limit(limit)
-    .populate('game_version', 'game_version');
+    .populate('game_version', 'game_version')
+    .populate('user_id', 'username');
 };
 
 // Static method to find macros by ability
@@ -251,7 +253,8 @@ macroSchema.statics.findByAbility = function (abilityId, gameVersion, limit = 20
     .sort({ usage_count: -1 })
     .limit(limit)
     .populate('game_version', 'game_version')
-    .populate('ability', 'name icon description');
+    .populate('ability', 'name icon description')
+    .populate('user_id', 'username');
 };
 
 const Macro = mongoose.model('Macro', macroSchema);

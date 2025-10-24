@@ -5,6 +5,6 @@ export default (app) => {
 
   app
     .use(HealthRouter)
-    .use(ApiRouter)
+    .use('/api', ApiRouter)
 
 }

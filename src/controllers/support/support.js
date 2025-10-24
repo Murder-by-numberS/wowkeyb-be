@@ -9,10 +9,10 @@ import Config from '../../config/config.js';
  */
 export const submitTicket = async (req, res) => {
     try {
-        const { name, email, category, priority, subject, description } = req.body;
+        const { email, category, priority, subject, description } = req.body;
 
-        // Validate required fields
-        if (!name || !email || !category || !subject || !description) {
+        // Validate required fields (name is optional, will use email if not provided)
+        if (!email || !category || !subject || !description) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields'
@@ -45,6 +45,9 @@ export const submitTicket = async (req, res) => {
         }
 
         // Create ticket in Jira
+        // Use email as name if name is not provided
+        const name = req.body.name || email.split('@')[0];
+
         const jiraResult = await jiraService.createTicket({
             name,
             email,
@@ -73,7 +76,7 @@ export const submitTicket = async (req, res) => {
         if (supportTeamEmail) {
             try {
                 await sendSupportNotification({
-                    ticketData: { name, email, category, priority: priority || 'medium', subject, description },
+                    ticketData: { name: name, email, category, priority: priority || 'medium', subject, description },
                     issueKey: jiraResult.issueKey,
                     issueUrl: jiraResult.url
                 });

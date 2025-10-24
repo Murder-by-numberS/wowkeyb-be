@@ -1,0 +1,205 @@
+import { Version3Client } from 'jira.js';
+import Config from '../config/config.js';
+
+class JiraService {
+    constructor() {
+        // Initialize Jira client only if configuration is provided
+        const jiraHost = process.env.JIRA_HOST;
+        const jiraEmail = process.env.JIRA_EMAIL;
+        const jiraApiToken = process.env.JIRA_API_TOKEN;
+        const jiraProjectKey = process.env.JIRA_PROJECT_KEY;
+
+        if (jiraHost && jiraEmail && jiraApiToken) {
+            this.jira = new Version3Client({
+                host: `https://${jiraHost}`,
+                authentication: {
+                    basic: {
+                        email: jiraEmail,
+                        apiToken: jiraApiToken
+                    }
+                }
+            });
+
+            this.projectKey = jiraProjectKey || 'SUPPORT';
+            this.jiraHost = jiraHost;
+            this.enabled = true;
+        } else {
+            this.enabled = false;
+            console.warn('Jira integration is not configured. Support tickets will be logged but not created in Jira.');
+        }
+    }
+
+    /**
+     * Map support ticket category to Jira issue type
+     */
+    getIssueType(category) {
+        // All tickets will be created as "Task" type
+        // The category will be reflected in labels instead
+        return 'Task';
+    }
+
+    /**
+     * Map support ticket priority to Jira priority
+     */
+    getJiraPriority(priority) {
+        const priorityMap = {
+            'low': 'Low',
+            'medium': 'Medium',
+            'high': 'High',
+            'urgent': 'Highest'
+        };
+
+        return priorityMap[priority] || 'Medium';
+    }
+
+    /**
+     * Create a Jira issue from a support ticket
+     */
+    async createTicket(ticketData) {
+        if (!this.enabled) {
+            // Log the ticket but don't create in Jira
+            console.log('Support ticket received (Jira disabled):', {
+                from: ticketData.email,
+                subject: ticketData.subject,
+                category: ticketData.category,
+                priority: ticketData.priority
+            });
+
+            return {
+                success: true,
+                issueKey: 'TICKET-' + Date.now(),
+                issueId: Date.now().toString(),
+                url: null,
+                jiraDisabled: true
+            };
+        }
+
+        try {
+            const issueType = this.getIssueType(ticketData.category);
+            const priority = this.getJiraPriority(ticketData.priority);
+
+            const issue = {
+                fields: {
+                    project: {
+                        key: this.projectKey
+                    },
+                    summary: ticketData.subject,
+                    description: this.formatDescription(ticketData),
+                    issuetype: {
+                        name: issueType
+                    },
+                    priority: {
+                        name: priority
+                    }
+                }
+            };
+
+            // Add labels
+            if (ticketData.category) {
+                issue.fields.labels = ['support-ticket', 'wowkeyb', ticketData.category];
+            }
+
+            // Create the issue in Jira
+            const result = await this.jira.issues.createIssue(issue);
+
+            return {
+                success: true,
+                issueKey: result.key,
+                issueId: result.id,
+                url: `https://${this.jiraHost}/browse/${result.key}`
+            };
+
+        } catch (error) {
+            console.error('Error creating Jira ticket:', error);
+
+            // Don't throw error - log it and return a fallback ticket ID
+            console.error('Jira ticket creation failed, ticket will be logged:', {
+                from: ticketData.email,
+                subject: ticketData.subject,
+                error: error.message
+            });
+
+            return {
+                success: false,
+                issueKey: 'TICKET-' + Date.now(),
+                issueId: Date.now().toString(),
+                url: null,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Format the ticket description for Jira
+     */
+    formatDescription(ticketData) {
+        return `
+*Submitted by:* ${ticketData.name}
+*Email:* ${ticketData.email}
+*Category:* ${ticketData.category}
+*Priority:* ${ticketData.priority}
+
+---
+
+h3. Description
+
+${ticketData.description}
+
+---
+
+_Ticket created via WowKeyb Support System_
+_Submitted at: ${new Date().toISOString()}_
+        `.trim();
+    }
+
+    /**
+     * Add a comment to an existing ticket
+     */
+    async addComment(issueKey, comment) {
+        if (!this.enabled) {
+            console.log('Comment would be added to ticket (Jira disabled):', issueKey);
+            return { success: true };
+        }
+
+        try {
+            await this.jira.issueComments.addComment({
+                issueIdOrKey: issueKey,
+                body: comment
+            });
+            return { success: true };
+        } catch (error) {
+            console.error('Error adding comment to Jira ticket:', error);
+            throw new Error(`Failed to add comment: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get ticket status
+     */
+    async getTicketStatus(issueKey) {
+        if (!this.enabled) {
+            return {
+                status: 'Pending',
+                assignee: 'Unassigned',
+                updated: new Date().toISOString()
+            };
+        }
+
+        try {
+            const issue = await this.jira.issues.getIssue({
+                issueIdOrKey: issueKey
+            });
+            return {
+                status: issue.fields.status.name,
+                assignee: issue.fields.assignee?.displayName || 'Unassigned',
+                updated: issue.fields.updated
+            };
+        } catch (error) {
+            console.error('Error fetching Jira ticket:', error);
+            throw new Error(`Failed to fetch ticket: ${error.message}`);
+        }
+    }
+}
+
+export default new JiraService();
+

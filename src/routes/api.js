@@ -14,6 +14,7 @@ import MacrosRouter from './api/macros.js'
 import MacroBuilderRouter from './api/macro-builder.js'
 import WagoIconsRouter from './api/wago-icons.js'
 import IconsRouter from './api/icons.js'
+import SupportRouter from './api/support.js'
 
 import AuthnMiddleware from '../middlewares/authn.js';
 
@@ -50,5 +51,8 @@ router
 
   //icons
   .use('/icons', IconsRouter)
+
+  //support
+  .use('/support', SupportRouter)
 
 export default router;

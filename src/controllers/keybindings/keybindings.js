@@ -296,8 +296,8 @@ export const updateKeybinding = async (req, res, next) => {
 
     const updatedKeybinding = await Keybinding.findOneAndUpdate(
       { _id: keybinding_id },
-      req.body,
-      { new: true }
+      { $set: req.body },
+      { new: true, runValidators: true }
     ).populate('version');
 
     console.log('updateKeybinding - updated keybinding keybinds:', updatedKeybinding.keybinds?.length);

@@ -29,13 +29,14 @@ app.use(helmet())
 
 // Add response caching middleware
 app.use((req, res, next) => {
-  // Cache GET requests for 5 minutes
-  if (req.method === 'GET') {
+  // Disable caching for dynamic user data that changes frequently
+  if (req.path.includes('/keybindings') || req.path.includes('/abilities') || req.path.includes('/versions') || req.path.includes('/macros')) {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  } else if (req.method === 'GET') {
+    // Cache other GET requests for 5 minutes
     res.set('Cache-Control', 'public, max-age=300');
-  }
-  // Cache static data for longer periods
-  if (req.path.includes('/abilities') || req.path.includes('/versions')) {
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate'); // Disable caching for development
   }
   next();
 });

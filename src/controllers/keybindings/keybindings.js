@@ -220,8 +220,11 @@ export const updateKeybinding = async (req, res, next) => {
       delete req.body.isPublic;
     }
 
-    req.body.hero_talent = req.body.heroTalent;
-    delete req.body.heroTalent;
+    // Only transform heroTalent if it exists in the request body
+    if ('heroTalent' in req.body) {
+      req.body.hero_talent = req.body.heroTalent;
+      delete req.body.heroTalent;
+    }
 
     // Normalize class field if it exists
     if (req.body.class !== undefined) {
@@ -265,7 +268,8 @@ export const updateKeybinding = async (req, res, next) => {
 
     if (req.body.keybinds) {
       req.body.keybinds = req.body.keybinds.map(keybind => {
-        if (keybind.spell.spellId) {
+        // Safely transform spellId to spell_id
+        if (keybind.spell && keybind.spell.spellId) {
           keybind.spell.spell_id = keybind.spell.spellId.toString();
           delete keybind.spell.spellId;
         }

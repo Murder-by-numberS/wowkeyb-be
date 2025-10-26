@@ -604,6 +604,21 @@ const coreAbilities = [
     range: 30,
     cost: 'None',
     cost_amount: 0
+  },
+  {
+    name: 'Thunderstorm',
+    spell_id: '51490',
+    description: 'Calls down a bolt of lightning, dealing Nature damage to all enemies within 10 yards, knocking them back and restoring 5% mana.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_thunderstorm.jpg',
+    class: 'shaman',
+    spec: null,
+    hero_talent: null,
+    ability_type: 'class',
+    level_required: 0,
+    cooldown: 45,
+    range: 0,
+    cost: 'None',
+    cost_amount: 0
   }
 ];
 
@@ -713,21 +728,6 @@ const specAndHeroActives = [
     cooldown: 60,
     range: 0,
     cost: 'Mana',
-    cost_amount: 0
-  },
-  {
-    name: 'Thunderstorm',
-    spell_id: '51490',
-    description: 'Calls down a bolt of lightning, dealing Nature damage to all enemies within 10 yards, knocking them back and restoring 5% mana.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shaman_thunderstorm.jpg',
-    class: 'shaman',
-    spec: 'elemental',
-    hero_talent: null,
-    ability_type: 'spec',
-    level_required: 0,
-    cooldown: 45,
-    range: 0,
-    cost: 'None',
     cost_amount: 0
   },
   {

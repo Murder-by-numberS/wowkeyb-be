@@ -12,6 +12,7 @@ import KeybindingsRouter from './api/keybindings.js'
 import VersionsRouter from './api/versions.js'
 import MacrosRouter from './api/macros.js'
 import MacroBuilderRouter from './api/macro-builder.js'
+import FilesRouter from './api/files.js'
 import WagoIconsRouter from './api/wago-icons.js'
 import IconsRouter from './api/icons.js'
 import SupportRouter from './api/support.js'
@@ -45,6 +46,9 @@ router
 
   //macro-builder
   .use('/macro-builder', MacroBuilderRouter)
+
+  //files (upload/download/export files)
+  .use('/files', FilesRouter)
 
   //wago-icons
   .use('/wago-icons', WagoIconsRouter)

@@ -243,7 +243,8 @@ export const getMacros = async (req, res) => {
         { path: 'game_version', select: 'game_version' },
         { path: 'ability', select: 'name icon description' },
         { path: 'user_id', select: 'username email' },
-        { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+        { path: 'icon', select: '_id name cloudfrontUrl keywords' },
+        { path: 'file_id', select: '_id file_name file_type character_class downloaded_at' }
       ])
       .sort(sort)
       .skip(skip)
@@ -269,6 +270,14 @@ export const getMacros = async (req, res) => {
       userId: macro.user_id?._id || macro.user_id,
       creatorUsername: macro.user_id?.username,
       usageCount: macro.usage_count,
+      fileId: macro.file_id?._id || macro.file_id,
+      file: macro.file_id ? {
+        id: macro.file_id._id,
+        file_name: macro.file_id.file_name,
+        file_type: macro.file_id.file_type,
+        character_class: macro.file_id.character_class,
+        uploaded_at: macro.file_id.downloaded_at
+      } : null,
       createdAt: macro.createdAt,
       updatedAt: macro.updatedAt
     }));
@@ -320,7 +329,8 @@ export const getMacro = async (req, res) => {
         { path: 'game_version', select: 'game_version' },
         { path: 'ability', select: 'name icon description' },
         { path: 'user_id', select: 'username email' },
-        { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+        { path: 'icon', select: '_id name cloudfrontUrl keywords' },
+        { path: 'file_id', select: '_id file_name file_type character_class downloaded_at' }
       ]);
 
     if (!macro) {
@@ -373,6 +383,14 @@ export const getMacro = async (req, res) => {
       createdBy: macro.user_id?._id || macro.user_id,
       creatorUsername: macro.user_id?.username,
       usageCount: macro.usage_count,
+      fileId: macro.file_id?._id || macro.file_id,
+      file: macro.file_id ? {
+        id: macro.file_id._id,
+        file_name: macro.file_id.file_name,
+        file_type: macro.file_id.file_type,
+        character_class: macro.file_id.character_class,
+        uploaded_at: macro.file_id.downloaded_at
+      } : null,
       createdAt: macro.createdAt,
       updatedAt: macro.updatedAt
     };
@@ -818,7 +836,8 @@ export const getMyMacros = async (req, res) => {
       .populate([
         { path: 'game_version', select: 'game_version' },
         { path: 'ability', select: 'name icon description' },
-        { path: 'icon', select: '_id name cloudfrontUrl keywords' }
+        { path: 'icon', select: '_id name cloudfrontUrl keywords' },
+        { path: 'file_id', select: '_id file_name file_type character_class downloaded_at' }
       ])
       .sort(sort)
       .skip(skip)
@@ -842,6 +861,14 @@ export const getMyMacros = async (req, res) => {
       is_public: macro.is_public,
       is_active: macro.is_active,
       usage_count: macro.usage_count,
+      file_id: macro.file_id?._id || macro.file_id,
+      file: macro.file_id ? {
+        id: macro.file_id._id,
+        file_name: macro.file_id.file_name,
+        file_type: macro.file_id.file_type,
+        character_class: macro.file_id.character_class,
+        uploaded_at: macro.file_id.downloaded_at
+      } : null,
       created_at: macro.createdAt,
       updated_at: macro.updatedAt
     }));

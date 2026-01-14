@@ -46,14 +46,31 @@ export const saveSetting = async (req, res) => {
 
   const { decoded } = req;
 
-  const { theme, scheme } = req.body;
-  const updatePayload = {
+  const { theme, scheme, favoriteClass } = req.body;
+  
+  // Update UserSetting for theme and scheme
+  const userSettingPayload = {
     ...(theme && { theme }),
     ...(scheme && { scheme })
-  }
-  console.log('updatePayload', updatePayload);
+  };
+  
+  // Update User model for favorite_class (convert camelCase to snake_case)
+  const userPayload = {
+    ...(favoriteClass !== undefined && { favorite_class: favoriteClass })
+  };
+  
+  console.log('updatePayload - userSetting:', userSettingPayload, 'user:', userPayload);
+  
   try {
-    await UserSetting.updateOne({ user_id: decoded.user_id }, updatePayload)
+    // Update UserSetting if there are theme/scheme changes
+    if (Object.keys(userSettingPayload).length > 0) {
+      await UserSetting.updateOne({ user_id: decoded.user_id }, userSettingPayload);
+    }
+    
+    // Update User if there are favorite_class changes
+    if (Object.keys(userPayload).length > 0) {
+      await User.findByIdAndUpdate(decoded.user_id, userPayload);
+    }
 
     return res.status(200).send({ message: 'Settings Updated' });
   }

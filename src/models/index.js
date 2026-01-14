@@ -6,6 +6,7 @@ import Version from './version.js';
 import Ability from './ability.js';
 import Macro from './macro.js';
 import Icon from './icon.js';
+import File from './file.js';
 
 export {
   Keybinding,
@@ -15,5 +16,6 @@ export {
   Version,
   Ability,
   Macro,
-  Icon
+  Icon,
+  File
 }

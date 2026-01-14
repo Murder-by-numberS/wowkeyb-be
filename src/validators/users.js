@@ -38,7 +38,8 @@ export const validateChangePassword = [
 
 export const validateSaveSetting = [
   check('theme').isString().optional(),
-  check('scheme').isString().optional()
+  check('scheme').isString().optional(),
+  check('favoriteClass').isString().optional()
 ];
 
 export const validateUpdateProfile = [

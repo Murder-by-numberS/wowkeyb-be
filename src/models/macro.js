@@ -112,6 +112,11 @@ const macroSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User'
   },
+  file_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'File',
+    default: null
+  },
   usage_count: {
     type: Number,
     default: 0
@@ -165,6 +170,7 @@ macroSchema.index({ ability: 1, game_version: 1, is_active: 1, deletedAt: 1 }); 
 macroSchema.index({ tags: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For tag-based queries
 macroSchema.index({ is_public: 1, game_version: 1, is_active: 1, deletedAt: 1 }); // For public macro queries
 macroSchema.index({ user_id: 1, game_version: 1, deletedAt: 1 }); // For user-specific queries
+macroSchema.index({ file_id: 1 }); // For file-specific queries
 macroSchema.index({ usage_count: -1, game_version: 1, deletedAt: 1 }); // For popular macros
 macroSchema.index({ name: 'text', description: 'text', macro_text: 'text' }); // For text search
 macroSchema.index({ deletedAt: 1 }); // For soft delete queries

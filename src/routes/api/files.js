@@ -1,0 +1,85 @@
+import express from 'express';
+import multer from 'multer';
+import {
+    uploadMacroFile,
+    generateMacroFile,
+    getDownloadHistory,
+    redownloadMacroFile,
+    viewMacroFile,
+    deleteDownloadRecord
+} from '../../controllers/macro/files.js';
+import {
+    validateUploadMacroFile,
+    validateGenerateMacroFile,
+    validateGetDownloadHistory,
+    validateDownloadRecordId
+} from '../../validators/file.validator.js';
+import AuthnMiddleware from '../../middlewares/authn.js';
+
+const router = express.Router();
+
+// Configure multer for file uploads
+// Store files in memory as buffers for processing
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 1024 * 1024 * 2, // 2MB max file size
+    },
+    fileFilter: (req, file, cb) => {
+        // Accept only .txt files
+        if (file.mimetype === 'text/plain' || file.originalname.endsWith('.txt')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only .txt files are allowed'));
+        }
+    }
+});
+
+// All routes require authentication
+router.use(AuthnMiddleware.authenticateToken);
+
+// Upload a macro file and optionally create macros from it
+router.post(
+    '/upload',
+    upload.single('file'),
+    validateUploadMacroFile,
+    uploadMacroFile
+);
+
+// Generate a macro file from selected macros
+router.post(
+    '/generate',
+    validateGenerateMacroFile,
+    generateMacroFile
+);
+
+// Get user's download history
+router.get(
+    '/history',
+    validateGetDownloadHistory,
+    getDownloadHistory
+);
+
+// Re-download a previously generated file
+router.get(
+    '/history/:id/download',
+    validateDownloadRecordId,
+    redownloadMacroFile
+);
+
+// View file content
+router.get(
+    '/history/:id/view',
+    validateDownloadRecordId,
+    viewMacroFile
+);
+
+// Delete a download record from history
+router.delete(
+    '/history/:id',
+    validateDownloadRecordId,
+    deleteDownloadRecord
+);
+
+export default router;
+

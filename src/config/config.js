@@ -23,8 +23,10 @@ const Config = {
   secretAccessKey: process.env.AWS_SECRET_KEY,
   region: process.env.AWS_REGION,
   bucket: process.env.AWS_S3_BUCKET_NAME,
+  filesBucket: process.env.AWS_S3_FILES_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME, // Fallback to main bucket if not specified
   s3Path: process.env.AWS_S3_PATH,
   cloudfrontDomain: process.env.CLOUDFRONT_DOMAIN,
+  filesCloudfrontDomain: process.env.FILES_CLOUDFRONT_DOMAIN || process.env.CLOUDFRONT_DOMAIN, // Fallback to main CloudFront if not specified
 
 }
 

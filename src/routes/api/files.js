@@ -2,6 +2,8 @@ import express from 'express';
 import multer from 'multer';
 import {
     uploadMacroFile,
+    previewMacroFile,
+    importSelectedMacros,
     generateMacroFile,
     createMacroFile,
     saveMacroFile,
@@ -39,6 +41,19 @@ const upload = multer({
 
 // All routes require authentication
 router.use(AuthnMiddleware.authenticateToken);
+
+// Preview a macro file (parse without creating)
+router.post(
+    '/preview',
+    upload.single('file'),
+    previewMacroFile
+);
+
+// Import selected macros from a previewed file
+router.post(
+    '/import',
+    importSelectedMacros
+);
 
 // Upload a macro file and optionally create macros from it
 router.post(

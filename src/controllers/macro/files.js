@@ -78,6 +78,13 @@ export const uploadMacroFile = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    // Check macro limit before processing (200 per user)
+    const userMacroCount = await Macro.countDocuments({ user_id: decoded.user_id });
+    if (userMacroCount >= 200) {
+      Logger.warn(`User ${decoded.user_id} has reached the macro limit (${userMacroCount}/200)`);
+      return res.status(400).json({ message: 'Macro limit reached. Please delete some macros before uploading new ones.' });
+    }
+
     const {
       file_type,
       character_class,
@@ -157,7 +164,16 @@ export const uploadMacroFile = async (req, res) => {
     // Create macros if requested
     const createdMacros = [];
     if (create_macros === true || create_macros === 'true') {
+      // Calculate how many macros can be created before hitting the limit
+      const availableSlots = 200 - userMacroCount;
+
       for (const parsedMacro of parsedMacros) {
+        // Stop if we've hit the limit
+        if (createdMacros.length >= availableSlots) {
+          Logger.warn(`User ${decoded.user_id} hit macro limit during upload. Created ${createdMacros.length}/${parsedMacros.length} macros.`);
+          break;
+        }
+
         try {
           // Resolve icon from FDID
           const icon = await resolveIconFromFdid(parsedMacro.icon_fdid);
@@ -218,6 +234,187 @@ export const uploadMacroFile = async (req, res) => {
   } catch (error) {
     Logger.error('Error uploading macro file:', error);
     return res.status(500).json({ message: 'Error uploading macro file', error: error.message });
+  }
+};
+
+/**
+ * Preview a macro file - parse and return macros without creating them
+ * Also returns the user's current macro count to help with limit checking
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const previewMacroFile = async (req, res) => {
+  try {
+    Logger.info('Previewing macro file');
+    const { decoded } = req;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const { file_type, character_class } = req.body;
+
+    // Parse the file content
+    const fileContent = req.file.buffer.toString('utf-8');
+    const parsedMacros = parseMacroFile(fileContent);
+
+    if (parsedMacros.length === 0) {
+      return res.status(400).json({ message: 'No macros found in file' });
+    }
+
+    // Validate macros for class if character-specific
+    let classValidation = { errors: [], warnings: [], isValid: true };
+    if (file_type === 'character' && character_class) {
+      classValidation = validateMacrosForClass(parsedMacros, character_class);
+    }
+
+    // Get user's current macro count
+    const userMacroCount = await Macro.countDocuments({ user_id: decoded.user_id });
+    const availableSlots = Math.max(0, 200 - userMacroCount);
+    const wouldExceedLimit = parsedMacros.length > availableSlots;
+
+    Logger.info(`Preview macro file: ${parsedMacros.length} macros found. User has ${userMacroCount}/200 macros.`);
+
+    return res.status(200).json({
+      message: 'File parsed successfully',
+      preview: {
+        file_name: req.file.originalname,
+        macros_count: parsedMacros.length,
+        macros: parsedMacros.map((m, index) => ({
+          index,
+          name: m.name,
+          macro_text: m.macro_text,
+          icon_fdid: m.icon_fdid,
+          show_tooltip: m.show_tooltip
+        }))
+      },
+      user_macro_count: userMacroCount,
+      available_slots: availableSlots,
+      would_exceed_limit: wouldExceedLimit,
+      validation: classValidation
+    });
+
+  } catch (error) {
+    Logger.error('Error previewing macro file:', error);
+    return res.status(500).json({ message: 'Error parsing macro file', error: error.message });
+  }
+};
+
+/**
+ * Import selected macros from a previewed file
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const importSelectedMacros = async (req, res) => {
+  try {
+    Logger.info('Importing selected macros');
+    const { decoded } = req;
+
+    // Validate user is authenticated
+    if (!decoded || !decoded.user_id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Verify user exists
+    const user = await User.findById(decoded.user_id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const {
+      macros, // Array of macro objects to import
+      file_type = 'account',
+      character_class = null,
+      game_version = null
+    } = req.body;
+
+    if (!macros || !Array.isArray(macros) || macros.length === 0) {
+      return res.status(400).json({ message: 'No macros provided to import' });
+    }
+
+    // Check macro limit
+    const userMacroCount = await Macro.countDocuments({ user_id: decoded.user_id });
+    const availableSlots = 200 - userMacroCount;
+
+    if (availableSlots <= 0) {
+      return res.status(400).json({ message: 'Macro limit reached. Please delete some macros before importing new ones.' });
+    }
+
+    // Limit to available slots
+    const macrosToImport = macros.slice(0, availableSlots);
+    if (macrosToImport.length < macros.length) {
+      Logger.warn(`User ${decoded.user_id} tried to import ${macros.length} macros but only ${availableSlots} slots available.`);
+    }
+
+    // Get game version
+    let version;
+    if (game_version) {
+      version = await Version.findById(game_version);
+      if (!version) {
+        return res.status(400).json({ message: 'Invalid game version' });
+      }
+    } else {
+      version = await getLatestVersionBySemanticVersion();
+      if (!version) {
+        return res.status(500).json({ message: 'No game versions available' });
+      }
+    }
+
+    // Create the macros
+    const createdMacros = [];
+    for (const macroData of macrosToImport) {
+      try {
+        // Resolve icon from FDID if provided
+        let icon = null;
+        if (macroData.icon_fdid) {
+          icon = await resolveIconFromFdid(macroData.icon_fdid);
+        }
+
+        const macro = new Macro({
+          name: macroData.name || 'Imported Macro',
+          description: 'Imported from macro file',
+          class: file_type === 'character' ? character_class : null,
+          spec: null,
+          game_version: version._id,
+          show_tooltip: macroData.show_tooltip || false,
+          macro_text: macroData.macro_text || '',
+          icon: icon ? icon._id : null,
+          tags: ['imported'],
+          is_public: false,
+          user_id: decoded.user_id
+        });
+
+        await macro.save();
+        createdMacros.push(macro);
+      } catch (error) {
+        Logger.error(`Error creating macro "${macroData.name}":`, error);
+        // Continue with other macros
+      }
+    }
+
+    Logger.info(`Imported ${createdMacros.length}/${macrosToImport.length} macros for user ${decoded.user_id}`);
+
+    return res.status(201).json({
+      message: 'Macros imported successfully',
+      imported_count: createdMacros.length,
+      requested_count: macros.length,
+      created_macros: createdMacros.map(m => ({
+        id: m._id,
+        name: m.name,
+        class: m.class,
+        macro_text: m.macro_text
+      }))
+    });
+
+  } catch (error) {
+    Logger.error('Error importing macros:', error);
+    return res.status(500).json({ message: 'Error importing macros', error: error.message });
   }
 };
 

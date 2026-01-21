@@ -74,6 +74,13 @@ export const createMacro = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Check macro limit (200 per user)
+    const userMacroCount = await Macro.countDocuments({ user_id: decoded.user_id });
+    if (userMacroCount >= 200) {
+      Logger.warn(`User ${decoded.user_id} has reached the macro limit (${userMacroCount}/200)`);
+      return res.status(400).json({ message: 'Macro limit reached. Please delete some macros before creating new ones.' });
+    }
+
     // Get game version - use provided version or latest if none provided
     let version;
     if (game_version) {

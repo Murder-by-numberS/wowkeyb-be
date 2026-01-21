@@ -6,6 +6,9 @@ import { presentOne, presentMany } from '../../presenters/keybindings.js';
 import Logger from '../../utils/logger.js';
 import { generateRandomClassDetails } from '../ability/abilities.js';
 
+// Maximum keybindings per user
+const MAX_KEYBINDINGS_PER_USER = 10;
+
 /**
  * Helper function to get the latest version by semantic version number
  * @returns {Promise<Object>} The latest version document
@@ -322,6 +325,19 @@ export const updateKeybinding = async (req, res, next) => {
 export const createKeybinding = async (req, res, next) => {
   try {
     Logger.info('Creating Keybinding');
+
+    // Check keybinding limit for authenticated users
+    if (req.decoded?.user_id) {
+      const userKeybindingCount = await Keybinding.countDocuments({ 
+        user_id: req.decoded.user_id, 
+        deleted_at: null 
+      });
+      if (userKeybindingCount >= MAX_KEYBINDINGS_PER_USER) {
+        return res.status(400).json({ 
+          message: 'Keybinding limit reached. Please delete some keybindings before creating new ones.' 
+        });
+      }
+    }
 
     const randomClass = generateRandomClassDetails();
 
@@ -690,6 +706,19 @@ export const duplicateKeybinding = async (req, res, next) => {
   try {
     const { keybinding_id } = req.params;
     Logger.info(`Duplicating keybinding: ${keybinding_id}`);
+
+    // Check keybinding limit for authenticated users
+    if (req.decoded?.user_id) {
+      const userKeybindingCount = await Keybinding.countDocuments({ 
+        user_id: req.decoded.user_id, 
+        deleted_at: null 
+      });
+      if (userKeybindingCount >= MAX_KEYBINDINGS_PER_USER) {
+        return res.status(400).json({ 
+          message: 'Keybinding limit reached. Please delete some keybindings before duplicating.' 
+        });
+      }
+    }
 
     // Find the original keybinding (automatically excludes soft-deleted ones due to middleware)
     const originalKeybinding = await Keybinding.findById(keybinding_id);

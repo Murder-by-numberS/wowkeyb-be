@@ -1,6 +1,6 @@
 {
   "name": "wowkeyb-be",
-  "version": "1.39.0",
+  "version": "1.40.0",
   "description": "Wowkeyb backend",
   "type": "module",
   "main": "app.js",
@@ -8,7 +8,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "dev": "node --env-file .env.development src/app",
+    "dev": "nodemon --env-file .env.development src/app",
     "staging": "node --env-file .env.staging src/app",
     "production": "node --env-file .env.production src/app",
     "start": "node src/app",
@@ -160,7 +160,8 @@
   "devDependencies": {
     "@babel/eslint-parser": "^7.23.3",
     "@babel/plugin-syntax-import-assertions": "^7.23.3",
-    "eslint": "^8.56.0"
+    "eslint": "^8.56.0",
+    "nodemon": "^3.1.11"
   },
   "volta": {
     "node": "22.15.0"

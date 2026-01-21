@@ -13,38 +13,38 @@ import Logger from './logger.js';
  * @returns {Promise<Object>} Upload result with S3 path and CloudFront URL
  */
 export const uploadMacroFileToS3 = async (fileName, fileContent, userId) => {
-    try {
-        const s3Key = `macro-files/${userId}/${Date.now()}-${fileName}`;
-        const bucket = Config.filesBucket;
+  try {
+    const s3Key = `macro-files/${userId}/${Date.now()}-${fileName}`;
+    const bucket = Config.filesBucket;
 
-        const command = new PutObjectCommand({
-            Bucket: bucket,
-            Key: s3Key,
-            Body: fileContent,
-            ContentType: 'text/plain',
-            Metadata: {
-                userId: userId,
-                uploadedAt: new Date().toISOString()
-            }
-        });
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: s3Key,
+      Body: fileContent,
+      ContentType: 'text/plain',
+      Metadata: {
+        userId: userId,
+        uploadedAt: new Date().toISOString()
+      }
+    });
 
-        await s3Client.send(command);
+    await s3Client.send(command);
 
-        const cloudfrontUrl = Config.filesCloudfrontDomain
-            ? `https://${Config.filesCloudfrontDomain}/${s3Key}`
-            : null;
+    const cloudfrontUrl = Config.filesCloudfrontDomain
+      ? `https://${Config.filesCloudfrontDomain}/${s3Key}`
+      : null;
 
-        Logger.info(`Uploaded macro file to S3: ${s3Key}`);
+    Logger.info(`Uploaded macro file to S3: ${s3Key}`);
 
-        return {
-            s3_path: s3Key,
-            cloudfront_url: cloudfrontUrl,
-            file_name: fileName
-        };
-    } catch (error) {
-        Logger.error('Error uploading macro file to S3:', error);
-        throw new Error('Failed to upload macro file to S3');
-    }
+    return {
+      s3_path: s3Key,
+      cloudfront_url: cloudfrontUrl,
+      file_name: fileName
+    };
+  } catch (error) {
+    Logger.error('Error uploading macro file to S3:', error);
+    throw new Error('Failed to upload macro file to S3');
+  }
 };
 
 /**
@@ -54,22 +54,39 @@ export const uploadMacroFileToS3 = async (fileName, fileContent, userId) => {
  * @returns {Promise<string>} The file content
  */
 export const getMacroFileFromS3 = async (s3Path) => {
-    try {
-        const bucket = Config.filesBucket;
-        const command = new GetObjectCommand({
-            Bucket: bucket,
-            Key: s3Path
-        });
+  try {
+    const bucket = Config.filesBucket;
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: s3Path
+    });
 
-        const response = await s3Client.send(command);
-        const fileContent = await streamToString(response.Body);
+    const response = await s3Client.send(command);
+    const fileContent = await streamToString(response.Body);
 
-        Logger.info(`Retrieved macro file from S3: ${s3Path}`);
-        return fileContent;
-    } catch (error) {
-        Logger.error('Error getting macro file from S3:', error);
-        throw new Error('Failed to retrieve macro file from S3');
-    }
+    const contentLength = fileContent?.length || 0;
+    const trimmedContent = fileContent?.trim() || '';
+    const preview = fileContent?.substring(0, 100) || '(empty)';
+
+    Logger.info(`Retrieved macro file from S3: ${s3Path}`, {
+      contentLength,
+      trimmedLength: trimmedContent.length,
+      preview,
+      isEmpty: !fileContent || contentLength === 0,
+      isBlank: trimmedContent.length === 0,
+      hasVersionHeader: fileContent?.includes('VER 3') || false
+    });
+
+    return fileContent;
+  } catch (error) {
+    Logger.error('Error getting macro file from S3:', {
+      s3Path,
+      error: error.message,
+      errorCode: error.Code,
+      errorName: error.name
+    });
+    throw new Error('Failed to retrieve macro file from S3');
+  }
 };
 
 /**
@@ -80,21 +97,21 @@ export const getMacroFileFromS3 = async (s3Path) => {
  * @returns {Promise<string>} The presigned URL
  */
 export const getPresignedDownloadUrl = async (s3Path, expiresIn = 3600) => {
-    try {
-        const bucket = Config.filesBucket;
-        const command = new GetObjectCommand({
-            Bucket: bucket,
-            Key: s3Path
-        });
+  try {
+    const bucket = Config.filesBucket;
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: s3Path
+    });
 
-        const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
 
-        Logger.info(`Generated presigned URL for: ${s3Path}`);
-        return presignedUrl;
-    } catch (error) {
-        Logger.error('Error generating presigned URL:', error);
-        throw new Error('Failed to generate download URL');
-    }
+    Logger.info(`Generated presigned URL for: ${s3Path}`);
+    return presignedUrl;
+  } catch (error) {
+    Logger.error('Error generating presigned URL:', error);
+    throw new Error('Failed to generate download URL');
+  }
 };
 
 /**
@@ -104,12 +121,12 @@ export const getPresignedDownloadUrl = async (s3Path, expiresIn = 3600) => {
  * @returns {Promise<string>} The string content
  */
 const streamToString = (stream) => {
-    return new Promise((resolve, reject) => {
-        const chunks = [];
-        stream.on('data', (chunk) => chunks.push(chunk));
-        stream.on('error', reject);
-        stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-    });
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+  });
 };
 
 /**
@@ -121,40 +138,40 @@ const streamToString = (stream) => {
  * @returns {Promise<Object>} Upload result
  */
 export const uploadUserMacroFile = async (fileBuffer, originalFileName, userId) => {
-    try {
-        const timestamp = Date.now();
-        const sanitizedFileName = originalFileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const s3Key = `macro-files/${userId}/uploads/${timestamp}-${sanitizedFileName}`;
-        const bucket = Config.filesBucket;
+  try {
+    const timestamp = Date.now();
+    const sanitizedFileName = originalFileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const s3Key = `macro-files/${userId}/uploads/${timestamp}-${sanitizedFileName}`;
+    const bucket = Config.filesBucket;
 
-        const command = new PutObjectCommand({
-            Bucket: bucket,
-            Key: s3Key,
-            Body: fileBuffer,
-            ContentType: 'text/plain',
-            Metadata: {
-                userId: userId,
-                originalFileName: originalFileName,
-                uploadedAt: new Date().toISOString()
-            }
-        });
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: s3Key,
+      Body: fileBuffer,
+      ContentType: 'text/plain',
+      Metadata: {
+        userId: userId,
+        originalFileName: originalFileName,
+        uploadedAt: new Date().toISOString()
+      }
+    });
 
-        await s3Client.send(command);
+    await s3Client.send(command);
 
-        const cloudfrontUrl = Config.filesCloudfrontDomain
-            ? `https://${Config.filesCloudfrontDomain}/${s3Key}`
-            : null;
+    const cloudfrontUrl = Config.filesCloudfrontDomain
+      ? `https://${Config.filesCloudfrontDomain}/${s3Key}`
+      : null;
 
-        Logger.info(`Uploaded user macro file to S3: ${s3Key}`);
+    Logger.info(`Uploaded user macro file to S3: ${s3Key}`);
 
-        return {
-            s3_path: s3Key,
-            cloudfront_url: cloudfrontUrl,
-            file_name: sanitizedFileName
-        };
-    } catch (error) {
-        Logger.error('Error uploading user macro file to S3:', error);
-        throw new Error('Failed to upload macro file to S3');
-    }
+    return {
+      s3_path: s3Key,
+      cloudfront_url: cloudfrontUrl,
+      file_name: sanitizedFileName
+    };
+  } catch (error) {
+    Logger.error('Error uploading user macro file to S3:', error);
+    throw new Error('Failed to upload macro file to S3');
+  }
 };
 

@@ -31,7 +31,8 @@ const fileSchema = new Schema({
     },
     s3_path: {
         type: String,
-        required: true
+        required: false,
+        default: ''
     },
     cloudfront_url: {
         type: String,
@@ -86,15 +87,15 @@ const fileSchema = new Schema({
     // Download tracking
     downloaded_at: {
         type: Date,
-        default: Date.now
+        required: false
     },
     download_count: {
         type: Number,
-        default: 1
+        default: 0
     },
     last_downloaded_at: {
         type: Date,
-        default: Date.now
+        required: false
     }
 }, {
     timestamps: true

@@ -3,6 +3,8 @@ import multer from 'multer';
 import {
     uploadMacroFile,
     generateMacroFile,
+    createMacroFile,
+    saveMacroFile,
     getDownloadHistory,
     redownloadMacroFile,
     viewMacroFile,
@@ -46,7 +48,19 @@ router.post(
     uploadMacroFile
 );
 
-// Generate a macro file from selected macros
+// Create a macro file (persistent, no S3 upload)
+router.post(
+    '/',
+    createMacroFile
+);
+
+// Save/update macro file (update macros in DB without generating S3 file)
+router.put(
+    '/',
+    saveMacroFile
+);
+
+// Generate a macro file from selected macros (creates/updates S3 file)
 router.post(
     '/generate',
     validateGenerateMacroFile,

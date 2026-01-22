@@ -199,6 +199,123 @@ _Submitted at: ${new Date().toISOString()}_
             throw new Error(`Failed to fetch ticket: ${error.message}`);
         }
     }
+
+    /**
+     * Search tickets using JQL
+     * @param {string} jql - JQL query string
+     * @param {number} page - Page number (1-based)
+     * @param {number} limit - Results per page
+     */
+    async searchTickets(jql, page = 1, limit = 20) {
+        if (!this.enabled) {
+            return {
+                tickets: [],
+                pagination: {
+                    current_page: page,
+                    total_pages: 0,
+                    total_count: 0,
+                    per_page: limit
+                },
+                jira_disabled: true
+            };
+        }
+
+        try {
+            const startAt = (page - 1) * limit;
+
+            const result = await this.jira.issueSearch.searchForIssuesUsingJql({
+                jql: jql,
+                startAt: startAt,
+                maxResults: limit,
+                fields: ['summary', 'status', 'priority', 'created', 'updated', 'assignee', 'reporter', 'labels', 'description']
+            });
+
+            const tickets = result.issues.map(issue => ({
+                id: issue.id,
+                key: issue.key,
+                summary: issue.fields.summary,
+                status: issue.fields.status?.name || 'Unknown',
+                priority: issue.fields.priority?.name || 'Medium',
+                created: issue.fields.created,
+                updated: issue.fields.updated,
+                assignee: issue.fields.assignee?.displayName || 'Unassigned',
+                reporter: issue.fields.reporter?.displayName || 'Unknown',
+                labels: issue.fields.labels || [],
+                url: `https://${this.jiraHost}/browse/${issue.key}`
+            }));
+
+            return {
+                tickets,
+                pagination: {
+                    current_page: page,
+                    total_pages: Math.ceil(result.total / limit),
+                    total_count: result.total,
+                    per_page: limit
+                }
+            };
+        } catch (error) {
+            console.error('Error searching Jira tickets:', error);
+            throw new Error(`Failed to search tickets: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get single ticket details
+     * @param {string} issueKey - Jira issue key (e.g., WOW-123)
+     */
+    async getTicket(issueKey) {
+        if (!this.enabled) {
+            return {
+                id: issueKey,
+                key: issueKey,
+                summary: 'Jira not configured',
+                status: 'Pending',
+                priority: 'Medium',
+                created: new Date().toISOString(),
+                updated: new Date().toISOString(),
+                assignee: 'Unassigned',
+                reporter: 'Unknown',
+                description: 'Jira integration is not configured',
+                labels: [],
+                comments: [],
+                jira_disabled: true
+            };
+        }
+
+        try {
+            const issue = await this.jira.issues.getIssue({
+                issueIdOrKey: issueKey,
+                fields: ['summary', 'status', 'priority', 'created', 'updated', 'assignee', 'reporter', 'labels', 'description', 'comment']
+            });
+
+            const comments = issue.fields.comment?.comments?.map(comment => ({
+                id: comment.id,
+                author: comment.author?.displayName || 'Unknown',
+                body: comment.body,
+                created: comment.created,
+                updated: comment.updated
+            })) || [];
+
+            return {
+                id: issue.id,
+                key: issue.key,
+                summary: issue.fields.summary,
+                status: issue.fields.status?.name || 'Unknown',
+                priority: issue.fields.priority?.name || 'Medium',
+                created: issue.fields.created,
+                updated: issue.fields.updated,
+                assignee: issue.fields.assignee?.displayName || 'Unassigned',
+                reporter: issue.fields.reporter?.displayName || 'Unknown',
+                description: issue.fields.description || '',
+                labels: issue.fields.labels || [],
+                comments: comments,
+                url: `https://${this.jiraHost}/browse/${issue.key}`
+            };
+        } catch (error) {
+            console.error('Error fetching Jira ticket:', error);
+            throw new Error(`Failed to fetch ticket: ${error.message}`);
+        }
+    }
 }
 
 export default new JiraService();

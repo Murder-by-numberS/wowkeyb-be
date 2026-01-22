@@ -14,7 +14,7 @@ export const getUser = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    Logger.error(`We have Errors: ${errors.array()}`)
+    Logger.error(`We have Errors: ${JSON.stringify(errors.array(), null, 2)}`)
     return res.status(422).json({ error: errors.array() });
   }
 
@@ -40,7 +40,7 @@ export const saveSetting = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    Logger.error(`We have Errors: ${errors.array()}`)
+    Logger.error(`We have Errors: ${JSON.stringify(errors.array(), null, 2)}`)
     return res.status(422).json({ error: errors.array() });
   }
 
@@ -85,7 +85,7 @@ export const updateProfile = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    Logger.error(`We have Errors: ${errors.array()}`)
+    Logger.error(`We have Errors: ${JSON.stringify(errors.array(), null, 2)}`)
     return res.status(422).json({ error: errors.array() });
   }
 

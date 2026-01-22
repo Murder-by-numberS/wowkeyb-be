@@ -663,3 +663,142 @@ export const generateRandomClassDetails = () => {
     heroTalent: randomHeroTalent
   };
 }
+
+/**
+ * Update an ability by ID (Admin only)
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const updateAbility = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const statusCode = 400;
+      Logger.error('Validation errors in updateAbility:', {
+        errors: errors.array(),
+        params: req.params,
+        body: req.body,
+        url: req.url,
+        statusCode: statusCode
+      });
+      return res.status(statusCode).json({ errors: errors.array() });
+    }
+
+    const { abilityId } = req.params;
+    const updateData = req.body;
+
+    Logger.info(`Admin user ${req.user?.username || req.decoded?.user_id} updating ability ${abilityId}`);
+
+    // Find the ability
+    const ability = await Ability.findById(abilityId);
+    if (!ability) {
+      return res.status(404).send({ message: 'Ability not found' });
+    }
+
+    // Map camelCase request fields to snake_case database fields
+    const fieldMapping = {
+      spellId: 'spell_id',
+      heroTalent: 'hero_talent',
+      abilityType: 'ability_type',
+      levelRequired: 'level_required',
+      costAmount: 'cost_amount',
+      isActive: 'is_active'
+    };
+
+    // Build update object with proper field names
+    const updateFields = {};
+    const allowedFields = [
+      'name', 'spell_id', 'spellId', 'description', 'icon', 'class', 'spec',
+      'hero_talent', 'heroTalent', 'ability_type', 'abilityType', 'is_active', 'isActive',
+      'level_required', 'levelRequired', 'cooldown', 'range', 'cost', 'cost_amount', 'costAmount'
+    ];
+
+    for (const [key, value] of Object.entries(updateData)) {
+      if (allowedFields.includes(key)) {
+        // Convert camelCase to snake_case if needed
+        const dbFieldName = fieldMapping[key] || key;
+        updateFields[dbFieldName] = value;
+      }
+    }
+
+    // Update the ability
+    const updatedAbility = await Ability.findByIdAndUpdate(
+      abilityId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    ).populate('game_version');
+
+    if (!updatedAbility) {
+      return res.status(404).send({ message: 'Ability not found after update' });
+    }
+
+    // Transform to match the expected format
+    const transformedAbility = {
+      id: updatedAbility._id,
+      spellId: updatedAbility.spell_id,
+      name: updatedAbility.name,
+      description: updatedAbility.description,
+      icon: updatedAbility.icon,
+      class: updatedAbility.class,
+      spec: updatedAbility.spec,
+      heroTalent: updatedAbility.hero_talent,
+      abilityType: updatedAbility.ability_type,
+      levelRequired: updatedAbility.level_required,
+      cooldown: updatedAbility.cooldown,
+      range: updatedAbility.range,
+      cost: updatedAbility.cost,
+      costAmount: updatedAbility.cost_amount,
+      isActive: updatedAbility.is_active,
+      gameVersion: updatedAbility.game_version?.game_version
+    };
+
+    Logger.info(`Successfully updated ability ${abilityId}: ${updatedAbility.name}`);
+
+    return res.status(200).send(transformedAbility);
+  } catch (error) {
+    Logger.error('Error updating ability:', error);
+    return res.status(500).send({ message: 'Error updating ability' });
+  }
+}
+
+/**
+ * Get a single ability by ID
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getAbilityById = async (req, res) => {
+  try {
+    const { abilityId } = req.params;
+
+    const ability = await Ability.findById(abilityId).populate('game_version');
+
+    if (!ability) {
+      return res.status(404).send({ message: 'Ability not found' });
+    }
+
+    // Transform to match the expected format
+    const transformedAbility = {
+      id: ability._id,
+      spellId: ability.spell_id,
+      name: ability.name,
+      description: ability.description,
+      icon: ability.icon,
+      class: ability.class,
+      spec: ability.spec,
+      heroTalent: ability.hero_talent,
+      abilityType: ability.ability_type,
+      levelRequired: ability.level_required,
+      cooldown: ability.cooldown,
+      range: ability.range,
+      cost: ability.cost,
+      costAmount: ability.cost_amount,
+      isActive: ability.is_active,
+      gameVersion: ability.game_version?.game_version
+    };
+
+    return res.status(200).send(transformedAbility);
+  } catch (error) {
+    Logger.error('Error retrieving ability by ID:', error);
+    return res.status(500).send({ message: 'Error retrieving ability' });
+  }
+}

@@ -19,7 +19,7 @@ export const login = async (req, res) => {
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    Logger.error(`We have Errors: ${errors.array()}`)
+    Logger.error(`We have Errors: ${JSON.stringify(errors.array(), null, 2)}`)
     return res.status(422).json({ error: errors.array() });
   }
   const { email, password } = req.body;
@@ -410,7 +410,7 @@ export const setNewPassword = async (req, res) => {
   const errors = validationResult(req);
   console.log('errors', errors.array());
   if (!errors.isEmpty()) {
-    Logger.error(`We have Errors: ${errors.array()}`)
+    Logger.error(`We have Errors: ${JSON.stringify(errors.array(), null, 2)}`)
     return res.status(422).json({ error: errors.array() });
   }
 
@@ -497,7 +497,7 @@ export const changePassword = async (req, res) => {
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    Logger.error(`We have Errors: ${errors.array()}`)
+    Logger.error(`We have Errors: ${JSON.stringify(errors.array(), null, 2)}`)
     return res.status(422).json({ error: errors.array() });
   }
 

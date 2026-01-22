@@ -1,4 +1,4 @@
-import { param, query } from 'express-validator'
+import { param, query, body } from 'express-validator'
 
 export const classes = {
   'deathknight': {
@@ -242,4 +242,72 @@ export const validateGetAbilities = [
       }
       return true;
     })
+];
+
+// Validator for updating an ability (Admin only)
+export const validateUpdateAbility = [
+  // Validate abilityId parameter
+  param('abilityId')
+    .exists().withMessage('Ability ID is required')
+    .isMongoId().withMessage('Invalid ability ID format'),
+
+  // Validate optional update fields
+  body('name')
+    .optional()
+    .isString().withMessage('Name must be a string')
+    .isLength({ min: 1, max: 100 }).withMessage('Name must be between 1 and 100 characters'),
+
+  body('spellId')
+    .optional()
+    .isString().withMessage('Spell ID must be a string'),
+
+  body('description')
+    .optional()
+    .isString().withMessage('Description must be a string')
+    .isLength({ min: 1, max: 1000 }).withMessage('Description must be between 1 and 1000 characters'),
+
+  body('icon')
+    .optional()
+    .isString().withMessage('Icon must be a string')
+    .isURL().withMessage('Icon must be a valid URL'),
+
+  body('class')
+    .optional()
+    .isIn(validClasses).withMessage('Invalid class'),
+
+  body('spec')
+    .optional()
+    .isString().withMessage('Spec must be a string'),
+
+  body('heroTalent')
+    .optional()
+    .isString().withMessage('Hero talent must be a string'),
+
+  body('abilityType')
+    .optional()
+    .isIn(['class', 'spec', 'hero_talent']).withMessage('Ability type must be class, spec, or hero_talent'),
+
+  body('isActive')
+    .optional()
+    .isBoolean().withMessage('isActive must be a boolean'),
+
+  body('levelRequired')
+    .optional()
+    .isInt({ min: 1, max: 80 }).withMessage('Level required must be between 1 and 80'),
+
+  body('cooldown')
+    .optional()
+    .isNumeric().withMessage('Cooldown must be a number'),
+
+  body('range')
+    .optional()
+    .isNumeric().withMessage('Range must be a number'),
+
+  body('cost')
+    .optional()
+    .isString().withMessage('Cost must be a string'),
+
+  body('costAmount')
+    .optional()
+    .isNumeric().withMessage('Cost amount must be a number')
 ];

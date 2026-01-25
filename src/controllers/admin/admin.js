@@ -4,6 +4,7 @@ import User from '../../models/user.js';
 import Ability from '../../models/ability.js';
 import Keybinding from '../../models/keybinding.js';
 import Macro from '../../models/macro.js';
+import Version from '../../models/version.js';
 import jiraService from '../../services/jira.service.js';
 
 // ==================== DASHBOARD STATS ====================
@@ -210,7 +211,16 @@ export const getUserById = async (req, res) => {
  */
 export const getAbilitiesAdmin = async (req, res) => {
   try {
-    const { page = 1, limit = 50, search = '', class: wowClass = '', includeInactive = 'true' } = req.query;
+    const { 
+      page = 1, 
+      limit = 50, 
+      search = '', 
+      class: wowClass = '', 
+      spec = '',
+      ability_type = '',
+      version = '',
+      includeInactive = 'true' 
+    } = req.query;
 
     // Build the actual filter query (for countDocuments which bypasses hooks)
     const filterQuery = {};
@@ -220,9 +230,23 @@ export const getAbilitiesAdmin = async (req, res) => {
     if (wowClass) {
       filterQuery.class = wowClass.toLowerCase();
     }
+    if (spec) {
+      filterQuery.spec = spec;
+    }
+    if (ability_type) {
+      filterQuery.ability_type = ability_type;
+    }
     // Only filter by is_active if NOT including inactive
     if (includeInactive !== 'true') {
       filterQuery.is_active = true;
+    }
+
+    // Handle version filter - need to look up version ID
+    if (version) {
+      const versionDoc = await Version.findOne({ game_version: version });
+      if (versionDoc) {
+        filterQuery.game_version = versionDoc._id;
+      }
     }
 
     // Build query for find() which uses the pre-find hook
@@ -235,7 +259,7 @@ export const getAbilitiesAdmin = async (req, res) => {
 
     const abilities = await Ability.find(findQuery)
       .populate('game_version', 'game_version')
-      .sort({ class: 1, name: 1 })
+      .sort({ name: 1 })
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -271,6 +295,200 @@ export const getAbilitiesAdmin = async (req, res) => {
   } catch (error) {
     Logger.error('Error getting abilities for admin:', error);
     return res.status(500).json({ message: 'Error getting abilities' });
+  }
+};
+
+/**
+ * Get all game versions for admin with ability counts
+ */
+export const getVersionsAdmin = async (req, res) => {
+  try {
+    const versions = await Version.find({}).sort({ game_version: -1 });
+    
+    // Sort by semantic version (newest first)
+    const sortedVersions = versions.sort((a, b) => {
+      const aParts = a.game_version.split('.').map(Number);
+      const bParts = b.game_version.split('.').map(Number);
+      
+      for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+        const aPart = aParts[i] || 0;
+        const bPart = bParts[i] || 0;
+        if (aPart > bPart) return -1;
+        if (aPart < bPart) return 1;
+      }
+      return 0;
+    });
+
+    // Get ability counts for each version
+    const versionsWithCounts = await Promise.all(
+      sortedVersions.map(async (v) => {
+        const abilityCount = await Ability.countDocuments({ game_version: v._id });
+        return {
+          id: v._id,
+          game_version: v.game_version,
+          ability_count: abilityCount,
+          created_at: v.createdAt
+        };
+      })
+    );
+
+    return res.status(200).json({
+      versions: versionsWithCounts
+    });
+  } catch (error) {
+    Logger.error('Error getting versions for admin:', error);
+    return res.status(500).json({ message: 'Error getting versions' });
+  }
+};
+
+/**
+ * Create a new game version
+ */
+export const createVersion = async (req, res) => {
+  try {
+    const { game_version } = req.body;
+
+    if (!game_version) {
+      return res.status(400).json({ message: 'Game version is required' });
+    }
+
+    // Check if version already exists
+    const existingVersion = await Version.findOne({ game_version });
+    if (existingVersion) {
+      return res.status(400).json({ message: 'Version already exists' });
+    }
+
+    // Validate version format (should be like X.Y.Z)
+    const versionRegex = /^\d+\.\d+(\.\d+)?$/;
+    if (!versionRegex.test(game_version)) {
+      return res.status(400).json({ message: 'Invalid version format. Use format like 11.1.0 or 11.2' });
+    }
+
+    const newVersion = new Version({ game_version });
+    await newVersion.save();
+
+    Logger.info(`Admin created new version: ${game_version}`);
+
+    return res.status(201).json({
+      message: 'Version created successfully',
+      version: {
+        id: newVersion._id,
+        game_version: newVersion.game_version,
+        ability_count: 0,
+        created_at: newVersion.createdAt
+      }
+    });
+  } catch (error) {
+    Logger.error('Error creating version:', error);
+    return res.status(500).json({ message: 'Error creating version' });
+  }
+};
+
+/**
+ * Copy abilities from one version to another
+ */
+export const copyAbilitiesFromVersion = async (req, res) => {
+  try {
+    const { sourceVersionId, targetVersionId } = req.body;
+
+    if (!sourceVersionId || !targetVersionId) {
+      return res.status(400).json({ message: 'Source and target version IDs are required' });
+    }
+
+    // Verify both versions exist
+    const sourceVersion = await Version.findById(sourceVersionId);
+    const targetVersion = await Version.findById(targetVersionId);
+
+    if (!sourceVersion) {
+      return res.status(404).json({ message: 'Source version not found' });
+    }
+    if (!targetVersion) {
+      return res.status(404).json({ message: 'Target version not found' });
+    }
+
+    // Check if target already has abilities
+    const existingAbilities = await Ability.countDocuments({ game_version: targetVersionId });
+    if (existingAbilities > 0) {
+      return res.status(400).json({ 
+        message: `Target version already has ${existingAbilities} abilities. Cannot copy to a version with existing abilities.` 
+      });
+    }
+
+    // Get all abilities from source version (including inactive)
+    const sourceAbilities = await Ability.find({ 
+      game_version: sourceVersionId,
+      includeInactive: true 
+    });
+
+    if (sourceAbilities.length === 0) {
+      return res.status(400).json({ message: 'Source version has no abilities to copy' });
+    }
+
+    // Copy abilities to target version
+    const copiedAbilities = sourceAbilities.map(ability => ({
+      spell_id: ability.spell_id,
+      name: ability.name,
+      description: ability.description,
+      icon: ability.icon,
+      class: ability.class,
+      spec: ability.spec,
+      hero_talent: ability.hero_talent,
+      ability_type: ability.ability_type,
+      level_required: ability.level_required,
+      cooldown: ability.cooldown,
+      range: ability.range,
+      cost: ability.cost,
+      cost_amount: ability.cost_amount,
+      is_active: ability.is_active,
+      game_version: targetVersionId
+    }));
+
+    await Ability.insertMany(copiedAbilities);
+
+    Logger.info(`Admin copied ${copiedAbilities.length} abilities from version ${sourceVersion.game_version} to ${targetVersion.game_version}`);
+
+    return res.status(200).json({
+      message: `Successfully copied ${copiedAbilities.length} abilities`,
+      copied_count: copiedAbilities.length,
+      source_version: sourceVersion.game_version,
+      target_version: targetVersion.game_version
+    });
+  } catch (error) {
+    Logger.error('Error copying abilities:', error);
+    return res.status(500).json({ message: 'Error copying abilities' });
+  }
+};
+
+/**
+ * Delete a version (only if it has no abilities)
+ */
+export const deleteVersion = async (req, res) => {
+  try {
+    const { versionId } = req.params;
+
+    const version = await Version.findById(versionId);
+    if (!version) {
+      return res.status(404).json({ message: 'Version not found' });
+    }
+
+    // Check if version has abilities
+    const abilityCount = await Ability.countDocuments({ game_version: versionId });
+    if (abilityCount > 0) {
+      return res.status(400).json({ 
+        message: `Cannot delete version with ${abilityCount} abilities. Delete or move abilities first.` 
+      });
+    }
+
+    await Version.findByIdAndDelete(versionId);
+
+    Logger.info(`Admin deleted version: ${version.game_version}`);
+
+    return res.status(200).json({
+      message: 'Version deleted successfully'
+    });
+  } catch (error) {
+    Logger.error('Error deleting version:', error);
+    return res.status(500).json({ message: 'Error deleting version' });
   }
 };
 

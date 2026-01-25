@@ -22,6 +22,12 @@ router.put('/users/:userId/access-level', adminMiddleware, AdminController.updat
 router.get('/abilities', adminMiddleware, AdminController.getAbilitiesAdmin);
 router.put('/abilities/:abilityId/toggle-active', adminMiddleware, AdminController.toggleAbilityActive);
 
+// ==================== VERSIONS ====================
+router.get('/versions', adminMiddleware, AdminController.getVersionsAdmin);
+router.post('/versions', adminMiddleware, AdminController.createVersion);
+router.post('/versions/copy-abilities', adminMiddleware, AdminController.copyAbilitiesFromVersion);
+router.delete('/versions/:versionId', adminMiddleware, AdminController.deleteVersion);
+
 // ==================== KEYBINDINGS ====================
 router.get('/keybindings', adminMiddleware, AdminController.getKeybindingsAdmin);
 router.post('/keybindings/:keybindingId/restore', adminMiddleware, AdminController.restoreKeybinding);

@@ -131,13 +131,17 @@ const macroSchema = new Schema({
 
 // Add a pre-find middleware to exclude inactive and soft-deleted macros
 macroSchema.pre(/^find/, function (next) {
+  const query = this.getQuery();
   // Only apply this filter if we're not explicitly looking for inactive or deleted macros
-  if (!this.getQuery().includeInactive && !this.getQuery().includeDeleted) {
+  if (!query.includeInactive && !query.includeDeleted) {
     this.where({
       is_active: true,
       deletedAt: null
     });
   }
+  // Remove these flags from query so MongoDB doesn't try to match them as fields
+  delete query.includeInactive;
+  delete query.includeDeleted;
   next();
 });
 

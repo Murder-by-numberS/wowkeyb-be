@@ -155,10 +155,13 @@ keybindingSchema.path('hero_talent').validate(function (value) {
 
 // Add a pre-find middleware to exclude soft-deleted documents
 keybindingSchema.pre(/^find/, function (next) {
+  const query = this.getQuery();
   // Only apply this filter if we're not explicitly looking for deleted documents
-  if (!this.getQuery().includeDeleted) {
+  if (!query.includeDeleted) {
     this.where({ deleted_at: null });
   }
+  // Remove includeDeleted from query so MongoDB doesn't try to match it as a field
+  delete query.includeDeleted;
   next();
 });
 

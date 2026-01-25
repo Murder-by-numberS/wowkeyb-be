@@ -12,7 +12,7 @@ const ADMIN_ACCESS_LEVEL = 9;
 async function setAdminUser(email) {
   try {
     // Connect to MongoDB
-    await mongoose.connect(config.mongoUri);
+    await mongoose.connect(config.databaseURI);
     console.log('Connected to MongoDB');
 
     // Find user by email

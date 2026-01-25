@@ -12,7 +12,7 @@ const ADMIN_ACCESS_LEVEL = 9;
 async function listAdminUsers() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(config.mongoUri);
+    await mongoose.connect(config.databaseURI);
     console.log('Connected to MongoDB\n');
 
     // Find all admin users

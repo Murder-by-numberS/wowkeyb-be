@@ -111,9 +111,22 @@ export const login = async (req, res) => {
     //get keybindings
     const keybindings = await Keybinding.find({ user_id: user._id }).populate('version');
 
+    // Convert snake_case to camelCase for frontend
+    const userResponse = {
+      _id: user._id,
+      email: user.email,
+      username: user.username,
+      confirmed: user.confirmed,
+      description: user.description,
+      favoriteClass: user.favorite_class,
+      access_level: user.access_level,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
     //return with user model, token and user settings
     const payload = {
-      user,
+      user: userResponse,
       token,
       userSettings,
       keybindings: presentMany(keybindings)
@@ -311,9 +324,22 @@ export const refreshAccessToken = async (req, res) => {
     //get keybindings
     const keybindings = await Keybinding.find({ user_id: user._id }).populate('version');
 
+    // Convert snake_case to camelCase for frontend
+    const userResponse = {
+      _id: user._id,
+      email: user.email,
+      username: user.username,
+      confirmed: user.confirmed,
+      description: user.description,
+      favoriteClass: user.favorite_class,
+      access_level: user.access_level,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
     //return with user model, token and user settings
     const payload = {
-      user,
+      user: userResponse,
       token,
       userSettings,
       keybindings: presentMany(keybindings)

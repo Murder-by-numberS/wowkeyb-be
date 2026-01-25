@@ -532,27 +532,31 @@ export const getKeybindingsAdmin = async (req, res) => {
   try {
     const { page = 1, limit = 20, search = '', includeDeleted = 'true', onlyDeleted = 'false' } = req.query;
 
-    const query = {};
-    if (includeDeleted === 'true') {
-      query.includeDeleted = true;
-    }
+    // Build filter query for countDocuments (real MongoDB fields only)
+    const filterQuery = {};
     if (onlyDeleted === 'true') {
-      query.deleted_at = { $ne: null };
+      filterQuery.deleted_at = { $ne: null };
     }
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      filterQuery.name = { $regex: search, $options: 'i' };
+    }
+
+    // Build find query (includes hook flags)
+    const findQuery = { ...filterQuery };
+    if (includeDeleted === 'true') {
+      findQuery.includeDeleted = true;
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const keybindings = await Keybinding.find(query)
+    const keybindings = await Keybinding.find(findQuery)
       .populate('user_id', 'username email')
       .populate('version', 'game_version')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    const totalCount = await Keybinding.countDocuments(query);
+    const totalCount = await Keybinding.countDocuments(filterQuery);
 
     return res.status(200).json({
       keybindings: keybindings.map(kb => ({
@@ -655,23 +659,61 @@ export const permanentDeleteKeybinding = async (req, res) => {
  */
 export const getMacrosAdmin = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search = '', includeDeleted = 'true', onlyDeleted = 'false' } = req.query;
+    const { 
+      page = 1, 
+      limit = 20, 
+      search = '', 
+      includeDeleted = 'true', 
+      onlyDeleted = 'false',
+      startDate,
+      endDate
+    } = req.query;
 
-    const query = {};
-    if (includeDeleted === 'true') {
-      query.includeDeleted = true;
-      query.includeInactive = true;
-    }
+    // Build filter query for countDocuments (real MongoDB fields only)
+    const filterQuery = {};
     if (onlyDeleted === 'true') {
-      query.deletedAt = { $ne: null };
+      filterQuery.deletedAt = { $ne: null };
     }
+    
+    // Search by name or username
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      // Find users matching the search term
+      const matchingUsers = await User.find({
+        username: { $regex: search, $options: 'i' }
+      }).select('_id');
+      const userIds = matchingUsers.map(u => u._id);
+
+      // Search by macro name OR user_id
+      filterQuery.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { user_id: { $in: userIds } }
+      ];
+    }
+    
+    // Date range filter
+    if (startDate || endDate) {
+      filterQuery.createdAt = {};
+      if (startDate) {
+        filterQuery.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set end date to end of day
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        filterQuery.createdAt.$lte = endOfDay;
+      }
+    }
+
+    // Build find query (includes hook flags)
+    const findQuery = { ...filterQuery };
+    if (includeDeleted === 'true') {
+      findQuery.includeDeleted = true;
+      findQuery.includeInactive = true;
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const macros = await Macro.find(query)
+    const macros = await Macro.find(findQuery)
       .populate('user_id', 'username email')
       .populate('game_version', 'game_version')
       .populate('ability', 'name icon')
@@ -679,7 +721,7 @@ export const getMacrosAdmin = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    const totalCount = await Macro.countDocuments(query);
+    const totalCount = await Macro.countDocuments(filterQuery);
 
     return res.status(200).json({
       macros: macros.map(macro => ({

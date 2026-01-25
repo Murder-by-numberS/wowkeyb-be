@@ -2,9 +2,11 @@ import mongoose from 'mongoose';
 import Keybinding from '../../models/keybinding.js';
 import Version from '../../models/version.js';
 import Ability from '../../models/ability.js';
+import User from '../../models/user.js';
 import { presentOne, presentMany } from '../../presenters/keybindings.js';
 import Logger from '../../utils/logger.js';
 import { generateRandomClassDetails } from '../ability/abilities.js';
+import { ADMIN_ACCESS_LEVEL } from '../../middlewares/authn.js';
 
 // Maximum keybindings per user
 const MAX_KEYBINDINGS_PER_USER = 10;
@@ -667,9 +669,18 @@ export const getKeybinding = async (req, res, next) => {
         return res.status(401).send({ message: 'Authentication required' });
       }
 
-      if (keybinding.user_id?.toString() !== req.decoded.user_id) {
-        console.log('Access denied - keybinding is private and user is not the owner');
-        return res.status(403).send({ message: 'Not authorized to access this keybinding' });
+      // Check if user is the owner
+      const isOwner = keybinding.user_id?.toString() === req.decoded.user_id;
+      
+      if (!isOwner) {
+        // Check if user is admin
+        const requestingUser = await User.findById(req.decoded.user_id);
+        const isAdmin = requestingUser?.access_level >= ADMIN_ACCESS_LEVEL;
+        
+        if (!isAdmin) {
+          console.log('Access denied - keybinding is private and user is not the owner or admin');
+          return res.status(403).send({ message: 'Not authorized to access this keybinding' });
+        }
       }
     }
 

@@ -23,11 +23,11 @@ export const getDashboardStats = async (req, res) => {
       deletedMacros
     ] = await Promise.all([
       User.countDocuments(),
-      Ability.countDocuments({ includeInactive: true }),
+      Ability.countDocuments({}), // Count all abilities (countDocuments bypasses pre-find hooks)
       Ability.countDocuments({ is_active: true }),
-      Keybinding.countDocuments({ includeDeleted: true }),
+      Keybinding.countDocuments({}), // Count all keybindings
       Keybinding.countDocuments({ deleted_at: { $ne: null } }),
-      Macro.countDocuments({ includeDeleted: true, includeInactive: true }),
+      Macro.countDocuments({}), // Count all macros
       Macro.countDocuments({ deletedAt: { $ne: null } })
     ]);
 
@@ -174,10 +174,10 @@ export const getUserById = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get user's keybinding and macro counts
+    // Get user's keybinding and macro counts (countDocuments bypasses pre-find hooks)
     const [keybindingCount, macroCount] = await Promise.all([
-      Keybinding.countDocuments({ user_id: userId, includeDeleted: true }),
-      Macro.countDocuments({ user_id: userId, includeDeleted: true, includeInactive: true })
+      Keybinding.countDocuments({ user_id: userId }),
+      Macro.countDocuments({ user_id: userId })
     ]);
 
     return res.status(200).json({

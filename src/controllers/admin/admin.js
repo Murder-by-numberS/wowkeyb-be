@@ -212,27 +212,35 @@ export const getAbilitiesAdmin = async (req, res) => {
   try {
     const { page = 1, limit = 50, search = '', class: wowClass = '', includeInactive = 'true' } = req.query;
 
-    const query = {};
-    if (includeInactive === 'true') {
-      query.includeInactive = true;
-    }
+    // Build the actual filter query (for countDocuments which bypasses hooks)
+    const filterQuery = {};
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      filterQuery.name = { $regex: search, $options: 'i' };
     }
     if (wowClass) {
-      query.class = wowClass.toLowerCase();
+      filterQuery.class = wowClass.toLowerCase();
+    }
+    // Only filter by is_active if NOT including inactive
+    if (includeInactive !== 'true') {
+      filterQuery.is_active = true;
+    }
+
+    // Build query for find() which uses the pre-find hook
+    const findQuery = { ...filterQuery };
+    if (includeInactive === 'true') {
+      findQuery.includeInactive = true; // This tells the pre-find hook to skip is_active filter
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Need to use aggregation to bypass the pre-find middleware
-    const abilities = await Ability.find(query)
+    const abilities = await Ability.find(findQuery)
       .populate('game_version', 'game_version')
       .sort({ class: 1, name: 1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    const totalCount = await Ability.countDocuments(query);
+    // Use filterQuery for countDocuments (it bypasses pre-find hooks)
+    const totalCount = await Ability.countDocuments(filterQuery);
 
     return res.status(200).json({
       abilities: abilities.map(ability => ({

@@ -35,6 +35,35 @@ export const getDashboardStats = async (req, res) => {
     // Count admin users
     const adminUsers = await User.countDocuments({ access_level: { $gte: 9 } });
 
+    // Get ticket stats from Jira
+    let ticketStats = { total: 0, open: 0, recentlyCreated: 0, jiraDisabled: false };
+    try {
+      const projectKey = process.env.JIRA_PROJECT_KEY || 'WS';
+      
+      // Get all tickets count
+      const allTickets = await jiraService.searchTickets(`project = ${projectKey}`, 1, 1);
+      console.log('All tickets response:', JSON.stringify(allTickets.pagination));
+      ticketStats.total = allTickets.pagination?.total_count || 0;
+      
+      // Get open tickets count (not Done/Closed)
+      const openTickets = await jiraService.searchTickets(`project = ${projectKey} AND status NOT IN (Done, Closed)`, 1, 1);
+      ticketStats.open = openTickets.pagination?.total_count || 0;
+      
+      // Get tickets created in last 7 days
+      const last7Days = new Date();
+      last7Days.setDate(last7Days.getDate() - 7);
+      const dateStr = last7Days.toISOString().split('T')[0];
+      const recentTickets = await jiraService.searchTickets(`project = ${projectKey} AND created >= "${dateStr}"`, 1, 1);
+      ticketStats.recentlyCreated = recentTickets.pagination?.total_count || 0;
+      
+      ticketStats.jiraDisabled = allTickets.jira_disabled || false;
+      console.log('Final ticket stats:', ticketStats);
+    } catch (ticketError) {
+      Logger.warn('Could not fetch ticket stats from Jira:', ticketError.message);
+      console.error('Ticket stats error:', ticketError);
+      ticketStats.jiraDisabled = true;
+    }
+
     return res.status(200).json({
       users: {
         total: totalUsers,
@@ -54,7 +83,8 @@ export const getDashboardStats = async (req, res) => {
         total: totalMacros,
         active: totalMacros - deletedMacros,
         deleted: deletedMacros
-      }
+      },
+      tickets: ticketStats
     });
   } catch (error) {
     Logger.error('Error getting dashboard stats:', error);
@@ -833,14 +863,59 @@ export const permanentDeleteMacro = async (req, res) => {
  */
 export const getSupportTickets = async (req, res) => {
   try {
-    const { status = 'all', page = 1, limit = 20 } = req.query;
+    const { status = 'all', priority = 'all', search = '', startDate, endDate, sortBy = 'priority', page = 1, limit = 20 } = req.query;
+
+    // Get project key from environment or use default
+    const projectKey = process.env.JIRA_PROJECT_KEY || 'WS';
 
     // Build JQL query
-    let jql = 'project = WOW'; // Assuming WOW is the Jira project key
-    if (status !== 'all') {
-      jql += ` AND status = "${status}"`;
+    let jqlParts = [`project = ${projectKey}`];
+
+    if (status === 'active') {
+      jqlParts.push(`status NOT IN (Done, Closed)`);
+    } else if (status !== 'all') {
+      jqlParts.push(`status = "${status}"`);
     }
-    jql += ' ORDER BY created DESC';
+
+    if (priority !== 'all') {
+      jqlParts.push(`priority = "${priority}"`);
+    }
+
+    if (search && search.trim()) {
+      // Search in summary and description
+      jqlParts.push(`(summary ~ "${search}" OR description ~ "${search}" OR key = "${search.toUpperCase()}")`);
+    }
+
+    if (startDate) {
+      jqlParts.push(`created >= "${startDate}"`);
+    }
+
+    if (endDate) {
+      jqlParts.push(`created <= "${endDate}"`);
+    }
+
+    // Build ORDER BY clause based on sortBy parameter
+    let orderBy;
+    switch (sortBy) {
+      case 'created_desc':
+        orderBy = 'ORDER BY created DESC';
+        break;
+      case 'created_asc':
+        orderBy = 'ORDER BY created ASC';
+        break;
+      case 'updated_desc':
+        orderBy = 'ORDER BY updated DESC';
+        break;
+      case 'status':
+        orderBy = 'ORDER BY status ASC, created DESC';
+        break;
+      case 'priority':
+      default:
+        orderBy = 'ORDER BY priority DESC, created DESC';
+        break;
+    }
+
+    const jql = jqlParts.join(' AND ') + ' ' + orderBy;
 
     const tickets = await jiraService.searchTickets(jql, parseInt(page), parseInt(limit));
 
@@ -864,5 +939,67 @@ export const getSupportTicketById = async (req, res) => {
   } catch (error) {
     Logger.error('Error getting support ticket:', error);
     return res.status(500).json({ message: 'Error getting support ticket', error: error.message });
+  }
+};
+
+/**
+ * Add a comment to a support ticket
+ */
+export const addTicketComment = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { comment } = req.body;
+
+    if (!comment || !comment.trim()) {
+      return res.status(400).json({ message: 'Comment is required' });
+    }
+
+    const result = await jiraService.addComment(ticketId, comment);
+
+    Logger.info(`Admin added comment to ticket ${ticketId}`);
+
+    return res.status(200).json({ message: 'Comment added successfully', ...result });
+  } catch (error) {
+    Logger.error('Error adding comment to ticket:', error);
+    return res.status(500).json({ message: 'Error adding comment', error: error.message });
+  }
+};
+
+/**
+ * Get available transitions for a ticket
+ */
+export const getTicketTransitions = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    const result = await jiraService.getTransitions(ticketId);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    Logger.error('Error getting ticket transitions:', error);
+    return res.status(500).json({ message: 'Error getting transitions', error: error.message });
+  }
+};
+
+/**
+ * Transition a ticket to a new status
+ */
+export const transitionTicket = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { transitionId } = req.body;
+
+    if (!transitionId) {
+      return res.status(400).json({ message: 'Transition ID is required' });
+    }
+
+    const result = await jiraService.transitionTicket(ticketId, transitionId);
+
+    Logger.info(`Admin transitioned ticket ${ticketId} with transition ${transitionId}`);
+
+    return res.status(200).json({ message: 'Ticket status updated successfully', ...result });
+  } catch (error) {
+    Logger.error('Error transitioning ticket:', error);
+    return res.status(500).json({ message: 'Error updating ticket status', error: error.message });
   }
 };

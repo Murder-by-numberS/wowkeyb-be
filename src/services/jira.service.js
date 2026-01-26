@@ -1,4 +1,5 @@
-import { Version3Client } from 'jira.js';
+import { Version2Client } from 'jira.js';
+import axios from 'axios';
 import Config from '../config/config.js';
 
 class JiraService {
@@ -9,8 +10,13 @@ class JiraService {
         const jiraApiToken = process.env.JIRA_API_TOKEN;
         const jiraProjectKey = process.env.JIRA_PROJECT_KEY;
 
+        this.jiraHost = jiraHost;
+        this.jiraEmail = jiraEmail;
+        this.jiraApiToken = jiraApiToken;
+        this.projectKey = jiraProjectKey || 'SUPPORT';
+
         if (jiraHost && jiraEmail && jiraApiToken) {
-            this.jira = new Version3Client({
+            this.jira = new Version2Client({
                 host: `https://${jiraHost}`,
                 authentication: {
                     basic: {
@@ -20,12 +26,34 @@ class JiraService {
                 }
             });
 
-            this.projectKey = jiraProjectKey || 'SUPPORT';
-            this.jiraHost = jiraHost;
             this.enabled = true;
         } else {
             this.enabled = false;
             console.warn('Jira integration is not configured. Support tickets will be logged but not created in Jira.');
+        }
+    }
+
+    /**
+     * Test Jira connection
+     */
+    async testConnection() {
+        if (!this.enabled) {
+            return { success: false, message: 'Jira not configured' };
+        }
+
+        try {
+            const auth = Buffer.from(`${this.jiraEmail}:${this.jiraApiToken}`).toString('base64');
+            const response = await axios.get(`https://${this.jiraHost}/rest/api/2/myself`, {
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Accept': 'application/json'
+                }
+            });
+            console.log('Jira connection test successful:', response.data.displayName);
+            return { success: true, user: response.data.displayName };
+        } catch (error) {
+            console.error('Jira connection test failed:', error.response?.status, error.response?.data);
+            return { success: false, error: error.message, status: error.response?.status };
         }
     }
 
@@ -158,18 +186,117 @@ _Submitted at: ${new Date().toISOString()}_
     async addComment(issueKey, comment) {
         if (!this.enabled) {
             console.log('Comment would be added to ticket (Jira disabled):', issueKey);
-            return { success: true };
+            return { success: true, jira_disabled: true };
         }
 
         try {
-            await this.jira.issueComments.addComment({
-                issueIdOrKey: issueKey,
-                body: comment
-            });
+            const auth = Buffer.from(`${this.jiraEmail}:${this.jiraApiToken}`).toString('base64');
+            await axios.post(
+                `https://${this.jiraHost}/rest/api/3/issue/${issueKey}/comment`,
+                {
+                    body: {
+                        type: 'doc',
+                        version: 1,
+                        content: [
+                            {
+                                type: 'paragraph',
+                                content: [
+                                    {
+                                        type: 'text',
+                                        text: comment
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
             return { success: true };
         } catch (error) {
-            console.error('Error adding comment to Jira ticket:', error);
+            console.error('Error adding comment to Jira ticket:', error.message);
+            console.error('Error response:', error.response?.data);
             throw new Error(`Failed to add comment: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get available transitions for a ticket
+     */
+    async getTransitions(issueKey) {
+        if (!this.enabled) {
+            return {
+                transitions: [
+                    { id: '1', name: 'To Do' },
+                    { id: '2', name: 'In Progress' },
+                    { id: '3', name: 'Done' }
+                ],
+                jira_disabled: true
+            };
+        }
+
+        try {
+            const auth = Buffer.from(`${this.jiraEmail}:${this.jiraApiToken}`).toString('base64');
+            const response = await axios.get(
+                `https://${this.jiraHost}/rest/api/3/issue/${issueKey}/transitions`,
+                {
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Accept': 'application/json'
+                    }
+                }
+            );
+
+            return {
+                transitions: response.data.transitions.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    to: t.to?.name
+                }))
+            };
+        } catch (error) {
+            console.error('Error getting transitions:', error.message);
+            throw new Error(`Failed to get transitions: ${error.message}`);
+        }
+    }
+
+    /**
+     * Transition a ticket to a new status
+     */
+    async transitionTicket(issueKey, transitionId) {
+        if (!this.enabled) {
+            console.log('Ticket would be transitioned (Jira disabled):', issueKey, transitionId);
+            return { success: true, jira_disabled: true };
+        }
+
+        try {
+            const auth = Buffer.from(`${this.jiraEmail}:${this.jiraApiToken}`).toString('base64');
+            await axios.post(
+                `https://${this.jiraHost}/rest/api/3/issue/${issueKey}/transitions`,
+                {
+                    transition: {
+                        id: transitionId
+                    }
+                },
+                {
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            return { success: true };
+        } catch (error) {
+            console.error('Error transitioning ticket:', error.message);
+            console.error('Error response:', error.response?.data);
+            throw new Error(`Failed to transition ticket: ${error.message}`);
         }
     }
 
@@ -222,13 +349,40 @@ _Submitted at: ${new Date().toISOString()}_
 
         try {
             const startAt = (page - 1) * limit;
+            const auth = Buffer.from(`${this.jiraEmail}:${this.jiraApiToken}`).toString('base64');
 
-            const result = await this.jira.issueSearch.searchForIssuesUsingJql({
-                jql: jql,
-                startAt: startAt,
-                maxResults: limit,
-                fields: ['summary', 'status', 'priority', 'created', 'updated', 'assignee', 'reporter', 'labels', 'description']
-            });
+            // Get issues using /search/jql endpoint
+            const response = await axios.get(
+                `https://${this.jiraHost}/rest/api/3/search/jql`,
+                {
+                    params: {
+                        jql: jql,
+                        startAt: startAt,
+                        maxResults: limit,
+                        fields: 'summary,status,priority,created,updated,assignee,reporter,labels,description'
+                    },
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Accept': 'application/json'
+                    }
+                }
+            );
+
+            // Get total count using /search/approximate-count endpoint
+            const countResponse = await axios.post(
+                `https://${this.jiraHost}/rest/api/3/search/approximate-count`,
+                { jql: jql },
+                {
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            const result = response.data;
+            const totalCount = countResponse.data.count || 0;
 
             const tickets = result.issues.map(issue => ({
                 id: issue.id,
@@ -248,13 +402,15 @@ _Submitted at: ${new Date().toISOString()}_
                 tickets,
                 pagination: {
                     current_page: page,
-                    total_pages: Math.ceil(result.total / limit),
-                    total_count: result.total,
+                    total_pages: Math.ceil(totalCount / limit),
+                    total_count: totalCount,
                     per_page: limit
                 }
             };
         } catch (error) {
-            console.error('Error searching Jira tickets:', error);
+            console.error('Error searching Jira tickets:', error.message);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
             throw new Error(`Failed to search tickets: ${error.message}`);
         }
     }

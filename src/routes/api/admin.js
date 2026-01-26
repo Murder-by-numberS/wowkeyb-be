@@ -41,5 +41,8 @@ router.delete('/macros/:macroId/permanent', adminMiddleware, AdminController.per
 // ==================== SUPPORT TICKETS ====================
 router.get('/support-tickets', adminMiddleware, AdminController.getSupportTickets);
 router.get('/support-tickets/:ticketId', adminMiddleware, AdminController.getSupportTicketById);
+router.post('/support-tickets/:ticketId/comment', adminMiddleware, AdminController.addTicketComment);
+router.get('/support-tickets/:ticketId/transitions', adminMiddleware, AdminController.getTicketTransitions);
+router.post('/support-tickets/:ticketId/transition', adminMiddleware, AdminController.transitionTicket);
 
 export default router;

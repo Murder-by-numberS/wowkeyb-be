@@ -116,10 +116,13 @@ const abilitySchema = new Schema({
 
 // Add a pre-find middleware to exclude inactive abilities
 abilitySchema.pre(/^find/, function (next) {
+  const query = this.getQuery();
   // Only apply this filter if we're not explicitly looking for inactive abilities
-  if (!this.getQuery().includeInactive) {
+  if (!query.includeInactive) {
     this.where({ is_active: true });
   }
+  // Remove includeInactive from query so MongoDB doesn't try to match it as a field
+  delete query.includeInactive;
   next();
 });
 

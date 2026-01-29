@@ -134,6 +134,14 @@ const keybindingSchema = new Schema({
   deleted_at: {
     type: Date,
     default: null
+  },
+  // Links keybindings that are versions of the same build together
+  // All versions of a keybinding share the same keybinding_group_id
+  // Only counts as 1 toward the user's keybinding limit
+  keybinding_group_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'Keybinding',
+    default: null
   }
 }, {
   timestamps: true
@@ -155,10 +163,13 @@ keybindingSchema.path('hero_talent').validate(function (value) {
 
 // Add a pre-find middleware to exclude soft-deleted documents
 keybindingSchema.pre(/^find/, function (next) {
+  const query = this.getQuery();
   // Only apply this filter if we're not explicitly looking for deleted documents
-  if (!this.getQuery().includeDeleted) {
+  if (!query.includeDeleted) {
     this.where({ deleted_at: null });
   }
+  // Remove includeDeleted from query so MongoDB doesn't try to match it as a field
+  delete query.includeDeleted;
   next();
 });
 

@@ -16,6 +16,7 @@ import FilesRouter from './api/files.js'
 import WagoIconsRouter from './api/wago-icons.js'
 import IconsRouter from './api/icons.js'
 import SupportRouter from './api/support.js'
+import AdminRouter from './api/admin.js'
 
 import AuthnMiddleware from '../middlewares/authn.js';
 
@@ -58,5 +59,8 @@ router
 
   //support
   .use('/support', SupportRouter)
+
+  //admin dashboard
+  .use('/admin', AdminRouter)
 
 export default router;

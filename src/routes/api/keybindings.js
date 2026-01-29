@@ -55,5 +55,13 @@ router.post('/:keybinding_id/migrate',
   validateGetKeybinding,
   AuthnMiddleware.authenticateToken,
   KeybindingsController.migrateKeybindingToVersion)
+router.get('/:keybinding_id/versions',
+  validateGetKeybinding,
+  AuthnMiddleware.decode,
+  KeybindingsController.getKeybindingVersions)
+router.post('/:keybinding_id/copy-to-version',
+  validateGetKeybinding,
+  AuthnMiddleware.authenticateToken,
+  KeybindingsController.copyKeybindingToVersion)
 
 export default router;

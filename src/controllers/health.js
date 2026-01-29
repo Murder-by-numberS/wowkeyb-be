@@ -21,8 +21,19 @@ const HealthService = {
 
     const dbStatus = mongoose && mongoose.connection.readyState === 1 ? 'UP' : 'DOWN';
     const version = Config.appVersion;
+    
+    // Normalize environment name for consistency with frontend
+    let environment = Config.appEnv || Config.nodeEnv || 'development';
+    if (environment === 'development') environment = 'develop';
+    if (environment === 'dev') environment = 'develop';
+    if (environment === 'prod') environment = 'production';
 
-    return res.status(200).json({ dbStatus, version });
+    return res.status(200).json({ 
+      dbStatus, 
+      version,
+      environment,
+      timestamp: new Date().toISOString()
+    });
   },
 
 }

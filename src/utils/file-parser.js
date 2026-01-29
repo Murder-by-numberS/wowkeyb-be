@@ -2,6 +2,55 @@ import Logger from './logger.js';
 import { Icon } from '../models/index.js';
 
 /**
+ * Validate that a file appears to be a WoW macro cache file
+ * Checks for the presence of valid macro headers (VER 3 format)
+ *
+ * @param {string} fileContent - The raw content of the file
+ * @returns {Object} Validation result with isValid boolean and error message
+ */
+export const validateMacroFileFormat = (fileContent) => {
+  if (!fileContent || typeof fileContent !== 'string') {
+    return {
+      isValid: false,
+      error: 'File is empty or invalid'
+    };
+  }
+
+  // Check if the file is too small to be a valid macro file
+  if (fileContent.trim().length < 10) {
+    return {
+      isValid: false,
+      error: 'File is too small to be a valid macro file'
+    };
+  }
+
+  // Check for the VER 3 macro header pattern
+  // Format: VER 3 [hex_id] "[name]" "[icon_fdid]"
+  const macroHeaderPattern = /^VER\s+3\s+[0-9A-Fa-f]+\s+"[^"]+"\s+"[^"]+"/m;
+
+  if (!macroHeaderPattern.test(fileContent)) {
+    // Check if it might be a different version or format
+    const anyVerPattern = /^VER\s+\d+/m;
+    if (anyVerPattern.test(fileContent)) {
+      return {
+        isValid: false,
+        error: 'File appears to be a macro file but uses an unsupported format version. Only VER 3 format is supported.'
+      };
+    }
+
+    return {
+      isValid: false,
+      error: 'File does not appear to be a valid WoW macro file. Expected format: macros-cache.txt from WoW\'s WTF folder.'
+    };
+  }
+
+  return {
+    isValid: true,
+    error: null
+  };
+};
+
+/**
  * Parse a WoW macro cache file and extract individual macros
  * Format: VER 3 [hex_id] "[name]" "[icon_fdid]"
  *

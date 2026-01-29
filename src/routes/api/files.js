@@ -1,5 +1,5 @@
 import express from 'express';
-import multer from 'multer';
+import multer, { MulterError } from 'multer';
 import {
     uploadMacroFile,
     previewMacroFile,
@@ -109,6 +109,25 @@ router.delete(
     validateDownloadRecordId,
     deleteDownloadRecord
 );
+
+// Error handler for multer file upload errors
+// This catches file size limit errors, file type rejections, etc.
+router.use((err, req, res, next) => {
+    if (err instanceof MulterError) {
+        // Handle multer-specific errors
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ message: 'File size must be less than 2MB' });
+        }
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            return res.status(400).json({ message: 'Unexpected file field' });
+        }
+        return res.status(400).json({ message: `File upload error: ${err.message}` });
+    } else if (err) {
+        // Handle fileFilter rejection errors and other errors
+        return res.status(400).json({ message: err.message || 'File upload failed' });
+    }
+    next();
+});
 
 export default router;
 

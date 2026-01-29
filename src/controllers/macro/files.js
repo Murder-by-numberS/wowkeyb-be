@@ -4,6 +4,7 @@ import Logger from '../../utils/logger.js';
 import { Macro, Version, User, File } from '../../models/index.js';
 import {
   parseMacroFile,
+  validateMacroFileFormat,
   validateMacrosForClass,
   resolveIconFromFdid
 } from '../../utils/file-parser.js';
@@ -104,6 +105,13 @@ export const uploadMacroFile = async (req, res) => {
 
     // Parse the file content
     const fileContent = req.file.buffer.toString('utf-8');
+
+    // Validate that the file is a valid WoW macro file format
+    const formatValidation = validateMacroFileFormat(fileContent);
+    if (!formatValidation.isValid) {
+      return res.status(400).json({ message: formatValidation.error });
+    }
+
     const parsedMacros = parseMacroFile(fileContent);
 
     if (parsedMacros.length === 0) {
@@ -262,6 +270,13 @@ export const previewMacroFile = async (req, res) => {
 
     // Parse the file content
     const fileContent = req.file.buffer.toString('utf-8');
+
+    // Validate that the file is a valid WoW macro file format
+    const formatValidation = validateMacroFileFormat(fileContent);
+    if (!formatValidation.isValid) {
+      return res.status(400).json({ message: formatValidation.error });
+    }
+
     const parsedMacros = parseMacroFile(fileContent);
 
     if (parsedMacros.length === 0) {

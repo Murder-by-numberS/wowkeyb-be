@@ -73,24 +73,37 @@ export const getKeybindings = async (req, res, next) => {
 
     const { user_id } = req.decoded;
 
-    const keybindings = await Keybinding.find({ user_id })
+    // Get all keybindings for this user
+    const allKeybindings = await Keybinding.find({ user_id, deleted_at: null })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds deleted_at')
-      .limit(100) // Prevent runaway queries
-      .lean(); // Use lean() for better performance
+      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds deleted_at keybinding_group_id')
+      .lean();
 
-    // Check if any soft-deleted keybindings are being returned
-    const softDeletedCount = keybindings.filter(kb => kb.deleted_at).length;
-    if (softDeletedCount > 0) {
-      Logger.error(`WARNING: ${softDeletedCount} soft-deleted keybindings are being returned for user ${user_id}`);
-      Logger.error('Soft-deleted keybindings:', keybindings.filter(kb => kb.deleted_at).map(kb => ({
-        id: kb._id,
-        name: kb.name,
-        deletedAt: kb.deleted_at
-      })));
+    // Group by keybinding_group_id and keep only the latest version per group
+    const groupMap = new Map();
+    
+    for (const kb of allKeybindings) {
+      // Use keybinding_group_id if set, otherwise use the keybinding's own _id
+      const groupId = (kb.keybinding_group_id || kb._id).toString();
+      
+      if (!groupMap.has(groupId)) {
+        groupMap.set(groupId, kb);
+      } else {
+        // Keep the one with the higher version number (semantic versioning comparison)
+        const existing = groupMap.get(groupId);
+        const existingVersion = existing.version?.game_version || '0.0.0';
+        const currentVersion = kb.version?.game_version || '0.0.0';
+        
+        // Compare versions - keep the higher one
+        if (currentVersion.localeCompare(existingVersion, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
+          groupMap.set(groupId, kb);
+        }
+      }
     }
 
-    Logger.info(`Retrieved ${keybindings.length} keybindings for user ${user_id} (${softDeletedCount} soft-deleted)`);
+    const keybindings = Array.from(groupMap.values());
+
+    Logger.info(`Retrieved ${keybindings.length} unique keybindings (from ${allKeybindings.length} total) for user ${user_id}`);
 
     // Log all keybinding IDs and versions for debugging
     Logger.info('Keybinding IDs and versions being returned:', keybindings.map(kb => ({
@@ -98,7 +111,7 @@ export const getKeybindings = async (req, res, next) => {
       name: kb.name,
       version: kb.version?.game_version,
       versionId: kb.version?._id?.toString(),
-      deletedAt: kb.deleted_at
+      groupId: (kb.keybinding_group_id || kb._id).toString()
     })));
 
     res.status(200).send(presentMany(keybindings));
@@ -329,11 +342,14 @@ export const createKeybinding = async (req, res, next) => {
     Logger.info('Creating Keybinding');
 
     // Check keybinding limit for authenticated users
+    // Count unique keybinding groups (versions of same keybinding don't count separately)
     if (req.decoded?.user_id) {
-      const userKeybindingCount = await Keybinding.countDocuments({ 
-        user_id: req.decoded.user_id, 
-        deleted_at: null 
-      });
+      const uniqueGroupCount = await Keybinding.aggregate([
+        { $match: { user_id: new mongoose.Types.ObjectId(req.decoded.user_id), deleted_at: null } },
+        { $group: { _id: { $ifNull: ['$keybinding_group_id', '$_id'] } } },
+        { $count: 'count' }
+      ]);
+      const userKeybindingCount = uniqueGroupCount[0]?.count || 0;
       if (userKeybindingCount >= MAX_KEYBINDINGS_PER_USER) {
         return res.status(400).json({ 
           message: 'Keybinding limit reached. Please delete some keybindings before creating new ones.' 
@@ -422,6 +438,9 @@ export const createKeybinding = async (req, res, next) => {
 
     console.log('Creating new keybinding with data:', newKeybinding);
     const createdKeybinding = await Keybinding.create(newKeybinding);
+
+    // Set keybinding_group_id to itself (this is the "original" keybinding)
+    await Keybinding.findByIdAndUpdate(createdKeybinding._id, { keybinding_group_id: createdKeybinding._id });
 
     // Populate version information for the response
     const populatedKeybinding = await Keybinding.findById(createdKeybinding._id).populate('version');
@@ -719,11 +738,14 @@ export const duplicateKeybinding = async (req, res, next) => {
     Logger.info(`Duplicating keybinding: ${keybinding_id}`);
 
     // Check keybinding limit for authenticated users
+    // Count unique keybinding groups (versions of same keybinding don't count separately)
     if (req.decoded?.user_id) {
-      const userKeybindingCount = await Keybinding.countDocuments({ 
-        user_id: req.decoded.user_id, 
-        deleted_at: null 
-      });
+      const uniqueGroupCount = await Keybinding.aggregate([
+        { $match: { user_id: new mongoose.Types.ObjectId(req.decoded.user_id), deleted_at: null } },
+        { $group: { _id: { $ifNull: ['$keybinding_group_id', '$_id'] } } },
+        { $count: 'count' }
+      ]);
+      const userKeybindingCount = uniqueGroupCount[0]?.count || 0;
       if (userKeybindingCount >= MAX_KEYBINDINGS_PER_USER) {
         return res.status(400).json({ 
           message: 'Keybinding limit reached. Please delete some keybindings before duplicating.' 
@@ -858,6 +880,9 @@ export const duplicateKeybinding = async (req, res, next) => {
     try {
       createdKeybinding = await Keybinding.create(duplicatedKeybinding);
       console.log('Successfully created keybinding:', createdKeybinding._id);
+
+      // Set keybinding_group_id to itself (duplicates are NEW keybindings that count toward limit)
+      await Keybinding.findByIdAndUpdate(createdKeybinding._id, { keybinding_group_id: createdKeybinding._id });
     } catch (createError) {
       console.error('Error during Keybinding.create():', createError);
       console.error('Create error details:', {
@@ -1275,6 +1300,180 @@ export const migrateKeybindingToVersion = async (req, res, next) => {
       targetVersion: version.game_version
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get all versions of a keybinding (keybindings with same name, user, class but different versions)
+ */
+export const getKeybindingVersions = async (req, res, next) => {
+  try {
+    const { keybinding_id } = req.params;
+
+    // Find the original keybinding
+    const keybinding = await Keybinding.findById(keybinding_id).populate('version');
+    if (!keybinding) {
+      return res.status(404).send({ message: 'Keybinding not found' });
+    }
+
+    // Get the group ID (either from the field or use the keybinding's own ID)
+    const groupId = keybinding.keybinding_group_id || keybinding._id;
+
+    // Find all keybindings in the same group (versions of the same keybinding)
+    const relatedKeybindings = await Keybinding.find({
+      $or: [
+        { keybinding_group_id: groupId },
+        { _id: groupId }
+      ],
+      deleted_at: null
+    }).populate('version').sort({ 'version.game_version': -1 });
+
+    // Get all available versions
+    const allVersions = await Version.find({}).sort({ game_version: -1 });
+
+    // Map to show which versions have this keybinding
+    const versionMap = relatedKeybindings.map(kb => ({
+      keybindingId: kb._id,
+      versionId: kb.version?._id,
+      gameVersion: kb.version?.game_version,
+      isCurrent: kb._id.toString() === keybinding_id
+    }));
+
+    return res.status(200).send({
+      currentKeybinding: presentOne(keybinding),
+      versions: versionMap,
+      availableVersions: allVersions.map(v => ({
+        id: v._id,
+        gameVersion: v.game_version
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Copy a keybinding to a different version
+ */
+export const copyKeybindingToVersion = async (req, res, next) => {
+  try {
+    const { keybinding_id } = req.params;
+    const { version_id } = req.body;
+
+    Logger.info(`Copying keybinding ${keybinding_id} to version ${version_id}`);
+
+    // NOTE: No limit check here - copying to a new version doesn't count toward the limit
+    // since all versions share the same keybinding_group_id
+
+    // Find the original keybinding
+    const originalKeybinding = await Keybinding.findById(keybinding_id);
+    if (!originalKeybinding) {
+      return res.status(404).send({ message: 'Keybinding not found' });
+    }
+
+    // Verify ownership
+    if (originalKeybinding.user_id?.toString() !== req.decoded.user_id) {
+      return res.status(403).send({ message: 'Not authorized to copy this keybinding' });
+    }
+
+    // Check if the version exists
+    const version = await Version.findById(version_id);
+    if (!version) {
+      return res.status(404).send({ message: 'Version not found' });
+    }
+
+    // Check if a keybinding with same name already exists for this version
+    const existingKeybinding = await Keybinding.findOne({
+      name: originalKeybinding.name,
+      user_id: originalKeybinding.user_id,
+      class: originalKeybinding.class,
+      spec: originalKeybinding.spec,
+      version: version_id,
+      deleted_at: null
+    });
+
+    if (existingKeybinding) {
+      return res.status(400).send({ 
+        message: `A keybinding with this name already exists for version ${version.game_version}`,
+        existingKeybindingId: existingKeybinding._id
+      });
+    }
+
+    // Create the copy with the same keybinding_group_id as the original
+    // This links all versions together and they count as 1 toward the limit
+    const originalData = originalKeybinding.toObject();
+    const groupId = originalData.keybinding_group_id || originalData._id;
+    
+    // Get all abilities available in the target version for this class/spec
+    const targetVersionAbilities = await Ability.find({
+      game_version: version_id,
+      class: originalData.class,
+      is_active: true
+    }).lean();
+    
+    // Create a Set of valid spell_ids for quick lookup
+    const validSpellIds = new Set(targetVersionAbilities.map(a => a.spell_id));
+    
+    // Filter keybinds and track removed abilities
+    const removedAbilities = [];
+    const validKeybinds = [];
+    
+    for (const kb of originalData.keybinds) {
+      if (kb.spell?.spell_id && validSpellIds.has(kb.spell.spell_id)) {
+        // Ability exists in target version - keep it
+        validKeybinds.push({
+          key: kb.key,
+          spell: {
+            description: kb.spell.description,
+            icon: kb.spell.icon,
+            name: kb.spell.name,
+            spell_id: kb.spell.spell_id
+          }
+        });
+      } else {
+        // Ability doesn't exist in target version - track it as removed
+        removedAbilities.push({
+          key: kb.key,
+          spell: {
+            name: kb.spell?.name || 'Unknown',
+            icon: kb.spell?.icon || '',
+            spell_id: kb.spell?.spell_id || ''
+          }
+        });
+      }
+    }
+    
+    const copiedKeybinding = {
+      name: originalData.name,
+      user_id: originalData.user_id,
+      class: originalData.class,
+      spec: originalData.spec,
+      hero_talent: originalData.hero_talent,
+      version: version_id,
+      keybinds: validKeybinds,
+      is_public: originalData.is_public,
+      duplication_count: 0,
+      keybinding_group_id: groupId
+    };
+
+    const createdKeybinding = await Keybinding.create(copiedKeybinding);
+    const populatedKeybinding = await Keybinding.findById(createdKeybinding._id).populate('version');
+
+    Logger.info(`Successfully copied keybinding ${keybinding_id} to version ${version.game_version}. Removed ${removedAbilities.length} abilities not in target version.`);
+
+    return res.status(200).send({
+      message: 'Keybinding copied successfully',
+      keybinding: presentOne(populatedKeybinding),
+      targetVersion: version.game_version,
+      changes: {
+        removedAbilities,
+        originalCount: originalData.keybinds.length,
+        newCount: validKeybinds.length
+      }
+    });
+  } catch (error) {
+    Logger.error('Error copying keybinding:', error);
     next(error);
   }
 };

@@ -134,6 +134,14 @@ const keybindingSchema = new Schema({
   deleted_at: {
     type: Date,
     default: null
+  },
+  // Links keybindings that are versions of the same build together
+  // All versions of a keybinding share the same keybinding_group_id
+  // Only counts as 1 toward the user's keybinding limit
+  keybinding_group_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'Keybinding',
+    default: null
   }
 }, {
   timestamps: true

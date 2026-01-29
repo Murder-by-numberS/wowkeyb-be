@@ -628,6 +628,21 @@ const specAndHeroActives = [
   },
   // Shadow spec actives
   {
+    name: 'Devouring Plague',
+    spell_id: '335467',
+    description: 'Afflicts the target with a disease that instantly causes Shadow damage plus additional damage over time. Heals you for 50% of damage dealt.',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_shadow_devouringplague.jpg',
+    class: 'priest',
+    spec: 'shadow',
+    hero_talent: null,
+    ability_type: 'spec',
+    level_required: 0,
+    cooldown: 0,
+    range: 40,
+    cost: 'Insanity',
+    cost_amount: 50
+  },
+  {
     name: 'Dispersion',
     spell_id: '47585',
     description: 'You disperse into pure Shadow energy, reducing all damage taken by 90% and regenerating 6% mana every 1 sec for 6 sec.',

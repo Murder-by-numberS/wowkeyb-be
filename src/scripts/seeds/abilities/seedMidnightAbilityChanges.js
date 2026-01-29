@@ -166,7 +166,7 @@ const REMOVED_ABILITIES = {
   // Paladin
   paladin: {
     holy: [
-      'Barrier of Faith', 'Blessing of Seasons', 'Boundless Salvation',
+      'Barrier of Faith', 'Blessing of Seasons', 'Blessing of Summer', 'Boundless Salvation',
       'Merciful Auras', 'Power of the Silver Hand', 'Rebuke', 'Relentless Inquisitor'
     ],
     protection: [

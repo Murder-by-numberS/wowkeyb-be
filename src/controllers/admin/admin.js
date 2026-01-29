@@ -39,23 +39,23 @@ export const getDashboardStats = async (req, res) => {
     let ticketStats = { total: 0, open: 0, recentlyCreated: 0, jiraDisabled: false };
     try {
       const projectKey = process.env.JIRA_PROJECT_KEY || 'WS';
-      
+
       // Get all tickets count
       const allTickets = await jiraService.searchTickets(`project = ${projectKey}`, 1, 1);
       console.log('All tickets response:', JSON.stringify(allTickets.pagination));
       ticketStats.total = allTickets.pagination?.total_count || 0;
-      
+
       // Get open tickets count (not Done/Closed)
       const openTickets = await jiraService.searchTickets(`project = ${projectKey} AND status NOT IN (Done, Closed)`, 1, 1);
       ticketStats.open = openTickets.pagination?.total_count || 0;
-      
+
       // Get tickets created in last 7 days
       const last7Days = new Date();
       last7Days.setDate(last7Days.getDate() - 7);
       const dateStr = last7Days.toISOString().split('T')[0];
       const recentTickets = await jiraService.searchTickets(`project = ${projectKey} AND created >= "${dateStr}"`, 1, 1);
       ticketStats.recentlyCreated = recentTickets.pagination?.total_count || 0;
-      
+
       ticketStats.jiraDisabled = allTickets.jira_disabled || false;
       console.log('Final ticket stats:', ticketStats);
     } catch (ticketError) {
@@ -241,15 +241,18 @@ export const getUserById = async (req, res) => {
  */
 export const getAbilitiesAdmin = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 50, 
-      search = '', 
-      class: wowClass = '', 
+    const {
+      page = 1,
+      limit = 50,
+      search = '',
+      class: wowClass = '',
       spec = '',
+      hero_talent = '',
       ability_type = '',
       version = '',
-      includeInactive = 'true' 
+      sort = 'name',
+      order = 'asc',
+      includeInactive = 'true'
     } = req.query;
 
     // Build the actual filter query (for countDocuments which bypasses hooks)
@@ -261,7 +264,10 @@ export const getAbilitiesAdmin = async (req, res) => {
       filterQuery.class = wowClass.toLowerCase();
     }
     if (spec) {
-      filterQuery.spec = spec;
+      filterQuery.spec = spec.toLowerCase();
+    }
+    if (hero_talent) {
+      filterQuery.hero_talent = hero_talent;
     }
     if (ability_type) {
       filterQuery.ability_type = ability_type;
@@ -285,11 +291,17 @@ export const getAbilitiesAdmin = async (req, res) => {
       findQuery.includeInactive = true; // This tells the pre-find hook to skip is_active filter
     }
 
+    // Build sort object
+    const validSortFields = ['name', 'class', 'spec', 'ability_type', 'version'];
+    const sortField = validSortFields.includes(sort) ? sort : 'name';
+    const sortOrder = order === 'desc' ? -1 : 1;
+    const sortObj = { [sortField]: sortOrder };
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const abilities = await Ability.find(findQuery)
       .populate('game_version', 'game_version')
-      .sort({ name: 1 })
+      .sort(sortObj)
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -334,12 +346,12 @@ export const getAbilitiesAdmin = async (req, res) => {
 export const getVersionsAdmin = async (req, res) => {
   try {
     const versions = await Version.find({}).sort({ game_version: -1 });
-    
+
     // Sort by semantic version (newest first)
     const sortedVersions = versions.sort((a, b) => {
       const aParts = a.game_version.split('.').map(Number);
       const bParts = b.game_version.split('.').map(Number);
-      
+
       for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
         const aPart = aParts[i] || 0;
         const bPart = bParts[i] || 0;
@@ -439,15 +451,15 @@ export const copyAbilitiesFromVersion = async (req, res) => {
     // Check if target already has abilities
     const existingAbilities = await Ability.countDocuments({ game_version: targetVersionId });
     if (existingAbilities > 0) {
-      return res.status(400).json({ 
-        message: `Target version already has ${existingAbilities} abilities. Cannot copy to a version with existing abilities.` 
+      return res.status(400).json({
+        message: `Target version already has ${existingAbilities} abilities. Cannot copy to a version with existing abilities.`
       });
     }
 
     // Get all abilities from source version (including inactive)
-    const sourceAbilities = await Ability.find({ 
+    const sourceAbilities = await Ability.find({
       game_version: sourceVersionId,
-      includeInactive: true 
+      includeInactive: true
     });
 
     if (sourceAbilities.length === 0) {
@@ -504,8 +516,8 @@ export const deleteVersion = async (req, res) => {
     // Check if version has abilities
     const abilityCount = await Ability.countDocuments({ game_version: versionId });
     if (abilityCount > 0) {
-      return res.status(400).json({ 
-        message: `Cannot delete version with ${abilityCount} abilities. Delete or move abilities first.` 
+      return res.status(400).json({
+        message: `Cannot delete version with ${abilityCount} abilities. Delete or move abilities first.`
       });
     }
 
@@ -689,11 +701,11 @@ export const permanentDeleteKeybinding = async (req, res) => {
  */
 export const getMacrosAdmin = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      search = '', 
-      includeDeleted = 'true', 
+    const {
+      page = 1,
+      limit = 20,
+      search = '',
+      includeDeleted = 'true',
       onlyDeleted = 'false',
       startDate,
       endDate
@@ -704,7 +716,7 @@ export const getMacrosAdmin = async (req, res) => {
     if (onlyDeleted === 'true') {
       filterQuery.deletedAt = { $ne: null };
     }
-    
+
     // Search by name or username
     if (search) {
       // Find users matching the search term
@@ -719,7 +731,7 @@ export const getMacrosAdmin = async (req, res) => {
         { user_id: { $in: userIds } }
       ];
     }
-    
+
     // Date range filter
     if (startDate || endDate) {
       filterQuery.createdAt = {};

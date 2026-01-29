@@ -81,11 +81,11 @@ export const getKeybindings = async (req, res, next) => {
 
     // Group by keybinding_group_id and keep only the latest version per group
     const groupMap = new Map();
-    
+
     for (const kb of allKeybindings) {
       // Use keybinding_group_id if set, otherwise use the keybinding's own _id
       const groupId = (kb.keybinding_group_id || kb._id).toString();
-      
+
       if (!groupMap.has(groupId)) {
         groupMap.set(groupId, kb);
       } else {
@@ -93,7 +93,7 @@ export const getKeybindings = async (req, res, next) => {
         const existing = groupMap.get(groupId);
         const existingVersion = existing.version?.game_version || '0.0.0';
         const currentVersion = kb.version?.game_version || '0.0.0';
-        
+
         // Compare versions - keep the higher one
         if (currentVersion.localeCompare(existingVersion, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
           groupMap.set(groupId, kb);
@@ -351,8 +351,8 @@ export const createKeybinding = async (req, res, next) => {
       ]);
       const userKeybindingCount = uniqueGroupCount[0]?.count || 0;
       if (userKeybindingCount >= MAX_KEYBINDINGS_PER_USER) {
-        return res.status(400).json({ 
-          message: 'Keybinding limit reached. Please delete some keybindings before creating new ones.' 
+        return res.status(400).json({
+          message: 'Keybinding limit reached. Please delete some keybindings before creating new ones.'
         });
       }
     }
@@ -563,6 +563,7 @@ export const deleteKeybinding = async (req, res, next) => {
 export const restoreKeybinding = async (req, res, next) => {
   try {
     const { keybinding_id } = req.params;
+    const { replace } = req.body; // Optional: if true, replace the conflicting keybinding
 
     // Check if the ID is a valid MongoDB ObjectId
     const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(keybinding_id);
@@ -584,6 +585,36 @@ export const restoreKeybinding = async (req, res, next) => {
     // Verify ownership
     if (keybinding.user_id?.toString() !== req.decoded.user_id) {
       return res.status(403).send({ message: 'Not authorized to restore this keybinding' });
+    }
+
+    // Check for collision - existing active keybinding with same version in the same group
+    const groupId = keybinding.keybinding_group_id || keybinding._id;
+    const conflictingKeybinding = await Keybinding.findOne({
+      _id: { $ne: keybinding_id }, // Not the same keybinding
+      keybinding_group_id: groupId,
+      version: keybinding.version,
+      user_id: keybinding.user_id,
+      deleted_at: null // Only active keybindings
+    }).populate('version');
+
+    if (conflictingKeybinding) {
+      // If replace flag is set, soft-delete the conflicting keybinding first
+      if (replace === true) {
+        await Keybinding.findByIdAndUpdate(conflictingKeybinding._id, { deleted_at: new Date() });
+        Logger.info(`Replaced conflicting keybinding ${conflictingKeybinding._id} when restoring ${keybinding_id}`);
+      } else {
+        // Return conflict error with details
+        return res.status(409).send({
+          message: 'A keybinding for this version already exists',
+          conflict: {
+            existingKeybindingId: conflictingKeybinding._id,
+            existingKeybindingName: conflictingKeybinding.name,
+            version: conflictingKeybinding.version?.game_version,
+            restoringKeybindingId: keybinding_id,
+            restoringKeybindingName: keybinding.name
+          }
+        });
+      }
     }
 
     // Restore by removing deleted_at timestamp
@@ -690,12 +721,12 @@ export const getKeybinding = async (req, res, next) => {
 
       // Check if user is the owner
       const isOwner = keybinding.user_id?.toString() === req.decoded.user_id;
-      
+
       if (!isOwner) {
         // Check if user is admin
         const requestingUser = await User.findById(req.decoded.user_id);
         const isAdmin = requestingUser?.access_level >= ADMIN_ACCESS_LEVEL;
-        
+
         if (!isAdmin) {
           console.log('Access denied - keybinding is private and user is not the owner or admin');
           return res.status(403).send({ message: 'Not authorized to access this keybinding' });
@@ -747,8 +778,8 @@ export const duplicateKeybinding = async (req, res, next) => {
       ]);
       const userKeybindingCount = uniqueGroupCount[0]?.count || 0;
       if (userKeybindingCount >= MAX_KEYBINDINGS_PER_USER) {
-        return res.status(400).json({ 
-          message: 'Keybinding limit reached. Please delete some keybindings before duplicating.' 
+        return res.status(400).json({
+          message: 'Keybinding limit reached. Please delete some keybindings before duplicating.'
         });
       }
     }
@@ -1394,7 +1425,7 @@ export const copyKeybindingToVersion = async (req, res, next) => {
     });
 
     if (existingKeybinding) {
-      return res.status(400).send({ 
+      return res.status(400).send({
         message: `A keybinding with this name already exists for version ${version.game_version}`,
         existingKeybindingId: existingKeybinding._id
       });
@@ -1404,21 +1435,55 @@ export const copyKeybindingToVersion = async (req, res, next) => {
     // This links all versions together and they count as 1 toward the limit
     const originalData = originalKeybinding.toObject();
     const groupId = originalData.keybinding_group_id || originalData._id;
-    
-    // Get all abilities available in the target version for this class/spec
-    const targetVersionAbilities = await Ability.find({
+
+    // Get all abilities available in the target version for this class/spec/hero_talent
+    const abilityQuery = {
       game_version: version_id,
       class: originalData.class,
       is_active: true
+    };
+
+    // Get class abilities (spec: null, ability_type: 'class')
+    const classAbilities = await Ability.find({
+      ...abilityQuery,
+      spec: null,
+      ability_type: 'class'
     }).lean();
-    
+
+    // Get spec abilities
+    const specAbilities = await Ability.find({
+      ...abilityQuery,
+      spec: originalData.spec,
+      ability_type: 'spec'
+    }).lean();
+
+    // Get hero talent abilities
+    let heroTalentAbilities = [];
+    if (originalData.hero_talent) {
+      heroTalentAbilities = await Ability.find({
+        ...abilityQuery,
+        hero_talent: originalData.hero_talent,
+        ability_type: 'hero_talent'
+      }).lean();
+    }
+
+    // Combine all valid abilities
+    const targetVersionAbilities = [
+      ...classAbilities,
+      ...specAbilities,
+      ...heroTalentAbilities
+    ];
+
+    Logger.info(`Found ${targetVersionAbilities.length} valid abilities for ${originalData.class} ${originalData.spec} ${originalData.hero_talent} in version ${version.game_version}`);
+    Logger.info(`Class abilities: ${classAbilities.length}, Spec abilities: ${specAbilities.length}, Hero talent abilities: ${heroTalentAbilities.length}`);
+
     // Create a Set of valid spell_ids for quick lookup
     const validSpellIds = new Set(targetVersionAbilities.map(a => a.spell_id));
-    
+
     // Filter keybinds and track removed abilities
     const removedAbilities = [];
     const validKeybinds = [];
-    
+
     for (const kb of originalData.keybinds) {
       if (kb.spell?.spell_id && validSpellIds.has(kb.spell.spell_id)) {
         // Ability exists in target version - keep it
@@ -1443,7 +1508,7 @@ export const copyKeybindingToVersion = async (req, res, next) => {
         });
       }
     }
-    
+
     const copiedKeybinding = {
       name: originalData.name,
       user_id: originalData.user_id,

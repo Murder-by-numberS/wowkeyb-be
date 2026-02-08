@@ -30,8 +30,10 @@ router.delete('/versions/:versionId', adminMiddleware, AdminController.deleteVer
 
 // ==================== KEYBINDINGS ====================
 router.get('/keybindings', adminMiddleware, AdminController.getKeybindingsAdmin);
+router.get('/keybindings/:keybindingId/versions', adminMiddleware, AdminController.getKeybindingVersionsAdmin);
 router.post('/keybindings/:keybindingId/restore', adminMiddleware, AdminController.restoreKeybinding);
 router.delete('/keybindings/:keybindingId/permanent', adminMiddleware, AdminController.permanentDeleteKeybinding);
+router.post('/keybindings/batch-delete', adminMiddleware, AdminController.batchPermanentDeleteKeybindings);
 
 // ==================== MACROS ====================
 router.get('/macros', adminMiddleware, AdminController.getMacrosAdmin);

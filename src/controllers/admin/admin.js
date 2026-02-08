@@ -252,36 +252,86 @@ export const getAbilitiesAdmin = async (req, res) => {
       version = '',
       sort = 'name',
       order = 'asc',
-      includeInactive = 'true'
+      includeInactive = 'true',
+      filterMode = 'exact'
     } = req.query;
 
-    // Build the actual filter query (for countDocuments which bypasses hooks)
-    const filterQuery = {};
-    if (search) {
-      filterQuery.name = { $regex: search, $options: 'i' };
-    }
-    if (wowClass) {
-      filterQuery.class = wowClass.toLowerCase();
-    }
-    if (spec) {
-      filterQuery.spec = spec.toLowerCase();
-    }
-    if (hero_talent) {
-      filterQuery.hero_talent = hero_talent;
-    }
-    if (ability_type) {
-      filterQuery.ability_type = ability_type;
-    }
-    // Only filter by is_active if NOT including inactive
-    if (includeInactive !== 'true') {
-      filterQuery.is_active = true;
-    }
-
     // Handle version filter - need to look up version ID
+    let versionId = null;
     if (version) {
       const versionDoc = await Version.findOne({ game_version: version });
       if (versionDoc) {
-        filterQuery.game_version = versionDoc._id;
+        versionId = versionDoc._id;
+      }
+    }
+
+    // Base query parts shared by both modes
+    const baseQuery = {};
+    if (search) {
+      baseQuery.name = { $regex: search, $options: 'i' };
+    }
+    if (includeInactive !== 'true') {
+      baseQuery.is_active = true;
+    }
+    if (versionId) {
+      baseQuery.game_version = versionId;
+    }
+
+    let filterQuery;
+
+    if (filterMode === 'inclusion' && wowClass) {
+      // Inclusion mode: show class abilities + spec abilities + hero talent abilities
+      // (matching how the public abilities page works)
+      const inclusionQueries = [];
+
+      // Always include class-level abilities for the selected class
+      inclusionQueries.push({
+        ...baseQuery,
+        class: wowClass.toLowerCase(),
+        spec: null,
+        ability_type: 'class'
+      });
+
+      // If spec is selected, include spec abilities
+      if (spec) {
+        inclusionQueries.push({
+          ...baseQuery,
+          class: wowClass.toLowerCase(),
+          spec: spec.toLowerCase(),
+          ability_type: 'spec'
+        });
+      }
+
+      // If hero talent is selected, include hero talent abilities
+      if (hero_talent) {
+        inclusionQueries.push({
+          ...baseQuery,
+          class: wowClass.toLowerCase(),
+          hero_talent: hero_talent,
+          ability_type: 'hero_talent'
+        });
+      }
+
+      filterQuery = inclusionQueries.length > 1 ? { $or: inclusionQueries } : inclusionQueries[0];
+
+      // Ability type filter can further narrow within inclusion results
+      if (ability_type) {
+        filterQuery = { $and: [filterQuery, { ability_type }] };
+      }
+    } else {
+      // Exact mode (default): strict field matching
+      filterQuery = { ...baseQuery };
+      if (wowClass) {
+        filterQuery.class = wowClass.toLowerCase();
+      }
+      if (spec) {
+        filterQuery.spec = spec.toLowerCase();
+      }
+      if (hero_talent) {
+        filterQuery.hero_talent = hero_talent;
+      }
+      if (ability_type) {
+        filterQuery.ability_type = ability_type;
       }
     }
 
@@ -640,6 +690,7 @@ export const getKeybindingsAdmin = async (req, res) => {
 export const restoreKeybinding = async (req, res) => {
   try {
     const { keybindingId } = req.params;
+    const { replace } = req.body; // Optional: if true, replace the conflicting keybinding
 
     const keybinding = await Keybinding.findOne({ _id: keybindingId, includeDeleted: true });
     if (!keybinding) {
@@ -648,6 +699,36 @@ export const restoreKeybinding = async (req, res) => {
 
     if (!keybinding.deleted_at) {
       return res.status(400).json({ message: 'Keybinding is not deleted' });
+    }
+
+    // Check for collision - existing active keybinding with same version in the same group
+    const groupId = keybinding.keybinding_group_id || keybinding._id;
+    const conflictingKeybinding = await Keybinding.findOne({
+      _id: { $ne: keybindingId }, // Not the same keybinding
+      keybinding_group_id: groupId,
+      version: keybinding.version,
+      user_id: keybinding.user_id,
+      deleted_at: null // Only active keybindings
+    }).populate('version');
+
+    if (conflictingKeybinding) {
+      // If replace flag is set, soft-delete the conflicting keybinding first
+      if (replace === true) {
+        await Keybinding.findByIdAndUpdate(conflictingKeybinding._id, { deleted_at: new Date() });
+        Logger.info(`Admin ${req.user.username} replaced conflicting keybinding ${conflictingKeybinding._id} when restoring ${keybindingId}`);
+      } else {
+        // Return conflict error with details
+        return res.status(409).json({
+          message: 'A keybinding for this version already exists',
+          conflict: {
+            existingKeybindingId: conflictingKeybinding._id,
+            existingKeybindingName: conflictingKeybinding.name,
+            version: conflictingKeybinding.version?.game_version,
+            restoringKeybindingId: keybindingId,
+            restoringKeybindingName: keybinding.name
+          }
+        });
+      }
     }
 
     keybinding.deleted_at = null;
@@ -691,6 +772,116 @@ export const permanentDeleteKeybinding = async (req, res) => {
   } catch (error) {
     Logger.error('Error permanently deleting keybinding:', error);
     return res.status(500).json({ message: 'Error deleting keybinding' });
+  }
+};
+
+/**
+ * Get all versions of a keybinding (for admin)
+ */
+export const getKeybindingVersionsAdmin = async (req, res) => {
+  try {
+    const { keybindingId } = req.params;
+
+    // Find the keybinding (including deleted ones)
+    const keybinding = await Keybinding.findOne({ _id: keybindingId, includeDeleted: true }).populate('version');
+    if (!keybinding) {
+      return res.status(404).json({ message: 'Keybinding not found' });
+    }
+
+    // Get the group ID (either from the field or use the keybinding's own ID)
+    const groupId = keybinding.keybinding_group_id || keybinding._id;
+
+    // Find all keybindings in the same group (versions of the same keybinding)
+    const relatedKeybindings = await Keybinding.find({
+      $or: [
+        { keybinding_group_id: groupId },
+        { _id: groupId }
+      ],
+      includeDeleted: true
+    }).populate('version').populate('user_id', 'username email');
+
+    // Map to show version details
+    const versions = relatedKeybindings.map(kb => ({
+      keybinding_id: kb._id,
+      name: kb.name,
+      version_id: kb.version?._id,
+      game_version: kb.version?.game_version,
+      is_deleted: !!kb.deleted_at,
+      deleted_at: kb.deleted_at,
+      keybind_count: kb.keybinds?.length || 0,
+      created_at: kb.createdAt,
+      is_current: kb._id.toString() === keybindingId
+    }));
+
+    // Sort by game_version descending
+    versions.sort((a, b) => {
+      const aVersion = a.game_version || '0.0.0';
+      const bVersion = b.game_version || '0.0.0';
+      return bVersion.localeCompare(aVersion, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    return res.status(200).json({
+      keybinding: {
+        id: keybinding._id,
+        name: keybinding.name,
+        class: keybinding.class,
+        spec: keybinding.spec,
+        hero_talent: keybinding.hero_talent,
+        user: keybinding.user_id ? {
+          id: keybinding.user_id._id,
+          username: keybinding.user_id.username,
+          email: keybinding.user_id.email
+        } : null
+      },
+      versions
+    });
+  } catch (error) {
+    Logger.error('Error getting keybinding versions for admin:', error);
+    return res.status(500).json({ message: 'Error getting keybinding versions' });
+  }
+};
+
+/**
+ * Batch permanently delete keybindings (multiple versions)
+ */
+export const batchPermanentDeleteKeybindings = async (req, res) => {
+  try {
+    const { keybinding_ids } = req.body;
+
+    if (!keybinding_ids || !Array.isArray(keybinding_ids) || keybinding_ids.length === 0) {
+      return res.status(400).json({ message: 'keybinding_ids array is required' });
+    }
+
+    // Find all keybindings to delete (including soft-deleted ones)
+    const keybindings = await Keybinding.find({
+      _id: { $in: keybinding_ids },
+      includeDeleted: true
+    }).populate('version');
+
+    if (keybindings.length === 0) {
+      return res.status(404).json({ message: 'No keybindings found' });
+    }
+
+    // Delete all keybindings
+    const deleteResult = await Keybinding.deleteMany({ _id: { $in: keybinding_ids } });
+
+    // Log deletion details
+    const deletedDetails = keybindings.map(kb => ({
+      id: kb._id,
+      name: kb.name,
+      version: kb.version?.game_version
+    }));
+
+    Logger.info(`Admin ${req.user.username} batch permanently deleted ${deleteResult.deletedCount} keybindings:`, deletedDetails);
+
+    return res.status(200).json({
+      message: `Successfully deleted ${deleteResult.deletedCount} keybinding(s)`,
+      deleted_count: deleteResult.deletedCount,
+      deleted_keybindings: deletedDetails
+    });
+  } catch (error) {
+    Logger.error('Error batch deleting keybindings:', error);
+    return res.status(500).json({ message: 'Error deleting keybindings' });
   }
 };
 

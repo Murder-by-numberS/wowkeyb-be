@@ -100,23 +100,67 @@ export const updateProfile = async (req, res) => {
 
   console.log('updatePayload', updatePayload);
   try {
-    // Check if username is being changed and if it's already taken
+    // Check if username is being changed
     if (username) {
-      const existingUser = await User.findOne({ username, _id: { $ne: decoded.user_id } });
-      if (existingUser) {
-        return res.status(400).json({ message: 'Username is already taken' });
+      // Fetch current user to check change history
+      const currentUser = await User.findById(decoded.user_id);
+      if (!currentUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Skip limit check if username isn't actually changing
+      if (username !== currentUser.username) {
+        // Enforce 2 username changes per year limit (admins are exempt)
+        if (currentUser.access_level < 9) {
+          const oneYearAgo = new Date();
+          oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+          const recentChanges = (currentUser.username_changes || []).filter(
+            date => date > oneYearAgo
+          );
+
+          if (recentChanges.length >= 2) {
+            // Find earliest change in window to calculate when next change is available
+            const earliestChange = recentChanges.sort((a, b) => a - b)[0];
+            const nextAvailable = new Date(earliestChange);
+            nextAvailable.setFullYear(nextAvailable.getFullYear() + 1);
+
+            return res.status(429).json({
+              message: 'You can only change your username 2 times per year',
+              username_changes_remaining: 0,
+              next_change_available: nextAvailable.toISOString()
+            });
+          }
+        }
+
+        // Check if the new username is already taken
+        const existingUser = await User.findOne({ username, _id: { $ne: decoded.user_id } });
+        if (existingUser) {
+          return res.status(400).json({ message: 'Username is already taken' });
+        }
+
+        // Track the username change
+        updatePayload.$push = { username_changes: new Date() };
       }
     }
 
     const updatedUser = await User.findByIdAndUpdate(
       decoded.user_id,
       updatePayload,
-      { new: true, select: 'email username description favorite_class createdAt updatedAt' }
+      { new: true, select: 'email username description favorite_class username_changes createdAt updatedAt' }
     );
 
     if (!updatedUser) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // Calculate remaining username changes for the response
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const recentChanges = (updatedUser.username_changes || []).filter(
+      date => date > oneYearAgo
+    );
+    const usernameChangesRemaining = Math.max(0, 2 - recentChanges.length);
 
     // Convert snake_case to camelCase for frontend
     const userResponse = {
@@ -125,6 +169,7 @@ export const updateProfile = async (req, res) => {
       username: updatedUser.username,
       description: updatedUser.description,
       favoriteClass: updatedUser.favorite_class,
+      usernameChangesRemaining,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt
     };

@@ -35,6 +35,10 @@ const userSchema = Schema({
     type: Date,
     default: null,
   },
+  username_changes: {
+    type: [Date],
+    default: [],
+  },
   description: {
     type: String,
     default: '',

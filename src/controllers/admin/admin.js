@@ -252,36 +252,86 @@ export const getAbilitiesAdmin = async (req, res) => {
       version = '',
       sort = 'name',
       order = 'asc',
-      includeInactive = 'true'
+      includeInactive = 'true',
+      filterMode = 'exact'
     } = req.query;
 
-    // Build the actual filter query (for countDocuments which bypasses hooks)
-    const filterQuery = {};
-    if (search) {
-      filterQuery.name = { $regex: search, $options: 'i' };
-    }
-    if (wowClass) {
-      filterQuery.class = wowClass.toLowerCase();
-    }
-    if (spec) {
-      filterQuery.spec = spec.toLowerCase();
-    }
-    if (hero_talent) {
-      filterQuery.hero_talent = hero_talent;
-    }
-    if (ability_type) {
-      filterQuery.ability_type = ability_type;
-    }
-    // Only filter by is_active if NOT including inactive
-    if (includeInactive !== 'true') {
-      filterQuery.is_active = true;
-    }
-
     // Handle version filter - need to look up version ID
+    let versionId = null;
     if (version) {
       const versionDoc = await Version.findOne({ game_version: version });
       if (versionDoc) {
-        filterQuery.game_version = versionDoc._id;
+        versionId = versionDoc._id;
+      }
+    }
+
+    // Base query parts shared by both modes
+    const baseQuery = {};
+    if (search) {
+      baseQuery.name = { $regex: search, $options: 'i' };
+    }
+    if (includeInactive !== 'true') {
+      baseQuery.is_active = true;
+    }
+    if (versionId) {
+      baseQuery.game_version = versionId;
+    }
+
+    let filterQuery;
+
+    if (filterMode === 'inclusion' && wowClass) {
+      // Inclusion mode: show class abilities + spec abilities + hero talent abilities
+      // (matching how the public abilities page works)
+      const inclusionQueries = [];
+
+      // Always include class-level abilities for the selected class
+      inclusionQueries.push({
+        ...baseQuery,
+        class: wowClass.toLowerCase(),
+        spec: null,
+        ability_type: 'class'
+      });
+
+      // If spec is selected, include spec abilities
+      if (spec) {
+        inclusionQueries.push({
+          ...baseQuery,
+          class: wowClass.toLowerCase(),
+          spec: spec.toLowerCase(),
+          ability_type: 'spec'
+        });
+      }
+
+      // If hero talent is selected, include hero talent abilities
+      if (hero_talent) {
+        inclusionQueries.push({
+          ...baseQuery,
+          class: wowClass.toLowerCase(),
+          hero_talent: hero_talent,
+          ability_type: 'hero_talent'
+        });
+      }
+
+      filterQuery = inclusionQueries.length > 1 ? { $or: inclusionQueries } : inclusionQueries[0];
+
+      // Ability type filter can further narrow within inclusion results
+      if (ability_type) {
+        filterQuery = { $and: [filterQuery, { ability_type }] };
+      }
+    } else {
+      // Exact mode (default): strict field matching
+      filterQuery = { ...baseQuery };
+      if (wowClass) {
+        filterQuery.class = wowClass.toLowerCase();
+      }
+      if (spec) {
+        filterQuery.spec = spec.toLowerCase();
+      }
+      if (hero_talent) {
+        filterQuery.hero_talent = hero_talent;
+      }
+      if (ability_type) {
+        filterQuery.ability_type = ability_type;
       }
     }
 

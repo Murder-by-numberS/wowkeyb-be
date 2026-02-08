@@ -2,9 +2,3 @@ node_modules
 
 # env Files
 .env.*
-# Local temp/test/log (not part of app)
-fdid_fetch*.log
-test-icon-search.js
-test-keybinding.js
-test-middleware-fix.js
-test-middleware.js

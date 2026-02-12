@@ -22,6 +22,10 @@ router.get('/:keybinding_id',
   validateGetKeybinding,
   AuthnMiddleware.decode,
   KeybindingsController.getKeybinding)
+router.get('/:keybinding_id/versions',
+  validateGetKeybinding,
+  AuthnMiddleware.decode,
+  KeybindingsController.getKeybindingVersions)
 router.post('/',
   validateCreateKeybinding,
   AuthnMiddleware.authenticateToken,
@@ -55,10 +59,6 @@ router.post('/:keybinding_id/migrate',
   validateGetKeybinding,
   AuthnMiddleware.authenticateToken,
   KeybindingsController.migrateKeybindingToVersion)
-router.get('/:keybinding_id/versions',
-  validateGetKeybinding,
-  AuthnMiddleware.decode,
-  KeybindingsController.getKeybindingVersions)
 router.post('/:keybinding_id/copy-to-version',
   validateGetKeybinding,
   AuthnMiddleware.authenticateToken,

@@ -229,15 +229,23 @@ macroSchema.methods.restore = function () {
 
 // Static method to find popular macros
 macroSchema.statics.findPopular = function (gameVersion, limit = 10) {
-  return this.find({
-    game_version: gameVersion,
+  const query = {
     is_active: true,
     is_public: true
-  })
+  };
+
+  // Only filter by game_version if provided
+  if (gameVersion) {
+    query.game_version = gameVersion;
+  }
+
+  return this.find(query)
     .sort({ usage_count: -1 })
     .limit(limit)
     .populate('game_version', 'game_version')
-    .populate('user_id', 'username');
+    .populate('user_id', 'username')
+    .populate('icon', '_id name cloudfrontUrl keywords')
+    .populate('ability', 'name icon description');
 };
 
 // Static method to find macros by tags

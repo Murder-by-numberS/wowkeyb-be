@@ -1029,33 +1029,35 @@ export const getPopularMacros = async (req, res) => {
 
     const { game_version, limit = 10 } = req.query;
 
-    // Determine which version to use
-    let targetVersion;
-    if (game_version && game_version !== 'latest') {
-      targetVersion = await Version.findOne({ game_version });
-      if (!targetVersion) {
-        return res.status(400).json({ message: `Game version ${game_version} not found` });
-      }
-    } else {
-      // Get the latest version
-      const allVersions = await Version.find({});
-      if (allVersions.length === 0) {
-        return res.status(400).json({ message: 'No versions available' });
-      }
-      targetVersion = allVersions.sort((a, b) => {
-        const aParts = a.game_version.split('.').map(Number);
-        const bParts = b.game_version.split('.').map(Number);
-        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-          const aPart = aParts[i] || 0;
-          const bPart = bParts[i] || 0;
-          if (aPart > bPart) return -1;
-          if (aPart < bPart) return 1;
+    // Determine which version to use (optional — if not specified, return popular across all versions)
+    let targetVersionId = null;
+    if (game_version) {
+      if (game_version === 'latest') {
+        const allVersions = await Version.find({});
+        if (allVersions.length > 0) {
+          const latestVersion = allVersions.sort((a, b) => {
+            const aParts = a.game_version.split('.').map(Number);
+            const bParts = b.game_version.split('.').map(Number);
+            for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+              const aPart = aParts[i] || 0;
+              const bPart = bParts[i] || 0;
+              if (aPart > bPart) return -1;
+              if (aPart < bPart) return 1;
+            }
+            return 0;
+          })[0];
+          targetVersionId = latestVersion._id;
         }
-        return 0;
-      })[0];
+      } else {
+        const targetVersion = await Version.findOne({ game_version });
+        if (!targetVersion) {
+          return res.status(400).json({ message: `Game version ${game_version} not found` });
+        }
+        targetVersionId = targetVersion._id;
+      }
     }
 
-    const macros = await Macro.findPopular(targetVersion._id, parseInt(limit));
+    const macros = await Macro.findPopular(targetVersionId, parseInt(limit));
 
     const transformedMacros = macros.map(macro => ({
       id: macro._id,

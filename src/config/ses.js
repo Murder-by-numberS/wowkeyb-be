@@ -1,6 +1,6 @@
 
 import { sesClient } from "./aws.js";
-import { GetTemplateCommand, CreateTemplateCommand } from "@aws-sdk/client-ses";
+import { GetTemplateCommand, CreateTemplateCommand, UpdateTemplateCommand } from "@aws-sdk/client-ses";
 import Logger from "../utils/logger.js";
 import Config from "./config.js";
 
@@ -11,27 +11,30 @@ if (Config.accessKey && Config.secretAccessKey && Config.region) {
   try {
     await Promise.all(Object.keys(USER_EMAIL_TEMPLATE_NAMES).map(async template => {
 
-      const params = {
-        TemplateName: template
+      const templateData = {
+        Template: {
+          TemplateName: template,
+          HtmlPart: USER_EMAIL_TEMPLATES[template],
+          SubjectPart: USER_EMAIL_TEMPLATE_SUBJECTS[template]
+        }
       };
 
       try {
-        await sesClient.send(new GetTemplateCommand(params));
-      } catch (err) {
-        Logger.error(`Error retrieving template: ${err}`);
-
-        let templateParams = {
-          Template: {
-            TemplateName: template,
-            HtmlPart: USER_EMAIL_TEMPLATES[template],
-            SubjectPart: USER_EMAIL_TEMPLATE_SUBJECTS[template]
-          }
-        };
+        await sesClient.send(new GetTemplateCommand({ TemplateName: template }));
+        // Template exists — update it to ensure latest version
         try {
-          const data = await sesClient.send(new CreateTemplateCommand(templateParams));
-          Logger.info(`Created template: ${data}`);
-        } catch (err) {
-          Logger.error(`Error creating template: ${err}`);
+          await sesClient.send(new UpdateTemplateCommand(templateData));
+          Logger.info(`Updated SES template: ${template}`);
+        } catch (updateErr) {
+          Logger.error(`Error updating template ${template}: ${updateErr}`);
+        }
+      } catch (err) {
+        // Template doesn't exist — create it
+        try {
+          await sesClient.send(new CreateTemplateCommand(templateData));
+          Logger.info(`Created SES template: ${template}`);
+        } catch (createErr) {
+          Logger.error(`Error creating template ${template}: ${createErr}`);
         }
       }
 

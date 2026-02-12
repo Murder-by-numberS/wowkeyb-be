@@ -14,6 +14,7 @@ const Config = {
   logLevel: process.env.LOG_LEVEL || 'info',
 
   feURL: process.env.FE_URL || 'http://localhost:4200',
+  emailLogoUrl: process.env.EMAIL_LOGO_URL || null, // Falls back to feURL + logo path if not set
 
   //mongodb
   databaseURI: process.env.DATABASE_URI,

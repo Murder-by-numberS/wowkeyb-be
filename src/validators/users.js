@@ -36,6 +36,10 @@ export const validateChangePassword = [
     .matches(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{10,}$/, 'g')
 ];
 
+export const validateGoogleSignIn = [
+  check('credential').isString().notEmpty()
+];
+
 export const validateSaveSetting = [
   check('theme').isString().optional(),
   check('scheme').isString().optional(),

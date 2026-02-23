@@ -38,3 +38,5 @@ run:
       value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/staging/APP_URL"
     - name: LOG_LEVEL
       value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/staging/LOG_LEVEL"
+    - name: GOOGLE_CLIENT_ID
+      value: "arn:aws:ssm:us-east-1:351483928422:parameter/wowkeyb-be/staging/GOOGLE_CLIENT_ID"

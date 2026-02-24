@@ -76,7 +76,7 @@ export const getKeybindings = async (req, res, next) => {
     // Get all keybindings for this user
     const allKeybindings = await Keybinding.find({ user_id, deleted_at: null })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds deleted_at keybinding_group_id')
+      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds layout deleted_at keybinding_group_id')
       .lean();
 
     // Group by keybinding_group_id and keep only the latest version per group
@@ -134,7 +134,7 @@ export const getHomeKeybindings = async (req, res, next) => {
     const keybindings = await Keybinding.find({ is_public: true })
       .populate('version', 'game_version')
       .populate('user_id', 'username')
-      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds')
+      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds layout')
       .limit(500) // Limit for home page performance
       .lean(); // Use lean() for better performance
 
@@ -188,7 +188,7 @@ export const getPopularKeybindings = async (req, res, next) => {
     const keybindings = await Keybinding.find({ is_public: true })
       .populate('version', 'game_version')
       .populate('user_id', 'username')
-      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds is_public')
+      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds layout is_public')
       .sort({ duplication_count: -1, createdAt: -1 }) // Sort by duplication count desc, then by creation date desc
       .skip(skip)
       .limit(parseInt(limit))
@@ -291,8 +291,33 @@ export const updateKeybinding = async (req, res, next) => {
           keybind.spell.spell_id = keybind.spell.spellId.toString();
           delete keybind.spell.spellId;
         }
+        // Transform camelCase to snake_case for layout fields
+        if (keybind.barId !== undefined) {
+          keybind.bar_id = keybind.barId;
+          delete keybind.barId;
+        }
+        if (keybind.slotIndex !== undefined) {
+          keybind.slot_index = keybind.slotIndex;
+          delete keybind.slotIndex;
+        }
         return keybind;
-      })
+      });
+    }
+
+    // Transform layout camelCase to snake_case
+    if (req.body.layout) {
+      if (req.body.layout.screenWidth !== undefined) {
+        req.body.layout.screen_width = req.body.layout.screenWidth;
+        delete req.body.layout.screenWidth;
+      }
+      if (req.body.layout.screenHeight !== undefined) {
+        req.body.layout.screen_height = req.body.layout.screenHeight;
+        delete req.body.layout.screenHeight;
+      }
+      if (req.body.layout.barGap !== undefined) {
+        req.body.layout.bar_gap = req.body.layout.barGap;
+        delete req.body.layout.barGap;
+      }
     }
 
     // Handle version update
@@ -856,6 +881,7 @@ export const duplicateKeybinding = async (req, res, next) => {
       version: originalData.version,
       is_public: false,
       user_id: req.decoded?.user_id || null,
+      layout: originalData.layout ? JSON.parse(JSON.stringify(originalData.layout)) : null,
       keybinds: originalData.keybinds?.map((keybind, index) => {
         console.log(`Processing keybind ${index + 1}/${originalData.keybinds.length}:`, JSON.stringify(keybind, null, 2));
 
@@ -884,7 +910,9 @@ export const duplicateKeybinding = async (req, res, next) => {
             icon: keybind.spell.icon || '',
             name: keybind.spell.name,
             spell_id: keybind.spell.spell_id || keybind.spell.spellId || ''
-          }
+          },
+          bar_id: keybind.bar_id ?? null,
+          slot_index: keybind.slot_index ?? null
         };
 
         console.log(`Created new keybind ${index + 1}:`, JSON.stringify(newKeybind, null, 2));
@@ -962,7 +990,7 @@ export const getDeletedKeybindings = async (req, res, next) => {
       includeDeleted: true
     })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version createdAt deleted_at keybinds')
+      .select('name class spec hero_talent version createdAt deleted_at keybinds layout')
       .limit(50) // Limit deleted keybindings
       .lean();
 
@@ -1494,7 +1522,9 @@ export const copyKeybindingToVersion = async (req, res, next) => {
             icon: kb.spell.icon,
             name: kb.spell.name,
             spell_id: kb.spell.spell_id
-          }
+          },
+          bar_id: kb.bar_id ?? null,
+          slot_index: kb.slot_index ?? null
         });
       } else {
         // Ability doesn't exist in target version - track it as removed
@@ -1517,6 +1547,7 @@ export const copyKeybindingToVersion = async (req, res, next) => {
       hero_talent: originalData.hero_talent,
       version: version_id,
       keybinds: validKeybinds,
+      layout: originalData.layout ? JSON.parse(JSON.stringify(originalData.layout)) : null,
       is_public: originalData.is_public,
       duplication_count: 0,
       keybinding_group_id: groupId

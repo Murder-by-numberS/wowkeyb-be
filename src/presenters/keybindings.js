@@ -36,12 +36,20 @@ const mapToData = (keybinding) => ({
   keybinds: (keybinding.keybinds || []).map(keybind => ({
     key: keybind.key || null,
     spell: {
-      description: keybind.spell.description || null,
-      icon: keybind.spell.icon || null,
-      name: keybind.spell.name || null,
-      spellId: keybind.spell.spell_id || null
-    }
-  }))
+      description: keybind.spell?.description || null,
+      icon: keybind.spell?.icon || null,
+      name: keybind.spell?.name || null,
+      spellId: keybind.spell?.spell_id || null
+    },
+    barId: keybind.bar_id || null,
+    slotIndex: keybind.slot_index ?? null
+  })),
+  layout: keybinding.layout ? {
+    bars: keybinding.layout.bars || [],
+    screenWidth: keybinding.layout.screen_width ?? 2560,
+    screenHeight: keybinding.layout.screen_height ?? 1440,
+    barGap: keybinding.layout.bar_gap ?? 16
+  } : null
 })
 
 export const presentOne = (keybinding) => {

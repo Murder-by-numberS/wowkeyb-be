@@ -84,8 +84,46 @@ const keybindSchema = new Schema({
   spell: {
     type: spellSchema,
     required: true
+  },
+  bar_id: {
+    type: String,
+    default: null
+  },
+  slot_index: {
+    type: Number,
+    default: null
   }
 });
+
+// Action bar layout schema (Phase 2)
+const barPositionSchema = new Schema({
+  anchor: {
+    type: String,
+    enum: ['bottom', 'top', 'left', 'right', 'center'],
+    default: 'bottom'
+  },
+  x: { type: Number, default: 0 },
+  y: { type: Number, default: 0 }
+}, { _id: false });
+
+const actionBarSchema = new Schema({
+  id: { type: String, required: true },
+  slots: { type: Number, default: 12 },
+  position: { type: barPositionSchema, default: () => ({}) },
+  orientation: {
+    type: String,
+    enum: ['horizontal', 'vertical'],
+    default: 'horizontal'
+  },
+  scale: { type: Number, default: 1 }
+}, { _id: false });
+
+const layoutSchema = new Schema({
+  bars: [actionBarSchema],
+  screen_width: { type: Number, default: 2560 },
+  screen_height: { type: Number, default: 1440 },
+  bar_gap: { type: Number, default: 16 }
+}, { _id: false });
 
 const keybindingSchema = new Schema({
   name: {
@@ -123,6 +161,10 @@ const keybindingSchema = new Schema({
     type: keybindSchema,
     default: []
   }],
+  layout: {
+    type: layoutSchema,
+    default: null
+  },
   is_public: {
     type: Boolean,
     default: true

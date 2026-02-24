@@ -10,7 +10,7 @@ import { generateCode, saltRounds } from "../../utils/util.js"
 import { sendEmailWithTemplate } from '../email/email.js';
 import { USER_EMAIL_TEMPLATE_NAMES } from '../email/emails/user.js';
 
-import { User, UserSetting, Token, Keybinding } from '../../models/index.js'
+import { User, UserSetting, Keybinding } from '../../models/index.js'
 
 import { presentMany } from '../../presenters/keybindings.js';
 
@@ -108,9 +108,6 @@ export const login = async (req, res) => {
       process.env.TOKEN_SECRET,
       { expiresIn: process.env.TOKEN_EXPIRATION });
     console.log('token', token);
-    //store token in db
-    await Token.create({ user_id: user._id, token, token_type: 'verification' });
-
     //get keybindings
     const keybindings = await Keybinding.find({ user_id: user._id }).populate('version');
 
@@ -318,9 +315,6 @@ export const refreshAccessToken = async (req, res) => {
       },
       process.env.TOKEN_SECRET,
       { expiresIn: process.env.TOKEN_EXPIRATION });
-
-    //store token in db
-    await Token.create({ user_id: user._id, token, token_type: 'verification' });
 
     Logger.info('Refreshed Token Successfully');
 
@@ -594,8 +588,6 @@ export const googleSignIn = async (req, res) => {
       process.env.TOKEN_SECRET,
       { expiresIn: process.env.TOKEN_EXPIRATION }
     );
-
-    await Token.create({ user_id: user._id, token, token_type: 'verification' });
 
     const keybindings = await Keybinding.find({ user_id: user._id }).populate('version');
 

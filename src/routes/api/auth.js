@@ -1,7 +1,7 @@
 import { Router } from "express";
 import AuthnMiddleware from "../../middlewares/authn.js";
 import * as AuthController from '../../controllers/user/auth.js';
-import { validateAuth, validateRegister, validateConfirm, validateNewPassword, validateChangePassword } from "../../validators/users.js";
+import { validateAuth, validateRegister, validateConfirm, validateNewPassword, validateChangePassword, validateGoogleSignIn } from "../../validators/users.js";
 
 const router = new Router();
 
@@ -11,6 +11,9 @@ router.post('/login',
 router.post('/register',
   validateRegister,
   AuthController.register)
+router.post('/google',
+  validateGoogleSignIn,
+  AuthController.googleSignIn)
 router.post('/confirm-user',
   validateConfirm,
   AuthController.confirmUser)

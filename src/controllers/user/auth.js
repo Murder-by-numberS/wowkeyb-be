@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import { validationResult } from "express-validator";
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 
 import Config from '../../config/config.js';
 import Logger from "../../utils/logger.js";
@@ -9,9 +10,11 @@ import { generateCode, saltRounds } from "../../utils/util.js"
 import { sendEmailWithTemplate } from '../email/email.js';
 import { USER_EMAIL_TEMPLATE_NAMES } from '../email/emails/user.js';
 
-import { User, UserSetting, Token, Keybinding } from '../../models/index.js'
+import { User, UserSetting, Keybinding } from '../../models/index.js'
 
 import { presentMany } from '../../presenters/keybindings.js';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 
 export const login = async (req, res) => {
@@ -105,9 +108,6 @@ export const login = async (req, res) => {
       process.env.TOKEN_SECRET,
       { expiresIn: process.env.TOKEN_EXPIRATION });
     console.log('token', token);
-    //store token in db
-    await Token.create({ user_id: user._id, token, token_type: 'verification' });
-
     //get keybindings
     const keybindings = await Keybinding.find({ user_id: user._id }).populate('version');
 
@@ -316,9 +316,6 @@ export const refreshAccessToken = async (req, res) => {
       process.env.TOKEN_SECRET,
       { expiresIn: process.env.TOKEN_EXPIRATION });
 
-    //store token in db
-    await Token.create({ user_id: user._id, token, token_type: 'verification' });
-
     Logger.info('Refreshed Token Successfully');
 
     //get keybindings
@@ -516,6 +513,111 @@ export const setNewPassword = async (req, res) => {
   }
 
 }
+
+export const googleSignIn = async (req, res) => {
+  Logger.verbose('Inside Google Sign-In');
+
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res
+        .status(400)
+        .json({ code: "GOOGLE001", message: "Missing Google credential" });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, email_verified } = payload;
+
+    if (!email_verified) {
+      return res
+        .status(400)
+        .json({ code: "GOOGLE002", message: "Google email not verified" });
+    }
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user) {
+      if (!user.google_id) {
+        user.google_id = googleId;
+        user.auth_provider = user.encrypted_password ? user.auth_provider : 'google';
+        user.confirmed = true;
+        await user.save();
+        Logger.info(`Linked Google account to existing user ${user._id}`);
+      }
+    } else {
+      const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+      let uniqueUsername = username;
+      let suffix = 1;
+      while (await User.findOne({ username: uniqueUsername })) {
+        uniqueUsername = `${username}_${suffix}`;
+        suffix++;
+      }
+
+      user = await User.create({
+        email: email.toLowerCase(),
+        username: uniqueUsername,
+        google_id: googleId,
+        auth_provider: 'google',
+        confirmed: true,
+      });
+
+      Logger.info(`Created new Google user ${user._id} with username ${uniqueUsername}`);
+    }
+
+    let userSettings = await UserSetting.findOne({ user_id: user._id });
+
+    if (!userSettings) {
+      userSettings = await UserSetting.create({
+        scheme: "light",
+        user_id: user._id,
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        accessLevel: user.access_level,
+        user_id: user._id
+      },
+      process.env.TOKEN_SECRET,
+      { expiresIn: process.env.TOKEN_EXPIRATION }
+    );
+
+    const keybindings = await Keybinding.find({ user_id: user._id }).populate('version');
+
+    const userResponse = {
+      _id: user._id,
+      email: user.email,
+      username: user.username,
+      confirmed: user.confirmed,
+      description: user.description,
+      favoriteClass: user.favorite_class,
+      access_level: user.access_level,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    const responsePayload = {
+      user: userResponse,
+      token,
+      userSettings,
+      keybindings: presentMany(keybindings)
+    };
+
+    return res.status(200).send(responsePayload);
+  } catch (e) {
+    Logger.error(`Error in Google Sign-In: ${e.message}`);
+    return res
+      .status(500)
+      .json({ code: "GOOGLE003", message: "Error signing in with Google" });
+  }
+};
 
 export const changePassword = async (req, res) => {
 

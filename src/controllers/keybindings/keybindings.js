@@ -318,6 +318,19 @@ export const updateKeybinding = async (req, res, next) => {
         req.body.layout.bar_gap = req.body.layout.barGap;
         delete req.body.layout.barGap;
       }
+      if (req.body.layout.barMode !== undefined) {
+        req.body.layout.bar_mode = req.body.layout.barMode;
+        delete req.body.layout.barMode;
+      }
+      if (Array.isArray(req.body.layout.bars)) {
+        req.body.layout.bars = req.body.layout.bars.map((bar) => {
+          if (bar?.slotKeys !== undefined) {
+            bar.slot_keys = bar.slotKeys;
+            delete bar.slotKeys;
+          }
+          return bar;
+        });
+      }
     }
 
     // Handle version update

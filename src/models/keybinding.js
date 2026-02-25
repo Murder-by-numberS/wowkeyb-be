@@ -109,6 +109,7 @@ const barPositionSchema = new Schema({
 const actionBarSchema = new Schema({
   id: { type: String, required: true },
   slots: { type: Number, default: 12 },
+  slot_keys: [{ type: String }],
   position: { type: barPositionSchema, default: () => ({}) },
   orientation: {
     type: String,
@@ -120,6 +121,11 @@ const actionBarSchema = new Schema({
 
 const layoutSchema = new Schema({
   bars: [actionBarSchema],
+  bar_mode: {
+    type: String,
+    enum: ['blizzard', 'custom'],
+    default: 'custom'
+  },
   screen_width: { type: Number, default: 2560 },
   screen_height: { type: Number, default: 1440 },
   bar_gap: { type: Number, default: 16 }

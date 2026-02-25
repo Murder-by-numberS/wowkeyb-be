@@ -45,7 +45,14 @@ const mapToData = (keybinding) => ({
     slotIndex: keybind.slot_index ?? null
   })),
   layout: keybinding.layout ? {
-    bars: keybinding.layout.bars || [],
+    bars: (keybinding.layout.bars || []).map((bar) => {
+      const { slot_keys, ...rest } = bar;
+      return {
+        ...rest,
+        slotKeys: slot_keys || []
+      };
+    }),
+    barMode: keybinding.layout.bar_mode || 'custom',
     screenWidth: keybinding.layout.screen_width ?? 2560,
     screenHeight: keybinding.layout.screen_height ?? 1440,
     barGap: keybinding.layout.bar_gap ?? 16

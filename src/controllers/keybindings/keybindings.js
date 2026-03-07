@@ -7,6 +7,12 @@ import { presentOne, presentMany } from '../../presenters/keybindings.js';
 import Logger from '../../utils/logger.js';
 import { generateRandomClassDetails } from '../ability/abilities.js';
 import { ADMIN_ACCESS_LEVEL } from '../../middlewares/authn.js';
+import {
+  CLASS_SPEC_HERO_CATALOG,
+  normalizeClassValue,
+  normalizeSpecValue,
+  normalizeHeroTalentValue
+} from '../../utils/class-spec-hero-catalog.js';
 
 // Maximum keybindings per user
 const MAX_KEYBINDINGS_PER_USER = 10;
@@ -172,6 +178,22 @@ export const getHomeKeybindings = async (req, res, next) => {
 };
 
 /**
+ * Get canonical class/spec/hero catalog for clients.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+export const getClassSpecHeroCatalog = async (req, res, next) => {
+  try {
+    res.status(200).send({
+      classes: CLASS_SPEC_HERO_CATALOG
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get popular keybindings (public endpoint)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -246,7 +268,7 @@ export const updateKeybinding = async (req, res, next) => {
 
     // Normalize class field if it exists
     if (req.body.class !== undefined) {
-      const normalizedClass = req.body.class.toLowerCase().replace(/\s+/g, '');
+      const normalizedClass = normalizeClassValue(req.body.class);
 
       //if the class is not the same as the keybinding class, remove keybinds
       if (normalizedClass !== keybinding.class) {
@@ -256,11 +278,7 @@ export const updateKeybinding = async (req, res, next) => {
     }
 
     if (req.body.spec !== undefined) {
-      let normalizedSpec = req.body.spec.toLowerCase();
-
-      if (normalizedSpec === 'beast mastery') {
-        normalizedSpec = 'beast-mastery';
-      }
+      const normalizedSpec = normalizeSpecValue(req.body.spec);
 
       //if the spec is not the same as the keybinding spec, remove keybinds
       if (normalizedSpec !== keybinding.spec) {
@@ -270,12 +288,7 @@ export const updateKeybinding = async (req, res, next) => {
     }
 
     if (req.body.hero_talent !== undefined) {
-      let normalizedHeroTalent = req.body.hero_talent.toLowerCase();
-
-      //if there is a space in the hero_talent, replace it with a dash
-      if (normalizedHeroTalent.includes(' ')) {
-        normalizedHeroTalent = normalizedHeroTalent.replace(/\s+/g, '-');
-      }
+      const normalizedHeroTalent = normalizeHeroTalentValue(req.body.hero_talent);
 
       //if the hero_talent is not the same as the keybinding hero_talent, remove keybinds
       if (normalizedHeroTalent !== keybinding.hero_talent) {
@@ -397,10 +410,6 @@ export const createKeybinding = async (req, res, next) => {
 
     const randomClass = generateRandomClassDetails();
 
-    if (req.body?.spec === 'beast mastery') {
-      req.body.spec = 'beast-mastery';
-    }
-
     // Validate version if provided
     let versionId = null;
     if (req.body?.version) {
@@ -425,9 +434,9 @@ export const createKeybinding = async (req, res, next) => {
     }
 
     const classDetails = (req.body?.class && req.body?.spec && req.body?.heroTalent) ? {
-      class: req.body.class.toLowerCase().replace(/\s+/g, ''),
-      spec: req.body.spec.toLowerCase(),
-      heroTalent: req.body.heroTalent.toLowerCase().replace(/\s+/g, '-')
+      class: normalizeClassValue(req.body.class),
+      spec: normalizeSpecValue(req.body.spec),
+      heroTalent: normalizeHeroTalentValue(req.body.heroTalent)
     } : randomClass;
 
     // Process keybinds if they exist

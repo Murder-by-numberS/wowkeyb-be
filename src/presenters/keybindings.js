@@ -1,3 +1,5 @@
+import { getClassLabel, getSpecLabel, getHeroTalentLabel } from '../utils/class-spec-hero-catalog.js';
+
 const toTitleCase = (str) => {
   if (!str) return str;
 
@@ -27,9 +29,9 @@ const mapToData = (keybinding) => ({
   name: toTitleCase(keybinding.name) || null,
   userId: keybinding.user_id?._id || keybinding.user_id || null,
   creatorUsername: keybinding.user_id?.username || null,
-  class: toTitleCase(keybinding.class) || null,
-  spec: toTitleCase(keybinding.spec) || null,
-  heroTalent: toTitleCase(keybinding.hero_talent) || null,
+  class: getClassLabel(keybinding.class) || null,
+  spec: getSpecLabel(keybinding.spec) || null,
+  heroTalent: getHeroTalentLabel(keybinding.hero_talent) || null,
   version: keybinding.version || null,
   isPublic: keybinding.is_public || false,
   createdAt: keybinding.createdAt || null,

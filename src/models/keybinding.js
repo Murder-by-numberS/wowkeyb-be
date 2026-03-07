@@ -1,60 +1,12 @@
 import mongoose from 'mongoose';
+import {
+  CLASS_ENUM,
+  SPEC_BY_CLASS,
+  HERO_TALENTS_BY_CLASS,
+  SPEC_ENUM_FLAT,
+  HERO_TALENTS_ENUM_FLAT
+} from '../utils/class-spec-hero-catalog.js';
 const { Schema } = mongoose;
-
-// Enum definitions
-const CLASS_ENUM = [
-  'deathknight',
-  'demonhunter',
-  'druid',
-  'evoker',
-  'hunter',
-  'mage',
-  'monk',
-  'paladin',
-  'priest',
-  'rogue',
-  'shaman',
-  'warlock',
-  'warrior'
-];
-
-const SPEC_ENUM = {
-  deathknight: ['blood', 'frost', 'unholy'],
-  demonhunter: ['havoc', 'vengeance'],
-  druid: ['balance', 'feral', 'guardian', 'restoration'],
-  evoker: ['devastation', 'preservation', 'augmentation'],
-  hunter: ['beast-mastery', 'marksmanship', 'survival'],
-  mage: ['arcane', 'fire', 'frost'],
-  monk: ['brewmaster', 'mistweaver', 'windwalker'],
-  paladin: ['holy', 'protection', 'retribution'],
-  priest: ['discipline', 'holy', 'shadow'],
-  rogue: ['assassination', 'outlaw', 'subtlety'],
-  shaman: ['elemental', 'enhancement', 'restoration'],
-  warlock: ['affliction', 'demonology', 'destruction'],
-  warrior: ['arms', 'fury', 'protection']
-};
-
-// Flatten spec array for mongoose enum
-const SPEC_ENUM_FLAT = Object.values(SPEC_ENUM).flat();
-
-const HERO_TALENTS_ENUM = {
-  deathknight: ['deathbringer', 'san-layn', 'rider-of-the-apocalypse'],
-  demonhunter: ['aldrachi-reaver', 'fel-scarred'],
-  druid: ['elunes-chosen', 'keeper-of-the-grove', 'druid-of-the-claw', 'wildstalker'],
-  evoker: ['flameshaper', 'scalecommander', 'chronowarden'],
-  hunter: ['dark-ranger', 'pack-leader', 'sentinel'],
-  mage: ['spellslinger', 'sunfury', 'frostfire'],
-  monk: ['master-of-harmony', 'shado-pan', 'conduit-of-the-celestials'],
-  paladin: ['herald-of-the-sun', 'lightsmith', 'templar'],
-  priest: ['archon', 'oracle', 'voidweaver'],
-  rogue: ['deathstalker', 'fatebound', 'trickster'],
-  shaman: ['farseer', 'stormbringer', 'totemic'],
-  warlock: ['hellcaller', 'soul-harvester', 'diabolist'],
-  warrior: ['colossus', 'slayer', 'mountain-thane']
-};
-
-// Flatten hero talents array for mongoose enum
-const HERO_TALENTS_ENUM_FLAT = Object.values(HERO_TALENTS_ENUM).flat();
 
 // Rest of the schemas remain the same
 const spellSchema = new Schema({
@@ -198,14 +150,14 @@ const keybindingSchema = new Schema({
 // Custom validation for spec based on selected class
 keybindingSchema.path('spec').validate(function (value) {
   if (!value) return true; // Allow empty spec
-  const classSpecs = SPEC_ENUM[this.class];
+  const classSpecs = SPEC_BY_CLASS[this.class];
   return classSpecs && classSpecs.includes(value);
 }, 'Invalid spec for the selected class');
 
 // Add custom validation for hero_talent based on selected class
 keybindingSchema.path('hero_talent').validate(function (value) {
   if (!value) return true; // Allow empty hero_talent
-  const classHeroTalents = HERO_TALENTS_ENUM[this.class];
+  const classHeroTalents = HERO_TALENTS_BY_CLASS[this.class];
   return classHeroTalents && classHeroTalents.includes(value);
 }, 'Invalid hero talent for the selected class');
 

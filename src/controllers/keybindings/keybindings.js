@@ -7,6 +7,12 @@ import { presentOne, presentMany } from '../../presenters/keybindings.js';
 import Logger from '../../utils/logger.js';
 import { generateRandomClassDetails } from '../ability/abilities.js';
 import { ADMIN_ACCESS_LEVEL } from '../../middlewares/authn.js';
+import {
+  CLASS_SPEC_HERO_CATALOG,
+  normalizeClassValue,
+  normalizeSpecValue,
+  normalizeHeroTalentValue
+} from '../../utils/class-spec-hero-catalog.js';
 
 // Maximum keybindings per user
 const MAX_KEYBINDINGS_PER_USER = 10;
@@ -76,7 +82,7 @@ export const getKeybindings = async (req, res, next) => {
     // Get all keybindings for this user
     const allKeybindings = await Keybinding.find({ user_id, deleted_at: null })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds deleted_at keybinding_group_id')
+      .select('name class spec hero_talent version is_public createdAt duplication_count keybinds layout deleted_at keybinding_group_id')
       .lean();
 
     // Group by keybinding_group_id and keep only the latest version per group
@@ -134,7 +140,7 @@ export const getHomeKeybindings = async (req, res, next) => {
     const keybindings = await Keybinding.find({ is_public: true })
       .populate('version', 'game_version')
       .populate('user_id', 'username')
-      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds')
+      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds layout')
       .limit(500) // Limit for home page performance
       .lean(); // Use lean() for better performance
 
@@ -172,6 +178,22 @@ export const getHomeKeybindings = async (req, res, next) => {
 };
 
 /**
+ * Get canonical class/spec/hero catalog for clients.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+export const getClassSpecHeroCatalog = async (req, res, next) => {
+  try {
+    res.status(200).send({
+      classes: CLASS_SPEC_HERO_CATALOG
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get popular keybindings (public endpoint)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -188,7 +210,7 @@ export const getPopularKeybindings = async (req, res, next) => {
     const keybindings = await Keybinding.find({ is_public: true })
       .populate('version', 'game_version')
       .populate('user_id', 'username')
-      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds is_public')
+      .select('name class spec hero_talent version user_id createdAt duplication_count keybinds layout is_public')
       .sort({ duplication_count: -1, createdAt: -1 }) // Sort by duplication count desc, then by creation date desc
       .skip(skip)
       .limit(parseInt(limit))
@@ -246,7 +268,7 @@ export const updateKeybinding = async (req, res, next) => {
 
     // Normalize class field if it exists
     if (req.body.class !== undefined) {
-      const normalizedClass = req.body.class.toLowerCase().replace(/\s+/g, '');
+      const normalizedClass = normalizeClassValue(req.body.class);
 
       //if the class is not the same as the keybinding class, remove keybinds
       if (normalizedClass !== keybinding.class) {
@@ -256,11 +278,7 @@ export const updateKeybinding = async (req, res, next) => {
     }
 
     if (req.body.spec !== undefined) {
-      let normalizedSpec = req.body.spec.toLowerCase();
-
-      if (normalizedSpec === 'beast mastery') {
-        normalizedSpec = 'beast-mastery';
-      }
+      const normalizedSpec = normalizeSpecValue(req.body.spec);
 
       //if the spec is not the same as the keybinding spec, remove keybinds
       if (normalizedSpec !== keybinding.spec) {
@@ -270,12 +288,7 @@ export const updateKeybinding = async (req, res, next) => {
     }
 
     if (req.body.hero_talent !== undefined) {
-      let normalizedHeroTalent = req.body.hero_talent.toLowerCase();
-
-      //if there is a space in the hero_talent, replace it with a dash
-      if (normalizedHeroTalent.includes(' ')) {
-        normalizedHeroTalent = normalizedHeroTalent.replace(/\s+/g, '-');
-      }
+      const normalizedHeroTalent = normalizeHeroTalentValue(req.body.hero_talent);
 
       //if the hero_talent is not the same as the keybinding hero_talent, remove keybinds
       if (normalizedHeroTalent !== keybinding.hero_talent) {
@@ -291,8 +304,46 @@ export const updateKeybinding = async (req, res, next) => {
           keybind.spell.spell_id = keybind.spell.spellId.toString();
           delete keybind.spell.spellId;
         }
+        // Transform camelCase to snake_case for layout fields
+        if (keybind.barId !== undefined) {
+          keybind.bar_id = keybind.barId;
+          delete keybind.barId;
+        }
+        if (keybind.slotIndex !== undefined) {
+          keybind.slot_index = keybind.slotIndex;
+          delete keybind.slotIndex;
+        }
         return keybind;
-      })
+      });
+    }
+
+    // Transform layout camelCase to snake_case
+    if (req.body.layout) {
+      if (req.body.layout.screenWidth !== undefined) {
+        req.body.layout.screen_width = req.body.layout.screenWidth;
+        delete req.body.layout.screenWidth;
+      }
+      if (req.body.layout.screenHeight !== undefined) {
+        req.body.layout.screen_height = req.body.layout.screenHeight;
+        delete req.body.layout.screenHeight;
+      }
+      if (req.body.layout.barGap !== undefined) {
+        req.body.layout.bar_gap = req.body.layout.barGap;
+        delete req.body.layout.barGap;
+      }
+      if (req.body.layout.barMode !== undefined) {
+        req.body.layout.bar_mode = req.body.layout.barMode;
+        delete req.body.layout.barMode;
+      }
+      if (Array.isArray(req.body.layout.bars)) {
+        req.body.layout.bars = req.body.layout.bars.map((bar) => {
+          if (bar?.slotKeys !== undefined) {
+            bar.slot_keys = bar.slotKeys;
+            delete bar.slotKeys;
+          }
+          return bar;
+        });
+      }
     }
 
     // Handle version update
@@ -359,10 +410,6 @@ export const createKeybinding = async (req, res, next) => {
 
     const randomClass = generateRandomClassDetails();
 
-    if (req.body?.spec === 'beast mastery') {
-      req.body.spec = 'beast-mastery';
-    }
-
     // Validate version if provided
     let versionId = null;
     if (req.body?.version) {
@@ -387,9 +434,9 @@ export const createKeybinding = async (req, res, next) => {
     }
 
     const classDetails = (req.body?.class && req.body?.spec && req.body?.heroTalent) ? {
-      class: req.body.class.toLowerCase().replace(/\s+/g, ''),
-      spec: req.body.spec.toLowerCase(),
-      heroTalent: req.body.heroTalent.toLowerCase().replace(/\s+/g, '-')
+      class: normalizeClassValue(req.body.class),
+      spec: normalizeSpecValue(req.body.spec),
+      heroTalent: normalizeHeroTalentValue(req.body.heroTalent)
     } : randomClass;
 
     // Process keybinds if they exist
@@ -856,6 +903,7 @@ export const duplicateKeybinding = async (req, res, next) => {
       version: originalData.version,
       is_public: false,
       user_id: req.decoded?.user_id || null,
+      layout: originalData.layout ? JSON.parse(JSON.stringify(originalData.layout)) : null,
       keybinds: originalData.keybinds?.map((keybind, index) => {
         console.log(`Processing keybind ${index + 1}/${originalData.keybinds.length}:`, JSON.stringify(keybind, null, 2));
 
@@ -884,7 +932,9 @@ export const duplicateKeybinding = async (req, res, next) => {
             icon: keybind.spell.icon || '',
             name: keybind.spell.name,
             spell_id: keybind.spell.spell_id || keybind.spell.spellId || ''
-          }
+          },
+          bar_id: keybind.bar_id ?? null,
+          slot_index: keybind.slot_index ?? null
         };
 
         console.log(`Created new keybind ${index + 1}:`, JSON.stringify(newKeybind, null, 2));
@@ -962,7 +1012,7 @@ export const getDeletedKeybindings = async (req, res, next) => {
       includeDeleted: true
     })
       .populate('version', 'game_version')
-      .select('name class spec hero_talent version createdAt deleted_at keybinds')
+      .select('name class spec hero_talent version createdAt deleted_at keybinds layout')
       .limit(50) // Limit deleted keybindings
       .lean();
 
@@ -1494,7 +1544,9 @@ export const copyKeybindingToVersion = async (req, res, next) => {
             icon: kb.spell.icon,
             name: kb.spell.name,
             spell_id: kb.spell.spell_id
-          }
+          },
+          bar_id: kb.bar_id ?? null,
+          slot_index: kb.slot_index ?? null
         });
       } else {
         // Ability doesn't exist in target version - track it as removed
@@ -1517,6 +1569,7 @@ export const copyKeybindingToVersion = async (req, res, next) => {
       hero_talent: originalData.hero_talent,
       version: version_id,
       keybinds: validKeybinds,
+      layout: originalData.layout ? JSON.parse(JSON.stringify(originalData.layout)) : null,
       is_public: originalData.is_public,
       duplication_count: 0,
       keybinding_group_id: groupId

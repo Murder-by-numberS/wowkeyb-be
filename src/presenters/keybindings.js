@@ -1,3 +1,5 @@
+import { getClassLabel, getSpecLabel, getHeroTalentLabel } from '../utils/class-spec-hero-catalog.js';
+
 const toTitleCase = (str) => {
   if (!str) return str;
 
@@ -27,21 +29,36 @@ const mapToData = (keybinding) => ({
   name: toTitleCase(keybinding.name) || null,
   userId: keybinding.user_id?._id || keybinding.user_id || null,
   creatorUsername: keybinding.user_id?.username || null,
-  class: toTitleCase(keybinding.class) || null,
-  spec: toTitleCase(keybinding.spec) || null,
-  heroTalent: toTitleCase(keybinding.hero_talent) || null,
+  class: getClassLabel(keybinding.class) || null,
+  spec: getSpecLabel(keybinding.spec) || null,
+  heroTalent: getHeroTalentLabel(keybinding.hero_talent) || null,
   version: keybinding.version || null,
   isPublic: keybinding.is_public || false,
   createdAt: keybinding.createdAt || null,
   keybinds: (keybinding.keybinds || []).map(keybind => ({
     key: keybind.key || null,
     spell: {
-      description: keybind.spell.description || null,
-      icon: keybind.spell.icon || null,
-      name: keybind.spell.name || null,
-      spellId: keybind.spell.spell_id || null
-    }
-  }))
+      description: keybind.spell?.description || null,
+      icon: keybind.spell?.icon || null,
+      name: keybind.spell?.name || null,
+      spellId: keybind.spell?.spell_id || null
+    },
+    barId: keybind.bar_id || null,
+    slotIndex: keybind.slot_index ?? null
+  })),
+  layout: keybinding.layout ? {
+    bars: (keybinding.layout.bars || []).map((bar) => {
+      const { slot_keys, ...rest } = bar;
+      return {
+        ...rest,
+        slotKeys: slot_keys || []
+      };
+    }),
+    barMode: keybinding.layout.bar_mode || 'custom',
+    screenWidth: keybinding.layout.screen_width ?? 2560,
+    screenHeight: keybinding.layout.screen_height ?? 1440,
+    barGap: keybinding.layout.bar_gap ?? 16
+  } : null
 })
 
 export const presentOne = (keybinding) => {

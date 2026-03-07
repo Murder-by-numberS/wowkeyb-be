@@ -9,6 +9,8 @@ const router = new Router();
 
 router.get('/home',
   KeybindingsController.getHomeKeybindings)
+router.get('/catalog',
+  KeybindingsController.getClassSpecHeroCatalog)
 
 router.get('/',
   validateGetKeybindings,

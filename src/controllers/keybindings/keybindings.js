@@ -467,7 +467,9 @@ export const createKeybinding = async (req, res, next) => {
             icon: keybind.spell.icon || null,
             name: keybind.spell.name || null,
             spell_id: keybind.spell.spellId?.toString() || keybind.spell.spell_id || null
-          }
+          },
+          bar_id: keybind.barId ?? keybind.bar_id ?? null,
+          slot_index: keybind.slotIndex ?? keybind.slot_index ?? null
         };
 
         // Validate required fields
@@ -482,6 +484,33 @@ export const createKeybinding = async (req, res, next) => {
       console.log('Processed keybinds:', processedKeybinds);
     }
 
+    // Process layout if provided (camelCase from frontend -> snake_case for DB)
+    let processedLayout = null;
+    if (req.body?.layout && typeof req.body.layout === 'object') {
+      const layoutInput = req.body.layout;
+      processedLayout = {
+        bars: Array.isArray(layoutInput.bars)
+          ? layoutInput.bars.map((bar) => ({
+              ...bar,
+              slot_keys: bar?.slotKeys ?? bar?.slot_keys ?? []
+            }))
+          : [],
+        bar_mode: layoutInput.barMode ?? layoutInput.bar_mode ?? 'custom',
+        screen_width: layoutInput.screenWidth ?? layoutInput.screen_width ?? 2560,
+        screen_height: layoutInput.screenHeight ?? layoutInput.screen_height ?? 1440,
+        bar_gap: layoutInput.barGap ?? layoutInput.bar_gap ?? 16
+      };
+      // Remove camelCase-only transient fields from bars
+      if (Array.isArray(processedLayout.bars)) {
+        processedLayout.bars = processedLayout.bars.map((bar) => {
+          if (bar && bar.slotKeys !== undefined) {
+            delete bar.slotKeys;
+          }
+          return bar;
+        });
+      }
+    }
+
     const newKeybinding = {
       name: req.body?.name || 'New Keybinding',
       class: classDetails.class,
@@ -490,7 +519,8 @@ export const createKeybinding = async (req, res, next) => {
       version: versionId,
       is_public: req.decoded?.user_id ? false : true,
       user_id: req.decoded?.user_id || null,
-      keybinds: processedKeybinds
+      keybinds: processedKeybinds,
+      layout: processedLayout
     }
 
     console.log('Creating new keybinding with data:', newKeybinding);

@@ -302,6 +302,10 @@ GET /api/abilities/paladin/holy/herald-of-the-sun/version/685b68b193b0b9e5ee2f2f
 6. **Database-Driven**: No longer relies on static data files
 7. **Version-Specific Queries**: Can retrieve abilities for any game version
 
+## WoW Addon
+
+The WoWKeyb addon (for applying keybinding profiles in-game) lives in a separate repository: [wowkeyb-addon](https://github.com/Murder-by-numberS/wowkeyb-addon)
+
 ## 📁 Project Structure
 
 ```

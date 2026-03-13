@@ -15,7 +15,7 @@ import {
 } from '../../utils/class-spec-hero-catalog.js';
 
 // Maximum keybindings per user
-const MAX_KEYBINDINGS_PER_USER = 10;
+const MAX_KEYBINDINGS_PER_USER = 50;
 
 /**
  * Helper function to get the latest version by semantic version number

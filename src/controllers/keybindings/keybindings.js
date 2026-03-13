@@ -392,18 +392,28 @@ export const createKeybinding = async (req, res, next) => {
   try {
     Logger.info('Creating Keybinding');
 
+    const activeKeybindingMatch = {
+      user_id: new mongoose.Types.ObjectId(req.decoded.user_id),
+      $or: [
+        { deleted_at: null },
+        { deleted_at: { $exists: false } }
+      ]
+    };
+
     // Check keybinding limit for authenticated users
     // Count unique keybinding groups (versions of same keybinding don't count separately)
     if (req.decoded?.user_id) {
       const uniqueGroupCount = await Keybinding.aggregate([
-        { $match: { user_id: new mongoose.Types.ObjectId(req.decoded.user_id), deleted_at: null } },
+        { $match: activeKeybindingMatch },
         { $group: { _id: { $ifNull: ['$keybinding_group_id', '$_id'] } } },
         { $count: 'count' }
       ]);
       const userKeybindingCount = uniqueGroupCount[0]?.count || 0;
       if (userKeybindingCount >= MAX_KEYBINDINGS_PER_USER) {
         return res.status(400).json({
-          message: 'Keybinding limit reached. Please delete some keybindings before creating new ones.'
+          message: `Keybinding limit reached (${userKeybindingCount}/${MAX_KEYBINDINGS_PER_USER}). Please delete some keybindings before creating new ones.`,
+          current_count: userKeybindingCount,
+          max_allowed: MAX_KEYBINDINGS_PER_USER
         });
       }
     }
@@ -815,18 +825,28 @@ export const duplicateKeybinding = async (req, res, next) => {
     const { keybinding_id } = req.params;
     Logger.info(`Duplicating keybinding: ${keybinding_id}`);
 
+    const activeKeybindingMatch = {
+      user_id: new mongoose.Types.ObjectId(req.decoded.user_id),
+      $or: [
+        { deleted_at: null },
+        { deleted_at: { $exists: false } }
+      ]
+    };
+
     // Check keybinding limit for authenticated users
     // Count unique keybinding groups (versions of same keybinding don't count separately)
     if (req.decoded?.user_id) {
       const uniqueGroupCount = await Keybinding.aggregate([
-        { $match: { user_id: new mongoose.Types.ObjectId(req.decoded.user_id), deleted_at: null } },
+        { $match: activeKeybindingMatch },
         { $group: { _id: { $ifNull: ['$keybinding_group_id', '$_id'] } } },
         { $count: 'count' }
       ]);
       const userKeybindingCount = uniqueGroupCount[0]?.count || 0;
       if (userKeybindingCount >= MAX_KEYBINDINGS_PER_USER) {
         return res.status(400).json({
-          message: 'Keybinding limit reached. Please delete some keybindings before duplicating.'
+          message: `Keybinding limit reached (${userKeybindingCount}/${MAX_KEYBINDINGS_PER_USER}). Please delete some keybindings before duplicating.`,
+          current_count: userKeybindingCount,
+          max_allowed: MAX_KEYBINDINGS_PER_USER
         });
       }
     }

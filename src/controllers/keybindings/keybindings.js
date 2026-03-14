@@ -304,6 +304,30 @@ export const updateKeybinding = async (req, res, next) => {
           keybind.spell.spell_id = keybind.spell.spellId.toString();
           delete keybind.spell.spellId;
         }
+        if (keybind.spell && keybind.spell.sourceSpellId !== undefined) {
+          keybind.spell.source_spell_id = keybind.spell.sourceSpellId ? String(keybind.spell.sourceSpellId) : null;
+          delete keybind.spell.sourceSpellId;
+        }
+        if (keybind.spell && keybind.spell.sourceSpellName !== undefined) {
+          keybind.spell.source_spell_name = keybind.spell.sourceSpellName || null;
+          delete keybind.spell.sourceSpellName;
+        }
+        if (keybind.spell && keybind.spell.actionType !== undefined) {
+          keybind.spell.action_type = keybind.spell.actionType || null;
+          delete keybind.spell.actionType;
+        }
+        if (keybind.spell && keybind.spell.isMacro !== undefined) {
+          keybind.spell.is_macro = keybind.spell.isMacro === true;
+          delete keybind.spell.isMacro;
+        }
+        if (keybind.spell && keybind.spell.macroId !== undefined) {
+          keybind.spell.macro_id = keybind.spell.macroId ? String(keybind.spell.macroId) : null;
+          delete keybind.spell.macroId;
+        }
+        if (keybind.spell && keybind.spell.macroText !== undefined) {
+          keybind.spell.macro_text = keybind.spell.macroText || null;
+          delete keybind.spell.macroText;
+        }
         // Transform camelCase to snake_case for layout fields
         if (keybind.barId !== undefined) {
           keybind.bar_id = keybind.barId;
@@ -466,7 +490,13 @@ export const createKeybinding = async (req, res, next) => {
             description: keybind.spell.description || null,
             icon: keybind.spell.icon || null,
             name: keybind.spell.name || null,
-            spell_id: keybind.spell.spellId?.toString() || keybind.spell.spell_id || null
+            spell_id: keybind.spell.spellId?.toString() || keybind.spell.spell_id || null,
+            source_spell_id: keybind.spell.sourceSpellId?.toString() || keybind.spell.source_spell_id || null,
+            source_spell_name: keybind.spell.sourceSpellName || keybind.spell.source_spell_name || null,
+            action_type: keybind.spell.actionType || keybind.spell.action_type || null,
+            is_macro: keybind.spell.isMacro === true || keybind.spell.is_macro === true,
+            macro_id: keybind.spell.macroId?.toString() || keybind.spell.macro_id || null,
+            macro_text: keybind.spell.macroText || keybind.spell.macro_text || null
           },
           bar_id: keybind.barId ?? keybind.bar_id ?? null,
           slot_index: keybind.slotIndex ?? keybind.slot_index ?? null
@@ -981,7 +1011,13 @@ export const duplicateKeybinding = async (req, res, next) => {
             description: keybind.spell.description || '',
             icon: keybind.spell.icon || '',
             name: keybind.spell.name,
-            spell_id: keybind.spell.spell_id || keybind.spell.spellId || ''
+            spell_id: keybind.spell.spell_id || keybind.spell.spellId || '',
+            source_spell_id: keybind.spell.source_spell_id || keybind.spell.sourceSpellId || null,
+            source_spell_name: keybind.spell.source_spell_name || keybind.spell.sourceSpellName || null,
+            action_type: keybind.spell.action_type || keybind.spell.actionType || null,
+            is_macro: keybind.spell.is_macro === true || keybind.spell.isMacro === true,
+            macro_id: keybind.spell.macro_id || keybind.spell.macroId || null,
+            macro_text: keybind.spell.macro_text || keybind.spell.macroText || null
           },
           bar_id: keybind.bar_id ?? null,
           slot_index: keybind.slot_index ?? null
@@ -1593,7 +1629,13 @@ export const copyKeybindingToVersion = async (req, res, next) => {
             description: kb.spell.description,
             icon: kb.spell.icon,
             name: kb.spell.name,
-            spell_id: kb.spell.spell_id
+            spell_id: kb.spell.spell_id,
+            source_spell_id: kb.spell.source_spell_id || kb.spell.sourceSpellId || null,
+            source_spell_name: kb.spell.source_spell_name || kb.spell.sourceSpellName || null,
+            action_type: kb.spell.action_type || kb.spell.actionType || null,
+            is_macro: kb.spell.is_macro === true || kb.spell.isMacro === true,
+            macro_id: kb.spell.macro_id || kb.spell.macroId || null,
+            macro_text: kb.spell.macro_text || kb.spell.macroText || null
           },
           bar_id: kb.bar_id ?? null,
           slot_index: kb.slot_index ?? null

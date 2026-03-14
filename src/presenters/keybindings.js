@@ -41,7 +41,13 @@ const mapToData = (keybinding) => ({
       description: keybind.spell?.description || null,
       icon: keybind.spell?.icon || null,
       name: keybind.spell?.name || null,
-      spellId: keybind.spell?.spell_id || null
+      spellId: keybind.spell?.spell_id || null,
+      sourceSpellId: keybind.spell?.source_spell_id || null,
+      sourceSpellName: keybind.spell?.source_spell_name || null,
+      actionType: keybind.spell?.action_type || null,
+      isMacro: keybind.spell?.is_macro || false,
+      macroId: keybind.spell?.macro_id || null,
+      macroText: keybind.spell?.macro_text || null
     },
     barId: keybind.bar_id || null,
     slotIndex: keybind.slot_index ?? null

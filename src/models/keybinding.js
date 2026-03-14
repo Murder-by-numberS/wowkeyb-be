@@ -25,6 +25,30 @@ const spellSchema = new Schema({
   spell_id: {
     type: String,
     required: true
+  },
+  source_spell_id: {
+    type: String,
+    default: null
+  },
+  source_spell_name: {
+    type: String,
+    default: null
+  },
+  action_type: {
+    type: String,
+    default: null
+  },
+  is_macro: {
+    type: Boolean,
+    default: false
+  },
+  macro_id: {
+    type: String,
+    default: null
+  },
+  macro_text: {
+    type: String,
+    default: null
   }
 });
 

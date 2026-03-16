@@ -12,7 +12,8 @@ const { Schema } = mongoose;
 const spellSchema = new Schema({
   description: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   icon: {
     type: String,

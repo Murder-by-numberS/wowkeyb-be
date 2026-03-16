@@ -487,7 +487,8 @@ export const createKeybinding = async (req, res, next) => {
         const processedKeybind = {
           key: keybind.key || null,
           spell: {
-            description: keybind.spell.description || null,
+            // Keep empty descriptions as empty strings (schema requires description).
+            description: keybind.spell.description ?? '',
             icon: keybind.spell.icon || null,
             name: keybind.spell.name || null,
             spell_id: keybind.spell.spellId?.toString() || keybind.spell.spell_id || null,
@@ -1626,7 +1627,7 @@ export const copyKeybindingToVersion = async (req, res, next) => {
         validKeybinds.push({
           key: kb.key,
           spell: {
-            description: kb.spell.description,
+            description: kb.spell.description ?? '',
             icon: kb.spell.icon,
             name: kb.spell.name,
             spell_id: kb.spell.spell_id,

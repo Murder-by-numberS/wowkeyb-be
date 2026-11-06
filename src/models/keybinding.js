@@ -93,7 +93,8 @@ const actionBarSchema = new Schema({
     enum: ['horizontal', 'vertical'],
     default: 'horizontal'
   },
-  scale: { type: Number, default: 1 }
+  scale: { type: Number, default: 1 },
+  enabled: { type: Boolean, default: true }
 }, { _id: false });
 
 const layoutSchema = new Schema({

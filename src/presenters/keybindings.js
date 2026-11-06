@@ -53,11 +53,13 @@ const mapToData = (keybinding) => ({
     slotIndex: keybind.slot_index ?? null
   })),
   layout: keybinding.layout ? {
-    bars: (keybinding.layout.bars || []).map((bar) => {
-      const { slot_keys, ...rest } = bar;
+    bars: (keybinding.layout.bars || []).map((bar, index) => {
+      const raw = typeof bar.toObject === 'function' ? bar.toObject() : bar;
+      const { slot_keys, ...rest } = raw;
       return {
         ...rest,
-        slotKeys: slot_keys || []
+        slotKeys: slot_keys || [],
+        enabled: index === 0 ? true : raw.enabled !== false
       };
     }),
     barMode: keybinding.layout.bar_mode || 'custom',

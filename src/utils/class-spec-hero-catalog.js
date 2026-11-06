@@ -19,10 +19,13 @@ const CLASS_SPEC_HERO_CATALOG = [
     specs: [
       { value: 'havoc', label: 'Havoc', spec_id: 577 },
       { value: 'vengeance', label: 'Vengeance', spec_id: 581 },
+      { value: 'devourer', label: 'Devourer', spec_id: 1480 },
     ],
     hero_talents: [
       { value: 'aldrachi-reaver', label: 'Aldrachi Reaver' },
       { value: 'fel-scarred', label: 'Fel-Scarred' },
+      { value: 'annihilator', label: 'Annihilator' },
+      { value: 'void-scarred', label: 'Void-Scarred' },
     ],
   },
   {
@@ -264,6 +267,7 @@ function normalizeHeroTalentValue(value) {
     mountainthane: 'mountain-thane',
     aldrachireaver: 'aldrachi-reaver',
     felscarred: 'fel-scarred',
+    voidscarred: 'void-scarred',
   };
   return alias[compact] || slug;
 }

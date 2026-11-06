@@ -12,6 +12,7 @@ export const classes = {
     specs: {
       havoc: ['aldrachi-reaver', 'fel-scarred'],
       vengeance: ['aldrachi-reaver', 'fel-scarred'],
+      devourer: ['annihilator', 'void-scarred'],
     }
   },
   'druid': {

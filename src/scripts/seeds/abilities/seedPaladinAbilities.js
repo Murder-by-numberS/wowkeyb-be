@@ -929,9 +929,9 @@ const specAndHeroActives = [
   },
   {
     name: 'Shield of Vengeance',
-    spell_id: '215661',
+    spell_id: '184662',
     description: 'Creates a barrier of holy light that absorbs damage for 10 sec.',
-    icon: 'https://wow.zamimg.com/images/wow/icons/large/spell_paladin_shieldofvengeance.jpg',
+    icon: 'https://wow.zamimg.com/images/wow/icons/large/ability_paladin_shieldofthetemplar.jpg',
     class: 'paladin',
     spec: 'retribution',
     hero_talent: null,

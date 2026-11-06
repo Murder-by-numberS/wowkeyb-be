@@ -22,7 +22,7 @@ const CLASS_ENUM = [
 const SPEC_ENUM = {
   paladin: ['holy', 'protection', 'retribution'],
   deathknight: ['blood', 'frost', 'unholy'],
-  demonhunter: ['havoc', 'vengeance'],
+  demonhunter: ['havoc', 'vengeance', 'devourer'],
   druid: ['balance', 'feral', 'guardian', 'restoration'],
   evoker: ['devastation', 'preservation', 'augmentation'],
   hunter: ['beast-mastery', 'marksmanship', 'survival'],

@@ -17,6 +17,73 @@ import {
 // Maximum keybindings per user
 const MAX_KEYBINDINGS_PER_USER = 50;
 
+function defaultSingleBarLayout() {
+  return {
+    bars: [
+      {
+        id: 'main',
+        slots: 12,
+        slot_keys: [],
+        position: { anchor: 'bottom', x: 1280, y: 1390 },
+        orientation: 'horizontal',
+        scale: 1,
+        enabled: true
+      }
+    ],
+    bar_mode: 'blizzard',
+    screen_width: 2560,
+    screen_height: 1440,
+    bar_gap: 16
+  };
+}
+
+function isMacroKeybind(keybind) {
+  const spell = keybind?.spell || {};
+  const spellId = String(spell.spell_id || spell.spellId || '');
+  const actionType = String(spell.action_type || spell.actionType || '').toLowerCase();
+  return spell.is_macro === true
+    || spell.isMacro === true
+    || actionType === 'macro'
+    || spellId.toLowerCase().startsWith('macro:');
+}
+
+function isTrinketKeybind(keybind) {
+  const spell = keybind?.spell || {};
+  const spellId = String(spell.spell_id || spell.spellId || '').toLowerCase();
+  const actionType = String(spell.action_type || spell.actionType || '').toLowerCase();
+  return actionType === 'trinket'
+    || spellId.startsWith('trinket:')
+    || spellId.startsWith('item:');
+}
+
+function genericTrinketKeybind(keybind) {
+  return {
+    key: keybind.key,
+    spell: {
+      description: '',
+      icon: 'inv_jewelry_trinket_05',
+      name: 'Trinket',
+      spell_id: 'trinket:slot',
+      source_spell_id: null,
+      source_spell_name: null,
+      action_type: 'trinket',
+      is_macro: false,
+      macro_id: null,
+      macro_text: null
+    },
+    bar_id: keybind.bar_id ?? keybind.barId ?? null,
+    slot_index: keybind.slot_index ?? keybind.slotIndex ?? null
+  };
+}
+
+function keybindRemainsOnVersionCopy(keybind, validSpellIds) {
+  if (isMacroKeybind(keybind)) {
+    return true;
+  }
+  const spellId = keybind?.spell?.spell_id || keybind?.spell?.spellId;
+  return Boolean(spellId) && validSpellIds.has(spellId);
+}
+
 /**
  * Helper function to get the latest version by semantic version number
  * @returns {Promise<Object>} The latest version document
@@ -266,12 +333,16 @@ export const updateKeybinding = async (req, res, next) => {
       delete req.body.heroTalent;
     }
 
+    // A class, spec, or hero change from the editor does not send a new
+    // keybind list, so the old spells are cleared. An import sends both
+    // the new hero and its keybinds, and those keybinds must be kept.
+    const clientSentKeybinds = Array.isArray(req.body.keybinds);
+
     // Normalize class field if it exists
     if (req.body.class !== undefined) {
       const normalizedClass = normalizeClassValue(req.body.class);
 
-      //if the class is not the same as the keybinding class, remove keybinds
-      if (normalizedClass !== keybinding.class) {
+      if (normalizedClass !== keybinding.class && !clientSentKeybinds) {
         req.body.keybinds = [];
       }
       req.body.class = normalizedClass;
@@ -280,8 +351,7 @@ export const updateKeybinding = async (req, res, next) => {
     if (req.body.spec !== undefined) {
       const normalizedSpec = normalizeSpecValue(req.body.spec);
 
-      //if the spec is not the same as the keybinding spec, remove keybinds
-      if (normalizedSpec !== keybinding.spec) {
+      if (normalizedSpec !== keybinding.spec && !clientSentKeybinds) {
         req.body.keybinds = [];
       }
       req.body.spec = normalizedSpec;
@@ -290,8 +360,7 @@ export const updateKeybinding = async (req, res, next) => {
     if (req.body.hero_talent !== undefined) {
       const normalizedHeroTalent = normalizeHeroTalentValue(req.body.hero_talent);
 
-      //if the hero_talent is not the same as the keybinding hero_talent, remove keybinds
-      if (normalizedHeroTalent !== keybinding.hero_talent) {
+      if (normalizedHeroTalent !== keybinding.hero_talent && !clientSentKeybinds) {
         req.body.keybinds = [];
       }
       req.body.hero_talent = normalizedHeroTalent;
@@ -551,7 +620,7 @@ export const createKeybinding = async (req, res, next) => {
       is_public: req.decoded?.user_id ? false : true,
       user_id: req.decoded?.user_id || null,
       keybinds: processedKeybinds,
-      layout: processedLayout
+      layout: processedLayout || defaultSingleBarLayout()
     }
 
     console.log('Creating new keybinding with data:', newKeybinding);
@@ -1218,9 +1287,12 @@ export const migrateKeybindingToLatestVersion = async (req, res, next) => {
 
       // Filter out keybinds for abilities that don't exist in the latest version
       Logger.info(`Original keybinds count: ${keybinding.keybinds.length}`);
-      updatedKeybinds = keybinding.keybinds.filter(keybind => {
+      updatedKeybinds = keybinding.keybinds.flatMap(keybind => {
+        if (isTrinketKeybind(keybind)) {
+          return [genericTrinketKeybind(keybind)];
+        }
         const spellId = keybind.spell?.spell_id;
-        const isValid = validSpellIds.has(spellId);
+        const isValid = keybindRemainsOnVersionCopy(keybind, validSpellIds);
 
         if (!isValid) {
           Logger.info(`Removing keybind for spell ${spellId} (${keybind.spell?.name}) from keybinding ${keybinding_id} - not available in version ${latestVersion.game_version}`);
@@ -1229,7 +1301,7 @@ export const migrateKeybindingToLatestVersion = async (req, res, next) => {
           Logger.info(`Keeping keybind for spell ${spellId} (${keybind.spell?.name})`);
         }
 
-        return isValid;
+        return isValid ? [keybind] : [];
       });
       Logger.info(`Filtered keybinds count: ${updatedKeybinds.length}`);
 
@@ -1365,20 +1437,25 @@ export const migrateKeybindingsToLatestVersion = async (req, res, next) => {
         const validSpellIds = new Set(validAbilities.map(ability => ability.spell_id));
 
         // Filter out keybinds for abilities that don't exist in the latest version
-        const filteredKeybinds = keybinding.keybinds.filter(keybind => {
+        let normalizedTrinket = false;
+        const filteredKeybinds = keybinding.keybinds.flatMap(keybind => {
+          if (isTrinketKeybind(keybind)) {
+            normalizedTrinket = true;
+            return [genericTrinketKeybind(keybind)];
+          }
           const spellId = keybind.spell?.spell_id;
-          const isValid = validSpellIds.has(spellId);
+          const isValid = keybindRemainsOnVersionCopy(keybind, validSpellIds);
 
           if (!isValid) {
             Logger.info(`Removing keybind for spell ${spellId} (${keybind.spell?.name}) from keybinding ${keybinding._id} - not available in version ${latestVersion.game_version}`);
             totalRemovedKeybinds++;
           }
 
-          return isValid;
+          return isValid ? [keybind] : [];
         });
 
         // Update the keybinding if keybinds were removed
-        if (filteredKeybinds.length !== originalKeybindsCount) {
+        if (filteredKeybinds.length !== originalKeybindsCount || normalizedTrinket) {
           keybinding.keybinds = filteredKeybinds;
           hasChanges = true;
 
@@ -1622,8 +1699,14 @@ export const copyKeybindingToVersion = async (req, res, next) => {
     const validKeybinds = [];
 
     for (const kb of originalData.keybinds) {
-      if (kb.spell?.spell_id && validSpellIds.has(kb.spell.spell_id)) {
-        // Ability exists in target version - keep it
+      if (isTrinketKeybind(kb)) {
+        validKeybinds.push(genericTrinketKeybind(kb));
+        continue;
+      }
+      if (keybindRemainsOnVersionCopy(kb, validSpellIds)) {
+        const macro = isMacroKeybind(kb);
+        const macroIdFromSpell = String(kb.spell?.spell_id || '').replace(/^macro:/i, '');
+        // Ability exists in target version, or this bind is a macro.
         validKeybinds.push({
           key: kb.key,
           spell: {
@@ -1633,9 +1716,11 @@ export const copyKeybindingToVersion = async (req, res, next) => {
             spell_id: kb.spell.spell_id,
             source_spell_id: kb.spell.source_spell_id || kb.spell.sourceSpellId || null,
             source_spell_name: kb.spell.source_spell_name || kb.spell.sourceSpellName || null,
-            action_type: kb.spell.action_type || kb.spell.actionType || null,
-            is_macro: kb.spell.is_macro === true || kb.spell.isMacro === true,
-            macro_id: kb.spell.macro_id || kb.spell.macroId || null,
+            action_type: macro ? 'macro' : (kb.spell.action_type || kb.spell.actionType || null),
+            is_macro: macro,
+            macro_id: macro
+              ? (kb.spell.macro_id || kb.spell.macroId || macroIdFromSpell || null)
+              : (kb.spell.macro_id || kb.spell.macroId || null),
             macro_text: kb.spell.macro_text || kb.spell.macroText || null
           },
           bar_id: kb.bar_id ?? null,
